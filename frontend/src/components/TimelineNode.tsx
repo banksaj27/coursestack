@@ -36,7 +36,17 @@ export default function TimelineNode({ week, isLast, isFirst }: TimelineNodeProp
 
       {/* Dot column */}
       <div className="relative flex flex-col items-center w-3.5 shrink-0">
-        <div className="relative z-10 mt-[13px] h-3.5 w-3.5 shrink-0 rounded-full border-2 border-white shadow-sm bg-emerald-500" />
+        <div className="relative z-10 mt-[13px] h-3.5 w-3.5 shrink-0">
+          {week.is_new && (
+            <motion.div
+              className="absolute inset-0 rounded-full bg-emerald-400"
+              initial={{ scale: 1, opacity: 0.6 }}
+              animate={{ scale: 2.2, opacity: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+            />
+          )}
+          <div className="h-full w-full rounded-full border-2 border-white shadow-sm bg-emerald-500" />
+        </div>
       </div>
 
       {/* Card */}
