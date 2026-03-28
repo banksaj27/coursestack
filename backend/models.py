@@ -41,3 +41,53 @@ class PlanResponse(BaseModel):
     agent_message: str
     state: PlanState
     is_complete: bool = False
+
+
+class SyllabusSnapshot(BaseModel):
+    """High-level syllabus JSON (topic, profile, weeks) sent from the frontend."""
+
+    topic: str = ""
+    user_profile: UserProfile = Field(default_factory=UserProfile)
+    course_plan: CoursePlan = Field(default_factory=CoursePlan)
+
+
+class WeekContextSummary(BaseModel):
+    """Short memory of what was generated for another week (keeps tokens bounded)."""
+
+    week: int
+    summary: str = ""
+
+
+class WeekModule(BaseModel):
+    """One ordered block within a week: lecture, project, problem_set, or quiz."""
+
+    id: str = ""
+    kind: str = "lecture"  # lecture | project | problem_set | quiz
+    title: str = ""
+    summary: str = ""
+    body_md: str = ""
+    estimated_minutes: int | None = None
+    is_new: bool = False
+
+
+class WeekModularGenerated(BaseModel):
+    modules: list[WeekModule] = Field(default_factory=list)
+    instructor_notes_md: str = ""
+
+
+class WeekModularState(BaseModel):
+    syllabus: SyllabusSnapshot
+    selected_week: int = 1
+    generated: WeekModularGenerated = Field(default_factory=WeekModularGenerated)
+    conversation_history: list[dict] = Field(default_factory=list)
+    week_summaries: list[WeekContextSummary] = Field(default_factory=list)
+    max_conversation_messages: int | None = None
+    global_format_instructions: str = Field(
+        default="",
+        description="Standing format rules for all weeks.",
+    )
+
+
+class WeekModularRequest(BaseModel):
+    message: str
+    state: WeekModularState

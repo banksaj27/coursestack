@@ -16,6 +16,7 @@ from models import (
     Week,
 )
 from prompts import build_system_prompt
+from week_context_utils import strip_meta_part_labels
 
 _client: AsyncOpenAI | None = None
 
@@ -57,10 +58,10 @@ def _parse_response(raw: str, current_state: PlanState) -> tuple[str, PlanState,
     match = _PLAN_RE.search(raw)
 
     if match:
-        agent_message = raw[: match.start()].strip()
+        agent_message = strip_meta_part_labels(raw[: match.start()].strip())
         plan_json_str = match.group(1)
     else:
-        agent_message = raw.strip()
+        agent_message = strip_meta_part_labels(raw.strip())
         plan_json_str = None
 
     new_state = current_state.model_copy(deep=True)
