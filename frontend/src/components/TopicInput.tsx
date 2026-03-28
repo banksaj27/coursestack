@@ -61,11 +61,11 @@ export default function TopicInput() {
   const [topic, setTopic] = useState("");
   const setTopicAction = useCourseStore((s) => s.setTopic);
 
-  const [suggestions, setSuggestions] = useState(() => ALL_SUGGESTIONS.slice(0, 4));
+  const [suggestions, setSuggestions] = useState(() => ALL_SUGGESTIONS.slice(0, 5));
 
   useEffect(() => {
     const shuffled = [...ALL_SUGGESTIONS].sort(() => Math.random() - 0.5);
-    setSuggestions(shuffled.slice(0, 4));
+    setSuggestions(shuffled.slice(0, 5));
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -109,7 +109,7 @@ export default function TopicInput() {
             type="text"
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
-            placeholder="e.g. Measure-theoretic probability"
+            placeholder={`e.g. ${suggestions[4] ?? "Measure-theoretic probability"}`}
             autoFocus
             className="w-full rounded-lg border border-neutral-300 bg-white px-4 py-3 text-sm
                        text-neutral-900 placeholder-neutral-400 outline-none

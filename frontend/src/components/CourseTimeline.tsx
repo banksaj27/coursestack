@@ -55,8 +55,11 @@ function GeneratingState() {
 export default function CourseTimeline() {
   const weeks = useCourseStore((s) => s.planState.course_plan.weeks);
   const agentStatus = useCourseStore((s) => s.agentStatus);
+  const phase = useCourseStore((s) => s.phase);
+  const finalize = useCourseStore((s) => s.finalize);
   const hasWeeks = weeks.length > 0;
   const isBusy = agentStatus !== "idle";
+  const isDone = phase === "complete";
 
   return (
     <div className="relative flex h-full flex-col bg-white">
@@ -80,6 +83,20 @@ export default function CourseTimeline() {
           </div>
         )}
       </div>
+
+      {hasWeeks && !isDone && (
+        <div className="border-t border-neutral-100 px-8 py-3">
+          <button
+            onClick={finalize}
+            disabled={isBusy}
+            className="w-full rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white
+                       transition-colors hover:bg-neutral-800
+                       disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            Done — Export Syllabus
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -59,6 +59,7 @@ interface CourseStore {
 
   setTopic: (topic: string) => void;
   sendMessage: (text: string) => Promise<void>;
+  finalize: () => void;
   reset: () => void;
 }
 
@@ -142,6 +143,29 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
         }));
       },
     });
+  },
+
+  finalize: () => {
+    const { planState } = get();
+    const exportData = {
+      topic: planState.topic,
+      user_profile: planState.user_profile,
+      course_plan: {
+        weeks: planState.course_plan.weeks.map(({ is_new, ...w }) => w),
+      },
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "syllabus.json";
+    a.click();
+    URL.revokeObjectURL(url);
+
+    set({ phase: "complete", isComplete: true });
   },
 
   reset: () => {

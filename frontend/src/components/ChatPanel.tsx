@@ -55,11 +55,13 @@ export default function ChatPanel() {
   const agentStatus = useCourseStore((s) => s.agentStatus);
   const streamingContent = useCourseStore((s) => s.streamingContent);
   const sendMessage = useCourseStore((s) => s.sendMessage);
+  const phase = useCourseStore((s) => s.phase);
 
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const isDone = phase === "complete";
   const isBusy = agentStatus !== "idle";
 
   useEffect(() => {
@@ -127,37 +129,45 @@ export default function ChatPanel() {
         </AnimatePresence>
       </div>
 
-      <div className="border-t border-neutral-100 px-6 py-3">
-        <div className="flex items-end gap-2">
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={handleInput}
-            onKeyDown={handleKeyDown}
-            placeholder={isBusy ? "Thinking..." : "Type your response..."}
-            disabled={isBusy}
-            rows={1}
-            className="flex-1 resize-none rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm
-                       text-neutral-900 placeholder-neutral-400 outline-none
-                       transition-colors focus:border-neutral-400
-                       disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ minHeight: "36px", maxHeight: "120px" }}
-          />
-          <button
-            type="button"
-            onClick={submit}
-            disabled={isBusy || !input.trim()}
-            className="shrink-0 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white
-                       transition-colors hover:bg-neutral-800
-                       disabled:opacity-30 disabled:cursor-not-allowed"
-          >
-            Send
-          </button>
+      {isDone ? (
+        <div className="border-t border-neutral-100 px-6 py-4 text-center">
+          <p className="text-xs text-neutral-400">
+            Course finalized. Syllabus exported.
+          </p>
         </div>
-        <p className="mt-1.5 text-[10px] text-neutral-300">
-          Enter to send, Shift+Enter for new line
-        </p>
-      </div>
+      ) : (
+        <div className="border-t border-neutral-100 px-6 py-3">
+          <div className="flex items-end gap-2">
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={handleInput}
+              onKeyDown={handleKeyDown}
+              placeholder={isBusy ? "Thinking..." : "Type your response..."}
+              disabled={isBusy}
+              rows={1}
+              className="flex-1 resize-none rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm
+                         text-neutral-900 placeholder-neutral-400 outline-none
+                         transition-colors focus:border-neutral-400
+                         disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ minHeight: "36px", maxHeight: "120px" }}
+            />
+            <button
+              type="button"
+              onClick={submit}
+              disabled={isBusy || !input.trim()}
+              className="shrink-0 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white
+                         transition-colors hover:bg-neutral-800
+                         disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              Send
+            </button>
+          </div>
+          <p className="mt-1.5 text-[10px] text-neutral-300">
+            Enter to send, Shift+Enter for new line
+          </p>
+        </div>
+      )}
     </div>
   );
 }
