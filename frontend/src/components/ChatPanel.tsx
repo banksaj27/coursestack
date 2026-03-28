@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCourseStore } from "@/store/useCourseStore";
 import ChatMessage from "./ChatMessage";
+import MarkdownContent from "./MarkdownContent";
 
 function ThinkingIndicator() {
   return (
@@ -38,8 +39,8 @@ function StreamingBubble({ content }: { content: string }) {
       transition={{ duration: 0.1 }}
       className="flex justify-start"
     >
-      <div className="max-w-[85%] rounded-2xl bg-neutral-50 px-4 py-3 text-sm leading-relaxed text-neutral-900 whitespace-pre-wrap">
-        {content}
+      <div className="max-w-[85%] rounded-2xl bg-neutral-50 px-4 py-3 text-neutral-900">
+        <MarkdownContent>{content}</MarkdownContent>
         <motion.span
           animate={{ opacity: [1, 0] }}
           transition={{ duration: 0.6, repeat: Infinity }}
