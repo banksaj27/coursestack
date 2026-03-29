@@ -132,14 +132,14 @@ export default function MyClassesPanel() {
         exit={{ x: "100%" }}
         transition={drawerTransition}
         style={{ willChange: "transform" }}
-        className="fixed -right-16 top-0 z-[61] flex h-full w-[calc(20rem+4rem)] flex-col border-l border-neutral-200 bg-white shadow-xl"
+        className="fixed -right-16 top-0 z-[61] flex h-full w-[calc(20rem+4rem)] flex-col border-l border-neutral-200 bg-white shadow-xl dark:border-neutral-700 dark:bg-neutral-900"
       >
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-neutral-200 px-5 pr-[calc(1.25rem+4rem)] py-4">
+        <div className="flex shrink-0 items-center justify-between border-b border-neutral-200 px-5 pr-[calc(1.25rem+4rem)] py-4 dark:border-neutral-700">
           <h2 className="text-sm font-semibold text-neutral-900">My Classes</h2>
           <button
             onClick={closeDrawer}
-            className="rounded p-1 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600"
+            className="rounded p-1 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
           >
             <svg
               width="16"
@@ -179,8 +179,8 @@ export default function MyClassesPanel() {
               }}
               className={`group mb-1.5 flex h-20 w-full cursor-pointer items-center rounded-lg px-3.5 py-0 text-left transition-colors ${
                 course.id === activeCourseId
-                  ? "bg-neutral-100 ring-1 ring-neutral-200"
-                  : "hover:bg-neutral-50"
+                  ? "bg-neutral-100 ring-1 ring-neutral-200 dark:bg-neutral-800 dark:ring-neutral-600"
+                  : "hover:bg-neutral-50 dark:hover:bg-neutral-800"
               }`}
             >
               <div className="flex min-h-0 min-w-0 flex-1 items-center justify-between gap-2">

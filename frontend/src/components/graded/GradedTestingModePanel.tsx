@@ -88,10 +88,10 @@ function QuestionInteraction({
           onChange={(e) => onChange(e.target.value)}
           placeholder={readOnly ? "" : "Type your answer…"}
           rows={5}
-          className={`w-full resize-y rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-300 ${
+          className={`w-full resize-y rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-300 dark:border-neutral-600 dark:text-neutral-100 dark:placeholder:text-neutral-500 ${
             readOnly
-              ? "cursor-default bg-neutral-100/90 text-neutral-800"
-              : "bg-neutral-50/50"
+              ? "cursor-default bg-neutral-100/90 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200"
+              : "bg-neutral-50/50 dark:bg-neutral-950"
           }`}
         />
       </div>
@@ -116,8 +116,8 @@ function QuestionInteraction({
                 key={opt}
                 className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
                   selected
-                    ? "border-emerald-400 bg-emerald-50/90 text-emerald-950"
-                    : "border-neutral-100 bg-neutral-50/50 text-neutral-400"
+                    ? "border-emerald-400 bg-emerald-50/90 text-emerald-950 dark:border-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-100"
+                    : "border-neutral-100 bg-neutral-50/50 text-neutral-400 dark:border-neutral-700 dark:bg-neutral-800/50 dark:text-neutral-500"
                 }`}
               >
                 {selected ? (
@@ -140,8 +140,8 @@ function QuestionInteraction({
               onClick={() => onChange(opt)}
               className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
                 selected
-                  ? "border-neutral-900 bg-neutral-900 text-white"
-                  : "border-neutral-200 bg-white text-neutral-900 hover:border-neutral-400 hover:bg-neutral-50"
+                  ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-900"
+                  : "border-neutral-200 bg-white text-neutral-900 hover:border-neutral-400 hover:bg-neutral-50 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:border-neutral-500 dark:hover:bg-neutral-700"
               }`}
             >
               <span
@@ -179,8 +179,8 @@ function QuestionInteraction({
               key={o.id}
               className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-sm ${
                 selected
-                  ? "border-emerald-400 bg-emerald-50/90 text-emerald-950"
-                  : "border-neutral-100 bg-neutral-50/50 text-neutral-400"
+                  ? "border-emerald-400 bg-emerald-50/90 text-emerald-950 dark:border-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-100"
+                  : "border-neutral-100 bg-neutral-50/50 text-neutral-400 dark:border-neutral-700 dark:bg-neutral-800/50 dark:text-neutral-500"
               }`}
             >
               {selected ? (
@@ -214,8 +214,8 @@ function QuestionInteraction({
             onClick={() => onChange(o.id)}
             className={`flex w-full items-start gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
               selected
-                ? "border-neutral-900 bg-neutral-900 text-white"
-                : "border-neutral-200 bg-white text-neutral-900 hover:border-neutral-400 hover:bg-neutral-50"
+                ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-900"
+                : "border-neutral-200 bg-white text-neutral-900 hover:border-neutral-400 hover:bg-neutral-50 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:border-neutral-500 dark:hover:bg-neutral-700"
             }`}
           >
             <span

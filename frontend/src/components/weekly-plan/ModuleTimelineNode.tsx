@@ -23,31 +23,36 @@ const KIND_META: Record<
   lecture: {
     label: "Lecture",
     dot: "bg-emerald-500",
-    badge: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    badge:
+      "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200",
     pulse: "bg-emerald-400",
   },
   project: {
     label: "Project",
     dot: "bg-violet-500",
-    badge: "bg-violet-50 text-violet-900 border-violet-200",
+    badge:
+      "border-violet-200 bg-violet-50 text-violet-900 dark:border-violet-800 dark:bg-violet-950 dark:text-violet-200",
     pulse: "bg-violet-400",
   },
   problem_set: {
     label: "Problem set",
     dot: "bg-amber-500",
-    badge: "bg-amber-50 text-amber-900 border-amber-200",
+    badge:
+      "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200",
     pulse: "bg-amber-400",
   },
   quiz: {
     label: "Quiz",
     dot: "bg-sky-500",
-    badge: "bg-sky-50 text-sky-900 border-sky-200",
+    badge:
+      "border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-200",
     pulse: "bg-sky-400",
   },
   exam: {
     label: "Exam",
     dot: "bg-rose-500",
-    badge: "bg-rose-50 text-rose-900 border-rose-200",
+    badge:
+      "border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-200",
     pulse: "bg-rose-400",
   },
 };
@@ -101,7 +106,7 @@ export default function ModuleTimelineNode({
     >
       {!onlyNode && (
         <div
-          className="absolute w-px bg-neutral-200"
+          className="absolute w-px bg-neutral-200 dark:bg-neutral-600"
           style={{
             left: "7px",
             top: isFirst ? "20px" : "0px",
@@ -125,7 +130,7 @@ export default function ModuleTimelineNode({
             />
           )}
           <div
-            className={`h-full w-full rounded-full border-2 border-white shadow-sm ${
+            className={`h-full w-full rounded-full border-2 border-white shadow-sm dark:border-neutral-800 ${
               isDone ? "bg-neutral-400" : meta.dot
             }`}
           />
@@ -135,10 +140,10 @@ export default function ModuleTimelineNode({
       <div
         className={`flex-1 cursor-pointer rounded-xl border ${
           highlight
-            ? "border-indigo-300 bg-indigo-50/50"
+            ? "border-indigo-300 bg-indigo-50/50 dark:border-indigo-600 dark:bg-indigo-950/50"
             : isDone
-              ? "border-neutral-200 bg-neutral-100/70"
-              : "border-neutral-200 bg-white"
+              ? "border-neutral-200 bg-neutral-100/70 dark:border-neutral-600 dark:bg-neutral-800/80"
+              : "border-neutral-200 bg-white dark:border-neutral-600 dark:bg-neutral-800"
         }`}
         style={{
           transition: highlight
@@ -153,7 +158,7 @@ export default function ModuleTimelineNode({
               <span
                 className={`${MODULE_KIND_PILL_LAYOUT} uppercase ${
                   isDone
-                    ? "border-neutral-300 bg-neutral-200/80 text-neutral-600"
+                    ? "border-neutral-300 bg-neutral-200/80 text-neutral-600 dark:border-neutral-600 dark:bg-neutral-700/80 dark:text-neutral-300"
                     : meta.badge
                 }`}
               >
@@ -175,13 +180,13 @@ export default function ModuleTimelineNode({
               ) : null}
             </div>
             <h3
-              className={`truncate text-[13px] font-semibold ${isDone ? "text-neutral-500" : "text-neutral-900"}`}
+              className={`truncate text-[13px] font-semibold ${isDone ? "text-neutral-500 dark:text-neutral-400" : "text-neutral-900 dark:text-neutral-100"}`}
             >
               {mod.title}
             </h3>
             {mod.one_line_summary?.trim() ? (
               <p
-                className="mt-0.5 line-clamp-1 text-[11px] leading-snug text-neutral-500"
+                className="mt-0.5 line-clamp-1 text-[11px] leading-snug text-neutral-500 dark:text-neutral-400"
                 title={mod.one_line_summary}
               >
                 {mod.one_line_summary.trim()}
@@ -194,7 +199,7 @@ export default function ModuleTimelineNode({
                 className={
                   isDone
                     ? "mt-1.5 inline-block text-[11px] font-medium text-neutral-500 underline decoration-neutral-300 underline-offset-2 hover:text-neutral-700"
-                    : "mt-1.5 inline-block text-[11px] font-medium text-emerald-700 underline decoration-emerald-200 underline-offset-2 hover:text-emerald-900"
+                    : "mt-1.5 inline-block text-[11px] font-medium text-emerald-700 underline decoration-emerald-200 underline-offset-2 hover:text-emerald-900 dark:text-emerald-400 dark:decoration-emerald-700 dark:hover:text-emerald-300"
                 }
               >
                 Open lecture workspace →
@@ -207,7 +212,7 @@ export default function ModuleTimelineNode({
                 className={
                   isDone
                     ? "mt-1.5 inline-block text-[11px] font-medium text-neutral-500 underline decoration-neutral-300 underline-offset-2 hover:text-neutral-700"
-                    : "mt-1.5 inline-block text-[11px] font-medium text-amber-800 underline decoration-amber-200 underline-offset-2 hover:text-amber-950"
+                    : "mt-1.5 inline-block text-[11px] font-medium text-amber-800 underline decoration-amber-200 underline-offset-2 hover:text-amber-950 dark:text-amber-300 dark:decoration-amber-700 dark:hover:text-amber-200"
                 }
               >
                 Open problem set workspace →
@@ -220,7 +225,7 @@ export default function ModuleTimelineNode({
                 className={
                   isDone
                     ? "mt-1.5 inline-block text-[11px] font-medium text-neutral-500 underline decoration-neutral-300 underline-offset-2 hover:text-neutral-700"
-                    : "mt-1.5 inline-block text-[11px] font-medium text-sky-800 underline decoration-sky-200 underline-offset-2 hover:text-sky-950"
+                    : "mt-1.5 inline-block text-[11px] font-medium text-sky-800 underline decoration-sky-200 underline-offset-2 hover:text-sky-950 dark:text-sky-400 dark:decoration-sky-700 dark:hover:text-sky-300"
                 }
               >
                 Open quiz workspace →
@@ -233,7 +238,7 @@ export default function ModuleTimelineNode({
                 className={
                   isDone
                     ? "mt-1.5 inline-block text-[11px] font-medium text-neutral-500 underline decoration-neutral-300 underline-offset-2 hover:text-neutral-700"
-                    : "mt-1.5 inline-block text-[11px] font-medium text-violet-800 underline decoration-violet-200 underline-offset-2 hover:text-violet-950"
+                    : "mt-1.5 inline-block text-[11px] font-medium text-violet-800 underline decoration-violet-200 underline-offset-2 hover:text-violet-950 dark:text-violet-400 dark:decoration-violet-700 dark:hover:text-violet-300"
                 }
               >
                 Open project workspace →
@@ -246,7 +251,7 @@ export default function ModuleTimelineNode({
                 className={
                   isDone
                     ? "mt-1.5 inline-block text-[11px] font-medium text-neutral-500 underline decoration-neutral-300 underline-offset-2 hover:text-neutral-700"
-                    : "mt-1.5 inline-block text-[11px] font-medium text-rose-800 underline decoration-rose-200 underline-offset-2 hover:text-rose-950"
+                    : "mt-1.5 inline-block text-[11px] font-medium text-rose-800 underline decoration-rose-200 underline-offset-2 hover:text-rose-950 dark:text-rose-400 dark:decoration-rose-700 dark:hover:text-rose-300"
                 }
               >
                 Open exam workspace →
@@ -257,14 +262,14 @@ export default function ModuleTimelineNode({
             <div className="flex flex-col items-end gap-1">
               {mod.kind === "lecture" && progress.lectureComplete ? (
                 <span
-                  className={`${MODULE_KIND_PILL_LAYOUT} uppercase border-emerald-200 bg-emerald-50/90 text-emerald-900`}
+                  className={`${MODULE_KIND_PILL_LAYOUT} uppercase border-emerald-200 bg-emerald-50/90 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-200`}
                 >
                   ✓ Done
                 </span>
               ) : null}
               {graded && progress.graded ? (
                 <span
-                  className={`${MODULE_KIND_PILL_LAYOUT} border-emerald-200 bg-emerald-50/90 text-emerald-900`}
+                  className={`${MODULE_KIND_PILL_LAYOUT} border-emerald-200 bg-emerald-50/90 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-200`}
                 >
                   ✓ {progress.graded.score}/{progress.graded.maxScore}
                 </span>
@@ -273,7 +278,7 @@ export default function ModuleTimelineNode({
             <motion.svg
               animate={{ rotate: expanded ? 180 : 0 }}
               transition={{ duration: 0.15 }}
-              className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${isDone ? "text-neutral-300" : "text-neutral-400"}`}
+              className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${isDone ? "text-neutral-300 dark:text-neutral-600" : "text-neutral-400 dark:text-neutral-500"}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -298,7 +303,7 @@ export default function ModuleTimelineNode({
               className="overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="border-t border-neutral-100 px-4 py-3">
+              <div className="border-t border-neutral-100 px-4 py-3 dark:border-neutral-700">
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">
                   Summary
                 </p>
@@ -307,7 +312,11 @@ export default function ModuleTimelineNode({
                     <MarkdownMath
                       source={mod.summary}
                       variant="light"
-                      className={isDone ? "text-neutral-500" : "text-neutral-700"}
+                      className={
+                        isDone
+                          ? "text-neutral-500 dark:text-neutral-400"
+                          : "text-neutral-700 dark:text-neutral-300"
+                      }
                     />
                   </div>
                 ) : (

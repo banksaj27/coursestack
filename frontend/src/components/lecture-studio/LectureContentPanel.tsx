@@ -30,7 +30,7 @@ function previewKey(moduleId: string, bodyMd: string): string {
 
 /** Matches `MarkdownMath` boxed `##` (lecture notes) — used only for manual PS section titles. */
 const PROBLEM_SET_SECTION_TITLE_CLASS =
-  "mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-base font-semibold tracking-tight text-emerald-900 shadow-sm";
+  "mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-base font-semibold tracking-tight text-emerald-900 shadow-sm dark:border-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-100";
 
 const EMPTY_BODY: Record<WorkspaceKind, string> = {
   lecture:
@@ -118,17 +118,19 @@ function NeighborCard({
     return (
       <Link
         href={link.href}
-        className={`flex rounded-lg border border-neutral-200 bg-neutral-50/80 px-3 py-2 transition-colors hover:border-neutral-300 hover:bg-neutral-100/80 ${layout}`}
+        className={`flex rounded-lg border border-neutral-200 bg-neutral-50/80 px-3 py-2 transition-colors hover:border-neutral-300 hover:bg-neutral-100/80 dark:border-neutral-600 dark:bg-neutral-800/90 dark:hover:border-neutral-500 dark:hover:bg-neutral-700 ${layout}`}
       >
         <span
           className={`w-full text-[10px] font-semibold uppercase tracking-wider text-neutral-400 ${align}`}
         >
           {side === "prev" ? "Previous" : "Next"}
         </span>
-        <span className={`w-full truncate text-sm font-medium text-neutral-900 ${align}`}>
+        <span
+          className={`w-full truncate text-sm font-medium text-neutral-900 dark:text-neutral-100 ${align}`}
+        >
           {link.title}
         </span>
-        <span className={`w-full text-[11px] text-neutral-500 ${align}`}>
+        <span className={`w-full text-[11px] text-neutral-500 dark:text-neutral-400 ${align}`}>
           {link.kindLabel}
         </span>
       </Link>
@@ -136,7 +138,7 @@ function NeighborCard({
   }
   return (
     <div
-      className={`flex rounded-lg border border-dashed border-neutral-200 bg-neutral-50/40 px-3 py-2 opacity-60 ${layout}`}
+      className={`flex rounded-lg border border-dashed border-neutral-200 bg-neutral-50/40 px-3 py-2 opacity-60 dark:border-neutral-600 dark:bg-neutral-800/40 ${layout}`}
     >
       <span
         className={`w-full text-[10px] font-semibold uppercase tracking-wider text-neutral-400 ${align}`}
@@ -170,7 +172,7 @@ export default function LectureContentPanel({
 
   if (!module) {
     return (
-      <div className="flex h-full items-center justify-center bg-white px-8">
+      <div className="flex h-full items-center justify-center bg-white px-8 dark:bg-neutral-900">
         <p className="text-center text-sm text-neutral-500">
           No module loaded.
         </p>
@@ -191,18 +193,18 @@ export default function LectureContentPanel({
       : "";
 
   return (
-    <div className="flex h-full min-w-0 flex-col bg-white">
-      <div className="shrink-0 border-b border-neutral-100 px-8 py-3">
-        <h2 className="text-sm font-semibold text-neutral-900 truncate">
+    <div className="flex h-full min-w-0 flex-col bg-white dark:bg-neutral-900">
+      <div className="shrink-0 border-b border-neutral-100 px-8 py-3 dark:border-neutral-800">
+        <h2 className="text-sm font-semibold text-neutral-900 truncate dark:text-neutral-100">
           {module.title}
         </h2>
       </div>
 
-      <div className="shrink-0 border-b border-neutral-100 px-8 py-3">
+      <div className="shrink-0 border-b border-neutral-100 px-8 py-3 dark:border-neutral-800">
         <div className="flex flex-col gap-2">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-              <span className="rounded border border-neutral-200 bg-neutral-50 px-2 py-0.5 text-xs font-semibold text-neutral-700">
+              <span className="rounded border border-neutral-200 bg-neutral-50 px-2 py-0.5 text-xs font-semibold text-neutral-700 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200">
                 {kindLabel}
               </span>
               <span className="text-xs text-neutral-500">Week {week}</span>
@@ -269,7 +271,7 @@ export default function LectureContentPanel({
                       <button
                         type="button"
                         onClick={problemSetBar.onToggleAnswerKey}
-                        className="rounded-xl border-2 border-neutral-300 bg-white px-5 py-2 text-sm font-semibold text-neutral-900 shadow-sm transition-colors hover:bg-neutral-50"
+                        className="rounded-xl border-2 border-neutral-300 bg-white px-5 py-2 text-sm font-semibold text-neutral-900 shadow-sm transition-colors hover:bg-neutral-50 dark:border-neutral-500 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700"
                       >
                         {problemSetBar.showAnswerKey ? "Hide answer key" : "Show answer key"}
                       </button>
@@ -281,7 +283,7 @@ export default function LectureContentPanel({
                         problemSetBar.grading ||
                         !problemSetBar.canSubmitPdf
                       }
-                      className="rounded-xl border-2 border-neutral-800 bg-neutral-900 px-5 py-2 text-sm font-semibold tracking-wide text-white shadow-sm transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="rounded-xl border-2 border-neutral-800 bg-neutral-900 px-5 py-2 text-sm font-semibold tracking-wide text-white shadow-sm transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40 dark:border-neutral-200 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-white"
                     >
                       {problemSetBar.hasGradedAttempt
                         ? "Re-submit PDF"
@@ -302,7 +304,7 @@ export default function LectureContentPanel({
                         <button
                           type="button"
                           onClick={gradedWorkspaceBar.onViewAnswers}
-                          className="rounded-xl border-2 border-neutral-300 bg-white px-5 py-2 text-sm font-semibold text-neutral-900 shadow-sm transition-colors hover:bg-neutral-50"
+                          className="rounded-xl border-2 border-neutral-300 bg-white px-5 py-2 text-sm font-semibold text-neutral-900 shadow-sm transition-colors hover:bg-neutral-50 dark:border-neutral-500 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700"
                         >
                           View answers
                         </button>
@@ -321,7 +323,7 @@ export default function LectureContentPanel({
                     <button
                       type="button"
                       onClick={gradedWorkspaceBar.onBeginTesting}
-                      className="rounded-xl border-2 border-neutral-800 bg-neutral-900 px-5 py-2 text-sm font-semibold tracking-wide text-white shadow-sm transition-colors hover:bg-neutral-800"
+                      className="rounded-xl border-2 border-neutral-800 bg-neutral-900 px-5 py-2 text-sm font-semibold tracking-wide text-white shadow-sm transition-colors hover:bg-neutral-800 dark:border-neutral-200 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-white"
                     >
                       Begin Testing
                     </button>
@@ -374,7 +376,7 @@ export default function LectureContentPanel({
         {workspace === "problem_set" &&
         problemSetBar?.feedbackMd &&
         problemSetBar.feedbackMd.trim().length > 0 ? (
-          <div className="mb-6 max-w-3xl border-b border-neutral-100 pb-6">
+          <div className="mb-6 max-w-3xl border-b border-neutral-100 pb-6 dark:border-neutral-800">
             <h2 className={PROBLEM_SET_SECTION_TITLE_CLASS}>Grading Feedback</h2>
             <MarkdownMath
               key={`${module.id}-feedback`}
@@ -413,7 +415,7 @@ export default function LectureContentPanel({
         {workspace === "problem_set" &&
         problemSetBar?.showAnswerKey &&
         displaySolutionMd.trim().length > 0 ? (
-          <div className="mt-8 max-w-3xl border-t border-neutral-100 pt-6">
+          <div className="mt-8 max-w-3xl border-t border-neutral-100 pt-6 dark:border-neutral-800">
             <h2 className={PROBLEM_SET_SECTION_TITLE_CLASS}>Answer Key</h2>
             <MarkdownMath
               key={previewKey(`${module.id}-sol`, displaySolutionMd)}
@@ -451,14 +453,14 @@ export default function LectureContentPanel({
 
         {problemSetGenerating && workspace === "problem_set" ? (
           <div
-            className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center bg-white/75 px-6 backdrop-blur-[1px]"
+            className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center bg-white/75 px-6 backdrop-blur-[1px] dark:bg-neutral-950/85"
             aria-live="polite"
           >
-            <div className="max-w-md rounded-xl border border-neutral-200 bg-white px-5 py-4 shadow-sm">
+            <div className="max-w-md rounded-xl border border-neutral-200 bg-white px-5 py-4 shadow-sm dark:border-neutral-600 dark:bg-neutral-800">
               <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
                 Building problem set
               </p>
-              <p className="mt-2 text-sm font-medium text-neutral-900">
+              <p className="mt-2 text-sm font-medium text-neutral-900 dark:text-neutral-100">
                 {problemSetProgress?.label ?? "Working…"}
               </p>
               {problemSetProgress &&
@@ -484,14 +486,14 @@ export default function LectureContentPanel({
 
         {workspace === "problem_set" && problemSetBar?.grading ? (
           <div
-            className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center bg-white/75 px-6 backdrop-blur-[1px]"
+            className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center bg-white/75 px-6 backdrop-blur-[1px] dark:bg-neutral-950/85"
             aria-live="polite"
           >
-            <div className="max-w-md rounded-xl border border-neutral-200 bg-white px-5 py-4 shadow-sm">
+            <div className="max-w-md rounded-xl border border-neutral-200 bg-white px-5 py-4 shadow-sm dark:border-neutral-600 dark:bg-neutral-800">
               <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
                 Grading your PDF
               </p>
-              <p className="mt-2 text-sm text-neutral-600">
+              <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
                 Comparing your work to the assignment and answer key…
               </p>
             </div>
@@ -500,8 +502,8 @@ export default function LectureContentPanel({
       </div>
 
       {moduleNeighbors ? (
-        <div className="shrink-0 border-t border-neutral-100 bg-white px-8 py-3">
-          <div className="flex w-full max-w-3xl flex-wrap items-stretch gap-3">
+        <div className="shrink-0 border-t border-neutral-100 bg-white px-8 py-3 dark:border-neutral-800 dark:bg-neutral-950">
+          <div className="flex w-full max-w-3xl flex-wrap items-stretch justify-between gap-3">
             <NeighborCard
               side="prev"
               link={moduleNeighbors.prev}

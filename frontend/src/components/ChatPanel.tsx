@@ -187,14 +187,14 @@ export default function ChatPanel() {
       onDrop={handleDrop}
     >
       {dragging && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/80 border-2 border-dashed border-indigo-300 rounded-lg m-2">
-          <p className="text-sm text-indigo-400 font-medium">
+        <div className="absolute inset-0 z-50 m-2 flex items-center justify-center rounded-lg border-2 border-dashed border-indigo-300 bg-white/80 dark:border-indigo-500/50 dark:bg-neutral-900/90">
+          <p className="text-sm font-medium text-indigo-400 dark:text-indigo-300">
             Drop PDF or image here
           </p>
         </div>
       )}
-      <div className="flex shrink-0 items-center border-b border-neutral-100 px-8 py-3">
-        <h2 className="text-sm font-semibold text-neutral-900">
+      <div className="flex shrink-0 items-center border-b border-neutral-100 bg-white px-8 py-3 dark:border-neutral-800 dark:bg-neutral-900">
+        <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
           Conversation
         </h2>
       </div>
@@ -221,13 +221,13 @@ export default function ChatPanel() {
       </div>
 
       {isDone ? (
-        <div className="border-t border-neutral-100 px-8 py-4 text-center">
+        <div className="border-t border-neutral-100 bg-white px-8 py-4 text-center dark:border-neutral-800 dark:bg-neutral-900">
           <p className="text-xs text-neutral-400">
             Course finalized.
           </p>
         </div>
       ) : (
-        <div className="border-t border-neutral-100 px-8 py-3">
+        <div className="border-t border-neutral-100 bg-white px-8 py-3 dark:border-neutral-800 dark:bg-neutral-900">
           <input
             ref={fileInputRef}
             type="file"
@@ -286,9 +286,10 @@ export default function ChatPanel() {
               disabled={isBusy}
               rows={1}
               className="flex-1 resize-none rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm
-                         text-neutral-900 placeholder-neutral-400 outline-none
+                         text-neutral-900 outline-none placeholder:text-neutral-400
                          transition-colors focus:border-neutral-400
-                         disabled:opacity-50 disabled:cursor-not-allowed"
+                         disabled:cursor-not-allowed disabled:opacity-50
+                         dark:border-neutral-600 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
               style={{ minHeight: "36px", maxHeight: "120px" }}
             />
             <button
@@ -297,7 +298,8 @@ export default function ChatPanel() {
               disabled={isBusy || !input.trim()}
               className="shrink-0 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white
                          transition-colors hover:bg-neutral-800
-                         disabled:opacity-30 disabled:cursor-not-allowed"
+                         disabled:cursor-not-allowed disabled:opacity-30
+                         dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-white"
             >
               Send
             </button>

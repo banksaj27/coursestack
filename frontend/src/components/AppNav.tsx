@@ -6,12 +6,14 @@ import { AnimatePresence } from "framer-motion";
 import { getCourseworkDestinationHref } from "@/lib/courseworkNavigation";
 import { useClassesStore } from "@/store/useClassesStore";
 import MyClassesPanel from "./MyClassesPanel";
+import ThemeToggleButton from "./ThemeToggleButton";
 
 const btn =
   "cursor-pointer rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors sm:px-3 sm:text-sm";
-const active = "bg-neutral-100 text-neutral-900";
+const active =
+  "bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100";
 const idle =
-  "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900";
+  "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100";
 
 function isModuleWorkspacePath(path: string): boolean {
   return /^\/(lecture|problem-set|quiz|project|exam)\//.test(path);
@@ -49,6 +51,7 @@ export default function AppNav() {
 
   const isHome = pathname === "/";
   const onAboutPage = pathname.startsWith("/about");
+  const onSettingsPage = pathname.startsWith("/settings");
   /** Course tabs only on syllabus / weekly / coursework routes — not home or About. */
   const showCourseNav = !isHome && !onAboutPage;
   const onCoursework = isModuleWorkspacePath(pathname);
@@ -58,7 +61,7 @@ export default function AppNav() {
   return (
     <>
       <header
-        className="sticky top-0 z-50 flex shrink-0 items-center border-b border-neutral-200 bg-white px-2 py-1.5 sm:px-4 sm:py-1"
+        className="sticky top-0 z-50 flex shrink-0 items-center border-b border-neutral-200 bg-white px-2 py-1.5 dark:border-neutral-800 dark:bg-neutral-950 sm:px-4 sm:py-1"
         role="navigation"
         aria-label="Main"
       >
@@ -79,7 +82,7 @@ export default function AppNav() {
             />
           </button>
           <div className="flex min-w-0 flex-wrap items-center gap-1 sm:gap-2">
-            {(isHome || onAboutPage) && (
+            {(isHome || onAboutPage || onSettingsPage) && (
               <button
                 type="button"
                 onClick={goAbout}
@@ -122,13 +125,14 @@ export default function AppNav() {
           <button
             type="button"
             onClick={goHome}
-            className="cursor-pointer whitespace-nowrap text-sm font-semibold text-neutral-900"
+            className="cursor-pointer whitespace-nowrap text-sm font-semibold text-neutral-900 dark:text-neutral-100"
           >
             CourseStack
           </button>
         </div>
 
         <div className="flex min-w-0 flex-1 items-center justify-end gap-1 sm:gap-2">
+          <ThemeToggleButton />
           <button
             type="button"
             onClick={toggleDrawer}

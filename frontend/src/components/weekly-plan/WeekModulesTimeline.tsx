@@ -52,7 +52,7 @@ export default function WeekModulesTimeline() {
   const busy = agentStatus !== "idle";
   const hasModules = modules.length > 0;
   return (
-    <div className="relative flex h-full flex-col bg-white">
+    <div className="relative flex h-full flex-col bg-white dark:bg-neutral-900">
       <ModularStatusBar />
 
       <div className="flex-1 overflow-y-auto px-8 py-5">
@@ -77,7 +77,7 @@ export default function WeekModulesTimeline() {
               <motion.div
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-6 rounded-xl border border-neutral-200 bg-neutral-50/80 px-4 py-3"
+                className="mt-6 rounded-xl border border-neutral-200 bg-neutral-50/80 px-4 py-3 dark:border-neutral-700 dark:bg-neutral-800/80"
               >
                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
                   Summary

@@ -21,7 +21,7 @@ export default function WeeklyPlanPage() {
   }, []);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-neutral-50/50">
+    <div className="flex h-screen flex-col overflow-hidden bg-neutral-50/50 dark:bg-neutral-950">
       <AppNav />
       {hasCourse ? (
         <motion.div
@@ -30,7 +30,7 @@ export default function WeeklyPlanPage() {
           transition={{ duration: 0.2 }}
           className="flex min-h-0 flex-1"
         >
-          <div className="w-[42%] border-r border-neutral-100 bg-white">
+          <div className="w-[42%] border-r border-neutral-100 bg-white dark:bg-neutral-900">
             <WeekModularChatPanel />
           </div>
           <div className="w-[58%] min-w-0">

@@ -102,7 +102,7 @@ export default function TopicInput() {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.25 }}
-      className="flex h-full min-h-0 items-center justify-center bg-white"
+      className="flex h-full min-h-0 items-center justify-center bg-white dark:bg-neutral-900"
     >
       <div className="w-full max-w-lg px-8">
         <motion.div
@@ -134,7 +134,8 @@ export default function TopicInput() {
             autoFocus
             className="w-full rounded-lg border border-neutral-300 bg-white px-4 py-3 text-sm
                        text-neutral-900 placeholder-neutral-400 outline-none
-                       transition-colors focus:border-neutral-500"
+                       transition-colors focus:border-neutral-500
+                       dark:border-neutral-600 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
           />
 
           <button
@@ -142,7 +143,8 @@ export default function TopicInput() {
             disabled={!topic.trim()}
             className="mt-3 w-full rounded-lg bg-neutral-900 py-3 text-sm font-medium text-white
                        transition-colors hover:bg-neutral-800
-                       disabled:opacity-30 disabled:cursor-not-allowed"
+                       disabled:opacity-30 disabled:cursor-not-allowed
+                       dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-white"
           >
             Start
           </button>

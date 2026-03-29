@@ -40,7 +40,7 @@ export default function TimelineNode({ week, isLast, isFirst }: TimelineNodeProp
       {/* Single continuous line — placed on the outer div so it spans through pb-4 padding */}
       {!onlyNode && (
         <div
-          className="absolute w-px bg-neutral-200"
+          className="absolute w-px bg-neutral-200 dark:bg-neutral-600"
           style={{
             left: "7px",
             top: isFirst ? "20px" : "0px",
@@ -62,8 +62,12 @@ export default function TimelineNode({ week, isLast, isFirst }: TimelineNodeProp
             />
           )}
           <div
-            className={`h-full w-full rounded-full border-2 border-white shadow-sm ${
-              weekAllDone ? "bg-neutral-400" : "bg-emerald-500"
+            className={`h-full w-full rounded-full border-2 border-white shadow-sm dark:border-neutral-800 ${
+              weekAllDone
+                ? "bg-neutral-400"
+                : isExamWeek
+                  ? "bg-rose-500"
+                  : "bg-emerald-500"
             }`}
           />
         </div>
@@ -71,12 +75,14 @@ export default function TimelineNode({ week, isLast, isFirst }: TimelineNodeProp
 
       {/* Card */}
       <div
-        className={`flex-1 rounded-xl border cursor-pointer ${
+        className={`flex-1 cursor-pointer rounded-xl border ${
           highlight
-            ? "border-indigo-300 bg-indigo-50/50"
+            ? "border-indigo-300 bg-indigo-50/50 dark:border-indigo-600 dark:bg-indigo-950/50"
             : weekAllDone
-              ? "border-neutral-200 bg-neutral-100/70"
-              : "border-neutral-200 bg-white"
+              ? "border-neutral-200 bg-neutral-100/70 dark:border-neutral-600 dark:bg-neutral-800/80"
+              : isExamWeek
+                ? "border-rose-200 bg-rose-50/40 dark:border-rose-800 dark:bg-rose-950/40"
+                : "border-neutral-200 bg-white dark:border-neutral-600 dark:bg-neutral-800"
         }`}
         style={{
           transition: highlight ? "none" : "background-color 600ms ease, border-color 600ms ease",
@@ -94,8 +100,10 @@ export default function TimelineNode({ week, isLast, isFirst }: TimelineNodeProp
               Week {week.week}
             </span>
             <h3
-              className={`text-[13px] font-semibold truncate ${
-                weekAllDone && !highlight ? "text-neutral-600" : "text-neutral-900"
+              className={`truncate text-[13px] font-semibold ${
+                weekAllDone && !highlight
+                  ? "text-neutral-600 dark:text-neutral-400"
+                  : "text-neutral-900 dark:text-neutral-100"
               }`}
             >
               {week.title}
@@ -104,24 +112,24 @@ export default function TimelineNode({ week, isLast, isFirst }: TimelineNodeProp
           <div className="flex items-center gap-2 shrink-0">
             {week.assessment && (
               <span
-                className={`text-[10px] font-medium uppercase tracking-wider rounded px-1.5 py-px ${
+                className={`rounded px-1.5 py-px text-[10px] font-medium uppercase tracking-wider ${
                   isExamWeek
-                    ? "border border-neutral-200 bg-neutral-50 text-neutral-600"
-                    : "border border-neutral-200 text-neutral-500"
+                    ? "border border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-200"
+                    : "border border-neutral-200 text-neutral-500 dark:border-neutral-600 dark:text-neutral-400"
                 }`}
               >
                 {week.assessment === "midterm" ? "Midterm" : "Final"}
               </span>
             )}
             {weekAllDone && (
-              <span className="inline-flex shrink-0 items-center rounded border border-emerald-200 bg-emerald-50/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-900">
+              <span className="inline-flex shrink-0 items-center rounded border border-emerald-200 bg-emerald-50/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-200">
                 ✓ Done
               </span>
             )}
             <motion.svg
               animate={{ rotate: expanded ? 180 : 0 }}
               transition={{ duration: 0.15 }}
-              className="h-3.5 w-3.5 text-neutral-400"
+              className="h-3.5 w-3.5 text-neutral-400 dark:text-neutral-500"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -141,14 +149,14 @@ export default function TimelineNode({ week, isLast, isFirst }: TimelineNodeProp
               transition={{ duration: 0.15 }}
               className="overflow-hidden"
             >
-              <div className="border-t border-neutral-100 px-4 py-2.5">
+              <div className="border-t border-neutral-100 px-4 py-2.5 dark:border-neutral-700">
                 <ul className="space-y-1">
                   {week.topics.map((topic) => (
                     <li
                       key={topic}
-                      className="text-[12px] text-neutral-600 leading-snug flex items-start gap-2"
+                      className="flex items-start gap-2 text-[12px] leading-snug text-neutral-600 dark:text-neutral-400"
                     >
-                      <span className="mt-1.5 h-1 w-1 rounded-full bg-neutral-300 shrink-0" />
+                      <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-neutral-300 dark:bg-neutral-500" />
                       {topic}
                     </li>
                   ))}

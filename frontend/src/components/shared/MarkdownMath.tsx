@@ -30,13 +30,13 @@ function latexAwarePre(
     if (codeClass.includes("language-latex")) {
       return (
         <div
-          className={`${defaultMb} overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50`}
+          className={`${defaultMb} overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50 dark:border-neutral-600 dark:bg-neutral-900`}
         >
-          <p className="border-b border-neutral-100 bg-neutral-100/80 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
+          <p className="border-b border-neutral-100 bg-neutral-100/80 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-500 dark:border-neutral-700 dark:bg-neutral-800/80 dark:text-neutral-400">
             Commutative diagram (LaTeX source)
           </p>
           <pre
-            className="m-0 overflow-x-auto p-3 font-mono text-xs leading-relaxed text-neutral-900"
+            className="m-0 overflow-x-auto p-3 font-mono text-xs leading-relaxed text-neutral-900 dark:text-neutral-100"
             {...props}
           >
             {children}
@@ -126,7 +126,7 @@ const baseComponents: Components = {
     if (isBlock) {
       return (
         <code
-          className={`block overflow-x-auto rounded-lg bg-neutral-100 p-3 font-mono text-xs text-neutral-900 ${className ?? ""}`}
+          className={`block overflow-x-auto rounded-lg border border-neutral-200/80 bg-neutral-100 p-3 font-mono text-xs text-neutral-900 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 ${className ?? ""}`}
           {...props}
         >
           {children}
@@ -135,7 +135,7 @@ const baseComponents: Components = {
     }
     return (
       <code
-        className="rounded bg-neutral-100 px-1 py-0.5 font-mono text-[0.9em] text-neutral-800"
+        className="rounded-md bg-neutral-100 px-1.5 py-px font-mono text-[0.9em] text-neutral-800 ring-1 ring-inset ring-neutral-200/90 dark:bg-neutral-800 dark:text-neutral-100 dark:ring-neutral-600"
         {...props}
       >
         {children}
@@ -144,17 +144,25 @@ const baseComponents: Components = {
   },
   pre: latexAwarePre(
     "mb-3",
-    "overflow-x-auto rounded-lg bg-neutral-100 p-3 text-sm",
+    "overflow-x-auto rounded-lg border border-neutral-200/80 bg-neutral-100 p-3 text-sm text-neutral-900 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-200",
   ),
   blockquote: ({ children, ...props }) => (
     <blockquote
-      className="mb-3 border-l-2 border-neutral-300 pl-3 text-sm italic text-neutral-600"
+      className="mb-3 border-l-2 border-neutral-300 pl-3 text-sm italic text-neutral-600 dark:border-neutral-500 dark:text-neutral-400"
       {...props}
     >
       {children}
     </blockquote>
   ),
-  hr: () => <hr className="my-6 border-neutral-200" />,
+  hr: () => <hr className="my-6 border-neutral-200 dark:border-neutral-600" />,
+  mark: ({ children, ...props }) => (
+    <mark
+      className="rounded-sm bg-amber-200/90 px-1 py-0.5 text-neutral-900 dark:bg-amber-900/45 dark:text-amber-50"
+      {...props}
+    >
+      {children}
+    </mark>
+  ),
   table: ({ children, ...props }) => (
     <div className="mb-3 overflow-x-auto">
       <table className="min-w-full border-collapse text-sm" {...props}>
@@ -164,20 +172,23 @@ const baseComponents: Components = {
   ),
   th: ({ children, ...props }) => (
     <th
-      className="border border-neutral-200 bg-neutral-50 px-2 py-1.5 text-left font-semibold text-neutral-900"
+      className="border border-neutral-200 bg-neutral-50 px-2 py-1.5 text-left font-semibold text-neutral-900 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100"
       {...props}
     >
       {children}
     </th>
   ),
   td: ({ children, ...props }) => (
-    <td className="border border-neutral-200 px-2 py-1.5 text-neutral-800" {...props}>
+    <td
+      className="border border-neutral-200 px-2 py-1.5 text-neutral-800 dark:border-neutral-600 dark:text-neutral-200"
+      {...props}
+    >
       {children}
     </td>
   ),
   a: ({ children, href, ...props }) => (
     <a
-      className="text-neutral-900 underline decoration-neutral-400 underline-offset-2 hover:decoration-neutral-600"
+      className="text-neutral-900 underline decoration-neutral-400 underline-offset-2 hover:decoration-neutral-600 dark:text-sky-300 dark:decoration-sky-700 dark:hover:text-sky-200 dark:hover:decoration-sky-500"
       href={href}
       target="_blank"
       rel="noopener noreferrer"
@@ -242,16 +253,16 @@ const lightUniformComponents: Components = {
   ),
   blockquote: ({ children, ...props }) => (
     <blockquote
-      className="mb-2 border-l-2 border-neutral-300 pl-3 text-sm italic text-neutral-600"
+      className="mb-2 border-l-2 border-neutral-300 pl-3 text-sm italic text-neutral-600 dark:border-neutral-500 dark:text-neutral-400"
       {...props}
     >
       {children}
     </blockquote>
   ),
-  hr: () => <hr className="my-4 border-neutral-200" />,
+  hr: () => <hr className="my-4 border-neutral-200 dark:border-neutral-600" />,
   pre: latexAwarePre(
     "mb-2",
-    "overflow-x-auto rounded-lg bg-neutral-100 p-3 text-sm",
+    "overflow-x-auto rounded-lg border border-neutral-200/80 bg-neutral-100 p-3 text-sm text-neutral-900 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-200",
   ),
 };
 
@@ -299,12 +310,23 @@ const darkComponents: Components = {
     </strong>
   ),
   code: ({ className, children, ...props }) => {
-    if (className?.includes("language-tikzcd")) {
+    const isBlock = Boolean(className?.includes("language-"));
+    if (isBlock && className?.includes("language-tikzcd")) {
       return <TikzDiagram source={codeToPlainString(children)} />;
+    }
+    if (isBlock) {
+      return (
+        <code
+          className={`block overflow-x-auto rounded-lg border border-white/15 bg-white/10 p-3 font-mono text-xs text-white/95 ${className ?? ""}`}
+          {...props}
+        >
+          {children}
+        </code>
+      );
     }
     return (
       <code
-        className="rounded bg-white/10 px-1 py-0.5 font-mono text-[0.9em] text-white/90"
+        className="rounded-md bg-white/15 px-1.5 py-px font-mono text-[0.9em] text-white/90 ring-1 ring-inset ring-white/20"
         {...props}
       >
         {children}
@@ -330,7 +352,7 @@ function BoxedH2Uniform({
 }: HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h2
-      className="mb-4 mt-8 scroll-mt-20 first:mt-0 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-base font-semibold tracking-tight text-emerald-900 shadow-sm"
+      className="mb-4 mt-8 scroll-mt-20 first:mt-0 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-base font-semibold tracking-tight text-emerald-900 shadow-sm dark:border-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-100"
       {...props}
     >
       {children}
@@ -344,7 +366,7 @@ function BoxedH2Base({
 }: HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h2
-      className="mb-4 mt-8 scroll-mt-20 first:mt-0 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-lg font-semibold tracking-tight text-emerald-900 shadow-sm"
+      className="mb-4 mt-8 scroll-mt-20 first:mt-0 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-lg font-semibold tracking-tight text-emerald-900 shadow-sm dark:border-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-100"
       {...props}
     >
       {children}
