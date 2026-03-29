@@ -14,6 +14,19 @@ export async function uploadSyllabusFile(file: File): Promise<string> {
   return data.text;
 }
 
+export async function uploadImageFile(
+  file: File,
+): Promise<{ base64: string; media_type: string }> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(`${API_URL}/upload-image`, {
+    method: "POST",
+    body: form,
+  });
+  if (!res.ok) throw new Error(`Image upload failed: ${res.status}`);
+  return res.json();
+}
+
 export async function exportSyllabus(state: PlanState): Promise<Record<string, unknown>> {
   const res = await fetch(`${API_URL}/export`, {
     method: "POST",

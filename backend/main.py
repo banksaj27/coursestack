@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import io
 from typing import AsyncGenerator
 
@@ -54,6 +55,14 @@ async def upload_syllabus(file: UploadFile = File(...)):
     reader = PdfReader(io.BytesIO(contents))
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
     return {"text": text.strip()}
+
+
+@app.post("/upload-image")
+async def upload_image(file: UploadFile = File(...)):
+    contents = await file.read()
+    b64 = base64.b64encode(contents).decode("utf-8")
+    media_type = file.content_type or "image/png"
+    return {"base64": b64, "media_type": media_type}
 
 
 @app.post("/export")

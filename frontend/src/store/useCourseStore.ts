@@ -6,7 +6,8 @@ import type {
   PlanState,
   Week,
 } from "@/types/course";
-import { streamPlanRequest, uploadSyllabusFile, exportSyllabus } from "@/lib/api";
+import { streamPlanRequest, uploadSyllabusFile, uploadImageFile, exportSyllabus } from "@/lib/api";
+import type { ImageAttachment } from "@/types/course";
 import { useWeekModularStore } from "@/store/useWeekModularStore";
 import type { Syllabus } from "@/types/syllabus";
 
@@ -59,6 +60,7 @@ function emptyPlanState(topic = ""): PlanState {
     conversation_history: [],
     agent_phase: "understanding",
     prior_syllabi: [],
+    image_attachments: [],
   };
 }
 
@@ -90,6 +92,7 @@ function makeId() {
 interface PendingAttachment {
   name: string;
   text: string;
+  image?: ImageAttachment;
 }
 
 interface CourseStore {
@@ -105,6 +108,7 @@ interface CourseStore {
   setTopic: (topic: string) => void;
   sendMessage: (text: string) => Promise<void>;
   uploadSyllabus: (file: File) => Promise<void>;
+  uploadImage: (file: File) => Promise<void>;
   removePendingAttachment: (index: number) => void;
   finalize: () => Promise<void>;
   reset: () => void;
@@ -132,6 +136,20 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
     }
   },
 
+  uploadImage: async (file: File) => {
+    try {
+      const img = await uploadImageFile(file);
+      set((s) => ({
+        pendingAttachments: [
+          ...s.pendingAttachments,
+          { name: file.name, text: "", image: img },
+        ],
+      }));
+    } catch (err) {
+      console.error("Failed to upload image:", err);
+    }
+  },
+
   removePendingAttachment: (index: number) => {
     set((s) => ({
       pendingAttachments: s.pendingAttachments.filter((_, i) => i !== index),
@@ -149,14 +167,23 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
     if (agentStatus !== "idle") return;
 
     const attachmentNames = pendingAttachments.map((a) => a.name);
-    const attachmentTexts = pendingAttachments.map((a) => a.text);
+    const attachmentTexts = pendingAttachments.filter((a) => a.text).map((a) => a.text);
+    const attachmentImages = pendingAttachments
+      .filter((a) => a.image)
+      .map((a) => a.image!);
 
-    const stateWithAttachments: PlanState = attachmentTexts.length > 0
-      ? {
-          ...planState,
-          prior_syllabi: [...planState.prior_syllabi, ...attachmentTexts],
-        }
-      : planState;
+    let stateWithAttachments: PlanState = planState;
+    if (attachmentTexts.length > 0 || attachmentImages.length > 0) {
+      stateWithAttachments = {
+        ...planState,
+        ...(attachmentTexts.length > 0
+          ? { prior_syllabi: [...planState.prior_syllabi, ...attachmentTexts] }
+          : {}),
+        ...(attachmentImages.length > 0
+          ? { image_attachments: [...planState.image_attachments, ...attachmentImages] }
+          : {}),
+      };
+    }
 
     const userMsg: Message = {
       id: makeId(),
