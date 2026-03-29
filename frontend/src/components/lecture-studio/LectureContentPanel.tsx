@@ -185,12 +185,12 @@ export default function LectureContentPanel({
                   onClick={lectureWorkspaceBar.onToggleComplete}
                   className={
                     lectureWorkspaceBar.isComplete
-                      ? "rounded-xl border-2 border-emerald-300 bg-emerald-50 px-5 py-2 text-sm font-semibold text-emerald-900 shadow-sm transition-colors hover:border-emerald-400 hover:bg-emerald-100/90"
+                      ? "rounded-lg border border-emerald-200 bg-emerald-50 px-5 py-2 text-sm font-semibold text-emerald-900 shadow-sm transition-colors hover:border-emerald-300 hover:bg-emerald-100/90"
                       : "rounded-xl border-2 border-emerald-700 bg-emerald-700 px-5 py-2 text-sm font-semibold tracking-wide text-white shadow-sm transition-colors hover:bg-emerald-800"
                   }
                 >
                   {lectureWorkspaceBar.isComplete
-                    ? "✓ Marked complete"
+                    ? "✓ Marked Complete"
                     : "Mark complete"}
                 </button>
               ) : null}

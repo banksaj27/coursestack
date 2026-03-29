@@ -17,7 +17,7 @@ export default function ProblemSetHouseRulesPanel({
   disabled,
   onApplyRules,
 }: Props) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
   const panelId = "problem-set-house-rules-panel";
   const toggleId = "problem-set-house-rules-toggle";
@@ -71,7 +71,7 @@ export default function ProblemSetHouseRulesPanel({
             All problem sets
           </p>
           <p className="text-sm font-semibold text-neutral-900">
-            House rules &amp; format
+            Global Problem Set Format
           </p>
         </div>
         <span className="hidden shrink-0 text-[11px] font-medium text-neutral-500 sm:inline">

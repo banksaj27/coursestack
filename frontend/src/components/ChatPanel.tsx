@@ -285,7 +285,7 @@ export default function ChatPanel() {
             </div>
           )}
 
-          <div className="flex items-end gap-2">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}

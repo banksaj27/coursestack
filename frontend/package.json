@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@planktimerr/tikzjax": "^1.0.8",
     "framer-motion": "^12.38.0",
     "katex": "^0.16.44",
     "next": "16.2.1",
