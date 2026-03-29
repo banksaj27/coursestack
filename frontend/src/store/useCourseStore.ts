@@ -14,16 +14,32 @@ const TITLE_LOWER = new Set([
   "vs","via","from","into","with","over","upon",
 ]);
 
+function capitalizeSegment(segment: string): string {
+  const lower = segment.toLowerCase();
+  if (!lower) return "";
+  return lower.charAt(0).toUpperCase() + lower.slice(1);
+}
+
+function titleCaseWord(word: string, wordIndex: number): string {
+  const hasHyphen = word.includes("-");
+  const segments = word.split("-");
+
+  if (hasHyphen) {
+    return segments.map((seg) => capitalizeSegment(seg)).join("-");
+  }
+
+  const lower = word.toLowerCase();
+  if (wordIndex > 0 && TITLE_LOWER.has(lower)) {
+    return lower;
+  }
+  return capitalizeSegment(word);
+}
+
 function toTitleCase(str: string): string {
   return str
+    .trim()
     .split(/\s+/)
-    .map((word, i) => {
-      const lower = word.toLowerCase();
-      if (i === 0 || !TITLE_LOWER.has(lower)) {
-        return lower.charAt(0).toUpperCase() + lower.slice(1);
-      }
-      return lower;
-    })
+    .map((word, i) => titleCaseWord(word, i))
     .join(" ");
 }
 
