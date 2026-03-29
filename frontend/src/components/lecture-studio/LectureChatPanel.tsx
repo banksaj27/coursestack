@@ -90,7 +90,7 @@ const WORKSPACE_COPY: Record<
     placeholder:
       "Add MC Q5, tighten a short-answer prompt, or edit timing…",
     footerTip:
-      "Tutoring stays in chat; quiz edits update the preview on the right. House rules above apply to all quizzes in this course (weekly generation too).",
+      "Tutoring stays in chat; quiz edits update the preview on the right. Global Quiz Format above applies to all quizzes in this course (weekly generation too).",
   },
   project: {
     subtitle:

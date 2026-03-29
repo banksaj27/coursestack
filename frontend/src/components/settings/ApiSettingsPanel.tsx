@@ -45,7 +45,7 @@ export default function ApiSettingsPanel() {
         id="api-heading"
         className="text-base font-semibold text-neutral-900 dark:text-neutral-100"
       >
-        API keys
+        API Keys
       </h2>
       <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
         We only keep these keys in your browser&apos;s storage. They are not sent to us—we

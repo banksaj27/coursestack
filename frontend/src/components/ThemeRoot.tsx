@@ -9,6 +9,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { usePathname } from "next/navigation";
+import MissingGoogleApiKeyBanner from "@/components/MissingGoogleApiKeyBanner";
 import {
   applyThemeToDocument,
   readStoredTheme,
@@ -112,6 +113,7 @@ export default function ThemeRoot({
         suppressHydrationWarning
       >
         {children}
+        <MissingGoogleApiKeyBanner />
       </div>
     </ThemeContext.Provider>
   );

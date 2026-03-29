@@ -65,7 +65,7 @@ export default function QuizHouseRulesPanel({ disabled, onApplyRules }: Props) {
             All quizzes
           </p>
           <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-            House rules &amp; format
+            Global Quiz Format
           </p>
         </div>
         <span className="hidden shrink-0 text-[11px] font-medium text-neutral-500 dark:text-neutral-400 sm:inline">
