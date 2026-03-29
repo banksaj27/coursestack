@@ -6,6 +6,24 @@ import { useCourseStore } from "@/store/useCourseStore";
 import ChatMessage from "./ChatMessage";
 import MarkdownContent from "./MarkdownContent";
 
+function PaperclipIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+    </svg>
+  );
+}
+
 function ThinkingIndicator() {
   return (
     <motion.div
@@ -56,11 +74,16 @@ export default function ChatPanel() {
   const agentStatus = useCourseStore((s) => s.agentStatus);
   const streamingContent = useCourseStore((s) => s.streamingContent);
   const sendMessage = useCourseStore((s) => s.sendMessage);
+  const uploadSyllabus = useCourseStore((s) => s.uploadSyllabus);
+  const removePendingAttachment = useCourseStore((s) => s.removePendingAttachment);
+  const pendingAttachments = useCourseStore((s) => s.pendingAttachments);
   const phase = useCourseStore((s) => s.phase);
 
   const [input, setInput] = useState("");
+  const [uploading, setUploading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isDone = phase === "complete";
   const isBusy = agentStatus !== "idle";
@@ -101,6 +124,15 @@ export default function ChatPanel() {
     el.style.height = Math.min(el.scrollHeight, 120) + "px";
   };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    await uploadSyllabus(file);
+    setUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-neutral-100 px-6 py-3">
@@ -133,12 +165,59 @@ export default function ChatPanel() {
       {isDone ? (
         <div className="border-t border-neutral-100 px-6 py-4 text-center">
           <p className="text-xs text-neutral-400">
-            Course finalized. Syllabus exported.
+            Course finalized.
           </p>
         </div>
       ) : (
         <div className="border-t border-neutral-100 px-6 py-3">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+
+          {pendingAttachments.length > 0 && (
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {pendingAttachments.map((att, i) => (
+                <span
+                  key={`${att.name}-${i}`}
+                  className="inline-flex items-center gap-1 rounded border border-neutral-200 px-2 py-0.5 text-[11px] text-neutral-500"
+                >
+                  {att.name}
+                  <button
+                    type="button"
+                    onClick={() => removePendingAttachment(i)}
+                    className="ml-0.5 text-neutral-300 hover:text-neutral-600"
+                  >
+                    &times;
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
           <div className="flex items-end gap-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isBusy || uploading}
+              title="Upload course syllabus (PDF)"
+              className="shrink-0 rounded-lg border border-neutral-200 p-2 text-neutral-400
+                         transition-colors hover:text-neutral-600 hover:border-neutral-300
+                         disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              {uploading ? (
+                <motion.span
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="block h-4 w-4 rounded-full border-2 border-neutral-300 border-t-neutral-600"
+                />
+              ) : (
+                <PaperclipIcon />
+              )}
+            </button>
             <textarea
               ref={textareaRef}
               value={input}

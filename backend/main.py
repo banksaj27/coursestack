@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+import io
 from typing import AsyncGenerator
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from sse_starlette.sse import EventSourceResponse
+from PyPDF2 import PdfReader
 
-from agent import run_agent, run_agent_stream
-from models import PlanRequest, PlanResponse
+from agent import run_agent, run_agent_stream, generate_export
+from models import PlanRequest, PlanResponse, PlanState
 
 load_dotenv()
 
@@ -36,6 +38,20 @@ async def _event_generator(request: PlanRequest) -> AsyncGenerator[dict, None]:
 @app.post("/plan/stream")
 async def plan_stream(request: PlanRequest):
     return EventSourceResponse(_event_generator(request))
+
+
+@app.post("/upload-syllabus")
+async def upload_syllabus(file: UploadFile = File(...)):
+    contents = await file.read()
+    reader = PdfReader(io.BytesIO(contents))
+    text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    return {"text": text.strip()}
+
+
+@app.post("/export")
+async def export_syllabus(state: PlanState):
+    result = await generate_export(state)
+    return result
 
 
 @app.get("/health")

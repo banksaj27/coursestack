@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Week } from "@/types/course";
 
@@ -12,7 +12,18 @@ interface TimelineNodeProps {
 
 export default function TimelineNode({ week, isLast, isFirst }: TimelineNodeProps) {
   const [expanded, setExpanded] = useState(false);
+  const [highlight, setHighlight] = useState(week.is_new);
   const onlyNode = isFirst && isLast;
+
+  useEffect(() => {
+    if (week.is_new) {
+      setHighlight(true);
+      const timer = setTimeout(() => setHighlight(false), 2000);
+      return () => clearTimeout(timer);
+    } else {
+      setHighlight(false);
+    }
+  }, [week.is_new, week.title, week.topics]);
 
   return (
     <motion.div
@@ -36,9 +47,10 @@ export default function TimelineNode({ week, isLast, isFirst }: TimelineNodeProp
 
       {/* Dot column */}
       <div className="relative flex flex-col items-center w-3.5 shrink-0">
-        <div className="relative z-10 mt-[13px] h-3.5 w-3.5 shrink-0">
+        <div className="relative z-10 mt-[13px] h-3.5 w-3.5 shrink-0" style={{ marginLeft: "0.5px" }}>
           {week.is_new && (
             <motion.div
+              key={`pulse-${week.week}-${week.title}-${week.topics.join(",")}`}
               className="absolute inset-0 rounded-full bg-emerald-400"
               initial={{ scale: 1, opacity: 0.6 }}
               animate={{ scale: 2.2, opacity: 0 }}
@@ -51,11 +63,14 @@ export default function TimelineNode({ week, isLast, isFirst }: TimelineNodeProp
 
       {/* Card */}
       <div
-        className={`flex-1 rounded-xl border cursor-pointer transition-colors duration-300 ${
-          week.is_new
+        className={`flex-1 rounded-xl border cursor-pointer ${
+          highlight
             ? "border-indigo-300 bg-indigo-50/50"
             : "border-neutral-200 bg-white"
         }`}
+        style={{
+          transition: highlight ? "none" : "background-color 600ms ease, border-color 600ms ease",
+        }}
         onClick={() => setExpanded(!expanded)}
       >
         {/* Header */}

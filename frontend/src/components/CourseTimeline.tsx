@@ -57,6 +57,7 @@ export default function CourseTimeline() {
   const agentStatus = useCourseStore((s) => s.agentStatus);
   const phase = useCourseStore((s) => s.phase);
   const finalize = useCourseStore((s) => s.finalize);
+  const isExporting = useCourseStore((s) => s.isExporting);
   const hasWeeks = weeks.length > 0;
   const isBusy = agentStatus !== "idle";
   const isDone = phase === "complete";
@@ -88,12 +89,12 @@ export default function CourseTimeline() {
         <div className="border-t border-neutral-100 px-8 py-3">
           <button
             onClick={finalize}
-            disabled={isBusy}
+            disabled={isBusy || isExporting}
             className="w-full rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white
                        transition-colors hover:bg-neutral-800
                        disabled:opacity-30 disabled:cursor-not-allowed"
           >
-            Done — Export Syllabus
+            {isExporting ? "Generating course..." : "Generate Course"}
           </button>
         </div>
       )}

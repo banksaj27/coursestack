@@ -25,6 +25,7 @@ export interface PlanState {
   course_plan: CoursePlan;
   conversation_history: { role: string; content: string }[];
   agent_phase: "understanding" | "refining" | "finalizing";
+  prior_syllabi: string[];
 }
 
 export interface Message {
@@ -32,6 +33,7 @@ export interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: number;
+  attachments?: string[];
 }
 
 export type AgentStatus = "idle" | "thinking" | "streaming" | "updating_plan";

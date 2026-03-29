@@ -6,7 +6,7 @@ import type {
   PlanState,
   Week,
 } from "@/types/course";
-import { streamPlanRequest } from "@/lib/api";
+import { streamPlanRequest, uploadSyllabusFile, exportSyllabus } from "@/lib/api";
 
 function emptyPlanState(topic = ""): PlanState {
   return {
@@ -21,6 +21,7 @@ function emptyPlanState(topic = ""): PlanState {
     course_plan: { weeks: [] },
     conversation_history: [],
     agent_phase: "understanding",
+    prior_syllabi: [],
   };
 }
 
@@ -49,6 +50,11 @@ function makeId() {
   return `msg-${Date.now()}-${++msgCounter}`;
 }
 
+interface PendingAttachment {
+  name: string;
+  text: string;
+}
+
 interface CourseStore {
   phase: AppPhase;
   planState: PlanState;
@@ -56,10 +62,14 @@ interface CourseStore {
   agentStatus: AgentStatus;
   streamingContent: string;
   isComplete: boolean;
+  isExporting: boolean;
+  pendingAttachments: PendingAttachment[];
 
   setTopic: (topic: string) => void;
   sendMessage: (text: string) => Promise<void>;
-  finalize: () => void;
+  uploadSyllabus: (file: File) => Promise<void>;
+  removePendingAttachment: (index: number) => void;
+  finalize: () => Promise<void>;
   reset: () => void;
 }
 
@@ -70,29 +80,60 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
   agentStatus: "idle",
   streamingContent: "",
   isComplete: false,
+  isExporting: false,
+  pendingAttachments: [],
+
+  uploadSyllabus: async (file: File) => {
+    try {
+      const text = await uploadSyllabusFile(file);
+      if (!text.trim()) return;
+      set((s) => ({
+        pendingAttachments: [...s.pendingAttachments, { name: file.name, text }],
+      }));
+    } catch (err) {
+      console.error("Failed to upload syllabus:", err);
+    }
+  },
+
+  removePendingAttachment: (index: number) => {
+    set((s) => ({
+      pendingAttachments: s.pendingAttachments.filter((_, i) => i !== index),
+    }));
+  },
 
   setTopic: (topic: string) => {
-    const state = emptyPlanState(topic);
-    set({ phase: "planning", planState: state });
-
+    set({ phase: "planning", planState: emptyPlanState(topic) });
     get().sendMessage(`I want to learn about: ${topic}`);
   },
 
   sendMessage: async (text: string) => {
-    const { planState, messages, agentStatus } = get();
+    const { planState, messages, agentStatus, pendingAttachments } = get();
     if (agentStatus !== "idle") return;
+
+    const attachmentNames = pendingAttachments.map((a) => a.name);
+    const attachmentTexts = pendingAttachments.map((a) => a.text);
+
+    const stateWithAttachments: PlanState = attachmentTexts.length > 0
+      ? {
+          ...planState,
+          prior_syllabi: [...planState.prior_syllabi, ...attachmentTexts],
+        }
+      : planState;
 
     const userMsg: Message = {
       id: makeId(),
       role: "user",
       content: text,
       timestamp: Date.now(),
+      ...(attachmentNames.length > 0 ? { attachments: attachmentNames } : {}),
     };
 
     set({
       messages: [...messages, userMsg],
       agentStatus: "thinking",
       streamingContent: "",
+      planState: stateWithAttachments,
+      pendingAttachments: [],
     });
 
     const assistantMsg: Message = {
@@ -102,7 +143,7 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
       timestamp: Date.now(),
     };
 
-    await streamPlanRequest(text, planState, {
+    await streamPlanRequest(text, stateWithAttachments, {
       onToken: (token) => {
         const current = get().streamingContent + token;
         set({ streamingContent: current, agentStatus: "streaming" });
@@ -145,27 +186,27 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
     });
   },
 
-  finalize: () => {
+  finalize: async () => {
     const { planState } = get();
-    const exportData = {
-      topic: planState.topic,
-      user_profile: planState.user_profile,
-      course_plan: {
-        weeks: planState.course_plan.weeks.map(({ is_new, ...w }) => w),
-      },
-    };
+    set({ isExporting: true });
 
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "syllabus.json";
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      const exportData = await exportSyllabus(planState);
 
-    set({ phase: "complete", isComplete: true });
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "syllabus.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export failed:", err);
+    }
+
+    set({ phase: "complete", isComplete: true, isExporting: false });
   },
 
   reset: () => {
@@ -176,6 +217,8 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
       agentStatus: "idle",
       streamingContent: "",
       isComplete: false,
+      isExporting: false,
+      pendingAttachments: [],
     });
   },
 }));

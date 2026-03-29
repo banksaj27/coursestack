@@ -2,6 +2,28 @@ import type { PlanState } from "@/types/course";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+export async function uploadSyllabusFile(file: File): Promise<string> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(`${API_URL}/upload-syllabus`, {
+    method: "POST",
+    body: form,
+  });
+  if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
+  const data = await res.json();
+  return data.text;
+}
+
+export async function exportSyllabus(state: PlanState): Promise<Record<string, unknown>> {
+  const res = await fetch(`${API_URL}/export`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(state),
+  });
+  if (!res.ok) throw new Error(`Export failed: ${res.status}`);
+  return res.json();
+}
+
 export interface SSECallbacks {
   onToken: (token: string) => void;
   onPlanUpdate: (data: {

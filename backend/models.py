@@ -30,6 +30,7 @@ class PlanState(BaseModel):
     course_plan: CoursePlan = Field(default_factory=CoursePlan)
     conversation_history: list[dict] = Field(default_factory=list)
     agent_phase: str = "understanding"
+    prior_syllabi: list[str] = Field(default_factory=list)
 
 
 class PlanRequest(BaseModel):
