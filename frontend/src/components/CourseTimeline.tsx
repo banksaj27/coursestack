@@ -66,7 +66,8 @@ export default function CourseTimeline() {
             onClick={finalize}
             disabled={isBusy || isExporting || isDone}
             className="w-full rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white
-                       transition-colors hover:bg-neutral-800
+                       transition-[opacity,background-color] duration-300 ease-out
+                       hover:bg-neutral-800
                        disabled:opacity-30 disabled:cursor-not-allowed"
           >
             {isExporting
