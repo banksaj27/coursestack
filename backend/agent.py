@@ -35,7 +35,19 @@ def _build_messages(state: PlanState, user_message: str) -> list[dict]:
     for entry in state.conversation_history:
         messages.append({"role": entry["role"], "content": entry["content"]})
 
-    messages.append({"role": "user", "content": user_message})
+    if state.image_attachments:
+        content: list[dict] = [{"type": "text", "text": user_message}]
+        for img in state.image_attachments:
+            content.append({
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:{img.media_type};base64,{img.base64}",
+                },
+            })
+        messages.append({"role": "user", "content": content})
+    else:
+        messages.append({"role": "user", "content": user_message})
+
     return messages
 
 

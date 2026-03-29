@@ -1,0 +1,50 @@
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { useCourseStore } from "@/store/useCourseStore";
+import AppNav from "@/components/AppNav";
+import ChatPanel from "@/components/ChatPanel";
+import CourseTimeline from "@/components/CourseTimeline";
+
+export default function SyllabusPage() {
+  const router = useRouter();
+  const phase = useCourseStore((s) => s.phase);
+
+  useEffect(() => {
+    if (phase === "topic_input") {
+      router.replace("/");
+    }
+  }, [phase, router]);
+
+  if (phase === "topic_input") {
+    return (
+      <div className="flex h-screen flex-col overflow-hidden bg-neutral-50/50">
+        <AppNav />
+        <div className="flex flex-1 items-center justify-center text-sm text-neutral-500">
+          Redirecting…
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-screen flex-col overflow-hidden bg-neutral-50/50">
+      <AppNav />
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2 }}
+        className="flex min-h-0 flex-1"
+      >
+        <div className="w-[42%] border-r border-neutral-100 bg-white">
+          <ChatPanel />
+        </div>
+        <div className="w-[58%] min-w-0">
+          <CourseTimeline />
+        </div>
+      </motion.div>
+    </div>
+  );
+}

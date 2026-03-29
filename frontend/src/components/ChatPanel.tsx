@@ -75,6 +75,7 @@ export default function ChatPanel() {
   const streamingContent = useCourseStore((s) => s.streamingContent);
   const sendMessage = useCourseStore((s) => s.sendMessage);
   const uploadSyllabus = useCourseStore((s) => s.uploadSyllabus);
+  const uploadImage = useCourseStore((s) => s.uploadImage);
   const removePendingAttachment = useCourseStore((s) => s.removePendingAttachment);
   const pendingAttachments = useCourseStore((s) => s.pendingAttachments);
   const phase = useCourseStore((s) => s.phase);
@@ -120,17 +121,21 @@ export default function ChatPanel() {
     dragCounter.current = 0;
     setDragging(false);
 
-    const files = Array.from(e.dataTransfer.files).filter(
-      (f) => f.type === "application/pdf",
+    const accepted = Array.from(e.dataTransfer.files).filter(
+      (f) => f.type === "application/pdf" || f.type.startsWith("image/"),
     );
-    if (files.length === 0) return;
+    if (accepted.length === 0) return;
 
     setUploading(true);
-    for (const file of files) {
-      await uploadSyllabus(file);
+    for (const file of accepted) {
+      if (file.type === "application/pdf") {
+        await uploadSyllabus(file);
+      } else {
+        await uploadImage(file);
+      }
     }
     setUploading(false);
-  }, [uploadSyllabus]);
+  }, [uploadSyllabus, uploadImage]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -172,10 +177,26 @@ export default function ChatPanel() {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    await uploadSyllabus(file);
+    if (file.type === "application/pdf") {
+      await uploadSyllabus(file);
+    } else {
+      await uploadImage(file);
+    }
     setUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
+
+  const handlePaste = useCallback(async (e: React.ClipboardEvent) => {
+    const items = Array.from(e.clipboardData.items);
+    const imageItem = items.find((i) => i.type.startsWith("image/"));
+    if (!imageItem) return;
+    e.preventDefault();
+    const file = imageItem.getAsFile();
+    if (!file) return;
+    setUploading(true);
+    await uploadImage(file);
+    setUploading(false);
+  }, [uploadImage]);
 
   return (
     <div
@@ -188,7 +209,7 @@ export default function ChatPanel() {
       {dragging && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/80 border-2 border-dashed border-indigo-300 rounded-lg m-2">
           <p className="text-sm text-indigo-400 font-medium">
-            Drop PDF syllabus here
+            Drop PDF or image here
           </p>
         </div>
       )}
@@ -230,7 +251,7 @@ export default function ChatPanel() {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".pdf"
+            accept=".pdf,.png,.jpg,.jpeg"
             onChange={handleFileChange}
             className="hidden"
           />
@@ -260,7 +281,7 @@ export default function ChatPanel() {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isBusy || uploading}
-              title="Upload course syllabus (PDF)"
+              title="Upload file (PDF or image)"
               className="shrink-0 rounded-lg border border-neutral-200 p-2 text-neutral-400
                          transition-colors hover:text-neutral-600 hover:border-neutral-300
                          disabled:opacity-30 disabled:cursor-not-allowed"
@@ -280,6 +301,7 @@ export default function ChatPanel() {
               value={input}
               onChange={handleInput}
               onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
               placeholder={isBusy ? "Thinking..." : "Type your response..."}
               disabled={isBusy}
               rows={1}
