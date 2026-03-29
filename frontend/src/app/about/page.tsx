@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import AppNav from "@/components/AppNav";
 
 export const metadata: Metadata = {
@@ -13,8 +14,8 @@ const PROJECT_BLURB =
 type TeamMember = {
   name: string;
   role: string;
-  note?: string;
   linkedinUrl: string;
+  note?: string;
 };
 
 const TEAM: TeamMember[] = [
@@ -53,35 +54,51 @@ export default function AboutPage() {
             {PROJECT_BLURB}
           </p>
 
-          <h2 className="mt-10 text-lg font-semibold text-neutral-900">
-            Team
+          <h2 className="mt-8 text-lg font-semibold text-neutral-900">
+            The Team
           </h2>
 
-          <ul className="mt-6 space-y-4">
+          <ul className="mt-3 space-y-4">
             {TEAM.map((member, i) => (
-              <li
-                key={`${member.name}-${i}`}
-                className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm"
-              >
-                <p className="font-medium text-neutral-900">
-                  <a
-                    href={member.linkedinUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-neutral-900 underline decoration-neutral-300 underline-offset-2 transition-colors hover:decoration-neutral-600"
-                  >
-                    {member.name}
-                  </a>
-                </p>
-                <p className="mt-0.5 text-sm text-neutral-500">{member.role}</p>
-                {member.note ? (
-                  <p className="mt-2 text-sm leading-relaxed text-neutral-600">
-                    {member.note}
-                  </p>
-                ) : null}
+              <li key={`${member.name}-${i}`}>
+                <a
+                  href={member.linkedinUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block cursor-pointer rounded-lg border border-neutral-200 bg-white p-4 shadow-sm transition-colors hover:border-neutral-300 hover:bg-neutral-50/90"
+                >
+                  <p className="font-medium text-neutral-900">{member.name}</p>
+                  <p className="mt-0.5 text-sm text-neutral-500">{member.role}</p>
+                  {member.note ? (
+                    <p className="mt-2 text-sm leading-relaxed text-neutral-600">
+                      {member.note}
+                    </p>
+                  ) : null}
+                </a>
               </li>
             ))}
           </ul>
+          <p className="mt-6 text-sm text-neutral-500">
+            Made with love for YHack 2026.
+          </p>
+          <div className="mt-7 flex flex-wrap items-center justify-center gap-8 sm:gap-12 md:gap-16 pb-6 sm:pb-10">
+            <Image
+              src="/logo.png"
+              alt="CourseStack"
+              width={440}
+              height={110}
+              className="h-28 w-auto max-w-[min(100%,20rem)] object-contain object-center sm:h-36 md:h-40"
+              sizes="(max-width: 768px) 100vw, 440px"
+            />
+            <Image
+              src="/yhack-2026.png"
+              alt="YHack 2026"
+              width={440}
+              height={110}
+              className="h-28 w-auto max-w-[min(100%,20rem)] object-contain object-center sm:h-36 md:h-40"
+              sizes="(max-width: 768px) 100vw, 440px"
+            />
+          </div>
         </div>
       </main>
     </div>
