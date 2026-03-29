@@ -12,6 +12,15 @@ import {
   splitPlainTextForTtsWithFastStart,
 } from "@/lib/markdownToTtsPlainText";
 
+/** Fetch abort uses DOMException in browsers; `instanceof Error` is not always true. */
+function isAbortError(e: unknown): boolean {
+  return (
+    typeof e === "object" &&
+    e !== null &&
+    (e as { name?: string }).name === "AbortError"
+  );
+}
+
 function isElevenLabsPlanOrLibraryBlock(err: unknown): boolean {
   const m = err instanceof Error ? err.message : String(err);
   return (
@@ -153,10 +162,15 @@ export function useLectureTts() {
         if (!queueRef.current || idx >= queueRef.current.length) return;
         if (prefetchRef.current?.index === idx) return;
         const text = queueRef.current[idx]!;
+        const promise = fetchLectureTts(text, ac.signal);
         prefetchRef.current = {
           index: idx,
-          promise: fetchLectureTts(text, ac.signal),
+          promise,
         };
+        // Prefetch may be abandoned on Stop; aborted fetch must not surface as unhandled rejection.
+        void promise.catch((err) => {
+          if (isAbortError(err)) return;
+        });
       };
 
       const takeBlob = async (index: number, text: string): Promise<Blob> => {
@@ -182,6 +196,9 @@ export function useLectureTts() {
           try {
             blob = await takeBlob(index, chunks[index]!);
           } catch (fetchErr) {
+            if (abortedRef.current || isAbortError(fetchErr)) {
+              return;
+            }
             if (
               index === 0 &&
               isElevenLabsPlanOrLibraryBlock(fetchErr) &&
@@ -204,6 +221,9 @@ export function useLectureTts() {
                   waitIfPaused,
                 );
               } catch (speechErr) {
+                if (abortedRef.current || isAbortError(speechErr)) {
+                  return;
+                }
                 const msg =
                   speechErr instanceof Error
                     ? speechErr.message
@@ -271,7 +291,7 @@ export function useLectureTts() {
       try {
         await runElevenLabs();
       } catch (e) {
-        if (e instanceof Error && e.name === "AbortError") return;
+        if (abortedRef.current || isAbortError(e)) return;
         const msg = e instanceof Error ? e.message : "Could not read aloud.";
         abortedRef.current = true;
         sessionAbortRef.current?.abort();

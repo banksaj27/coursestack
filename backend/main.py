@@ -2,9 +2,13 @@ from __future__ import annotations
 
 import base64
 import io
+from pathlib import Path
 from typing import AsyncGenerator
 
 from dotenv import load_dotenv
+
+# Load backend/.env regardless of shell cwd (e.g. `uvicorn` from repo root).
+load_dotenv(Path(__file__).resolve().parent / ".env")
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
@@ -29,8 +33,7 @@ from lecture_studio_agent import run_lecture_studio_stream
 from project_grader import run_project_grading_stream
 from project_scaffold import parse_scaffold_blocks, write_scaffold
 from week_modular_agent import run_week_modular_stream
-
-load_dotenv()
+from gemini_client import is_gemini_api_key_configured
 
 app = FastAPI(title="AutoCourse API")
 
@@ -150,4 +153,7 @@ async def lecture_studio_tts(request: LectureTtsRequest):
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "gemini_configured": is_gemini_api_key_configured(),
+    }
