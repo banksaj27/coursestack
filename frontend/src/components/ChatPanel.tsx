@@ -85,8 +85,52 @@ export default function ChatPanel() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [dragging, setDragging] = useState(false);
+  const dragCounter = useRef(0);
+
   const isDone = phase === "complete";
   const isBusy = agentStatus !== "idle";
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    if (e.dataTransfer.types.includes("Files")) {
+      setDragging(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setDragging(false);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current = 0;
+    setDragging(false);
+
+    const files = Array.from(e.dataTransfer.files).filter(
+      (f) => f.type === "application/pdf",
+    );
+    if (files.length === 0) return;
+
+    setUploading(true);
+    for (const file of files) {
+      await uploadSyllabus(file);
+    }
+    setUploading(false);
+  }, [uploadSyllabus]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -134,7 +178,20 @@ export default function ChatPanel() {
   };
 
   return (
-    <div className="flex h-full flex-col">
+    <div
+      className="relative flex h-full flex-col"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {dragging && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/80 border-2 border-dashed border-indigo-300 rounded-lg m-2">
+          <p className="text-sm text-indigo-400 font-medium">
+            Drop PDF syllabus here
+          </p>
+        </div>
+      )}
       <div className="border-b border-neutral-100 px-6 py-3">
         <h2 className="text-sm font-semibold text-neutral-900">
           Conversation
