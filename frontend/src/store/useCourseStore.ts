@@ -8,6 +8,25 @@ import type {
 } from "@/types/course";
 import { streamPlanRequest, uploadSyllabusFile, exportSyllabus } from "@/lib/api";
 
+const TITLE_LOWER = new Set([
+  "a","an","the","and","but","or","nor","for","yet","so",
+  "in","on","at","to","by","of","up","as","is","if","it",
+  "vs","via","from","into","with","over","upon",
+]);
+
+function toTitleCase(str: string): string {
+  return str
+    .split(/\s+/)
+    .map((word, i) => {
+      const lower = word.toLowerCase();
+      if (i === 0 || !TITLE_LOWER.has(lower)) {
+        return lower.charAt(0).toUpperCase() + lower.slice(1);
+      }
+      return lower;
+    })
+    .join(" ");
+}
+
 function emptyPlanState(topic = ""): PlanState {
   return {
     topic,
@@ -102,8 +121,9 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
   },
 
   setTopic: (topic: string) => {
-    set({ phase: "planning", planState: emptyPlanState(topic) });
-    get().sendMessage(`I want to learn about: ${topic}`);
+    const titled = toTitleCase(topic);
+    set({ phase: "planning", planState: emptyPlanState(titled) });
+    get().sendMessage(`I want to learn about: ${titled}`);
   },
 
   sendMessage: async (text: string) => {

@@ -8,23 +8,20 @@ import StatusBar from "./StatusBar";
 function EmptyState() {
   return (
     <div className="flex h-full items-center justify-center">
-      <div className="text-center max-w-[200px]">
-        <p className="text-xs text-neutral-400 leading-relaxed">
-          Your syllabus will appear here as the course takes shape.
-        </p>
-        <div className="mt-6 space-y-2.5">
-          {[1, 2, 3, 4].map((i) => (
-            <motion.div
+      <div className="text-center max-w-[240px]">
+        <div className="flex justify-center gap-1 mb-3">
+          {[0, 1, 2].map((i) => (
+            <motion.span
               key={i}
-              animate={{ opacity: [0.15, 0.3, 0.15] }}
-              transition={{ duration: 3, repeat: Infinity, delay: i * 0.3 }}
-              className="flex items-center gap-2"
-            >
-              <div className="h-1.5 w-1.5 rounded-full bg-neutral-200" />
-              <div className="h-2.5 flex-1 rounded bg-neutral-100" />
-            </motion.div>
+              className="h-1.5 w-1.5 rounded-full bg-neutral-300"
+              animate={{ opacity: [0.3, 0.7, 0.3] }}
+              transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.2 }}
+            />
           ))}
         </div>
+        <p className="text-xs text-neutral-400 leading-relaxed">
+          Getting to know you first
+        </p>
       </div>
     </div>
   );
