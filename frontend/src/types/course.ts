@@ -19,6 +19,11 @@ export interface CoursePlan {
   weeks: Week[];
 }
 
+export interface ImageAttachment {
+  base64: string;
+  media_type: string;
+}
+
 export interface PlanState {
   topic: string;
   user_profile: UserProfile;
@@ -26,6 +31,7 @@ export interface PlanState {
   conversation_history: { role: string; content: string }[];
   agent_phase: "understanding" | "refining" | "finalizing";
   prior_syllabi: string[];
+  image_attachments: ImageAttachment[];
 }
 
 export interface Message {

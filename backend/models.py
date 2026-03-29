@@ -24,6 +24,11 @@ class CoursePlan(BaseModel):
     weeks: list[Week] = Field(default_factory=list)
 
 
+class ImageAttachment(BaseModel):
+    base64: str = ""
+    media_type: str = "image/png"
+
+
 class PlanState(BaseModel):
     topic: str = ""
     user_profile: UserProfile = Field(default_factory=UserProfile)
@@ -31,6 +36,7 @@ class PlanState(BaseModel):
     conversation_history: list[dict] = Field(default_factory=list)
     agent_phase: str = "understanding"
     prior_syllabi: list[str] = Field(default_factory=list)
+    image_attachments: list[ImageAttachment] = Field(default_factory=list)
 
 
 class PlanRequest(BaseModel):
