@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useCourseStore } from "@/store/useCourseStore";
+import { useClassesStore } from "@/store/useClassesStore";
 
 const ALL_SUGGESTIONS = [
   "Measure-theoretic probability",
@@ -79,7 +80,19 @@ export default function TopicInput() {
     e.preventDefault();
     const text = topic.trim();
     if (!text) return;
+
+    // Always create a new course for each topic submission
+    useClassesStore.getState().createCourse();
+
     setTopicAction(text);
+
+    // Sync the course name to the title-cased topic
+    const { activeCourseId } = useClassesStore.getState();
+    const titled = useCourseStore.getState().planState.topic;
+    if (activeCourseId && titled) {
+      useClassesStore.getState().renameCourse(activeCourseId, titled);
+    }
+
     router.push("/syllabus");
   };
 

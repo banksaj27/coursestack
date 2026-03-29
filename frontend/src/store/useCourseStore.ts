@@ -47,7 +47,7 @@ function toTitleCase(str: string): string {
     .join(" ");
 }
 
-function emptyPlanState(topic = ""): PlanState {
+export function emptyPlanState(topic = ""): PlanState {
   return {
     topic,
     user_profile: {

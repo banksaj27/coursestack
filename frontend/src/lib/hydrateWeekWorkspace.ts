@@ -1,6 +1,7 @@
 import { initCoursePlannerPersistence } from "@/lib/coursePlannerPersistence";
 import { useCourseStore } from "@/store/useCourseStore";
 import { useWeekModularStore } from "@/store/useWeekModularStore";
+import { useClassesStore } from "@/store/useClassesStore";
 import { loadWeekModularSnapshot } from "./weekModularSyllabusPersistence";
 import { hydrateProblemSetGlobalRules } from "./problemSetGlobalRules";
 import { hydrateQuizGlobalRules } from "./quizGlobalRules";
@@ -12,6 +13,10 @@ let didHydrateModularSyllabus = false;
 
 /** Restore localStorage-backed planner + week editor state (summaries, format rules, syllabus chat). */
 export function hydrateWeekWorkspace(): void {
+  // Initialize multi-course system first — ensures global keys contain the
+  // active course's data before any other hydration runs.
+  useClassesStore.getState().init();
+
   hydrateWeekSummaryCache();
   hydrateWeekFormatInstructions();
   hydrateProblemSetGlobalRules();

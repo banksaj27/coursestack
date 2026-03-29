@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import base64 as _b64mod
 import json
 import os
 import re
 from typing import AsyncGenerator
 
-from openai import AsyncOpenAI
+from google import genai
+from google.genai import types
 
 from models import (
     CoursePlan,
@@ -18,37 +20,42 @@ from models import (
 from prompts import build_system_prompt
 from week_context_utils import strip_meta_part_labels
 
-_client: AsyncOpenAI | None = None
+_client: genai.Client | None = None
 
 
-def _get_client() -> AsyncOpenAI:
+def _get_client() -> genai.Client:
     global _client
     if _client is None:
-        _client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        _client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
     return _client
 
 
-def _build_messages(state: PlanState, user_message: str) -> list[dict]:
+def _gemini_role(role: str) -> str:
+    """Map conversation history roles ('assistant') to Gemini's 'model' role."""
+    return "model" if role == "assistant" else "user"
+
+
+def _build_contents(state: PlanState, user_message: str) -> tuple[str, list[types.Content]]:
+    """Return (system_instruction, contents) for Gemini."""
     system = build_system_prompt(state)
-    messages: list[dict] = [{"role": "system", "content": system}]
+    contents: list[types.Content] = []
 
     for entry in state.conversation_history:
-        messages.append({"role": entry["role"], "content": entry["content"]})
+        contents.append(types.Content(
+            role=_gemini_role(entry["role"]),
+            parts=[types.Part.from_text(text=entry["content"])],
+        ))
 
+    user_parts: list[types.Part] = [types.Part.from_text(text=user_message)]
     if state.image_attachments:
-        content: list[dict] = [{"type": "text", "text": user_message}]
         for img in state.image_attachments:
-            content.append({
-                "type": "image_url",
-                "image_url": {
-                    "url": f"data:{img.media_type};base64,{img.base64}",
-                },
-            })
-        messages.append({"role": "user", "content": content})
-    else:
-        messages.append({"role": "user", "content": user_message})
+            user_parts.append(types.Part.from_bytes(
+                data=_b64mod.b64decode(img.base64),
+                mime_type=img.media_type,
+            ))
 
-    return messages
+    contents.append(types.Content(role="user", parts=user_parts))
+    return system, contents
 
 
 _PLAN_RE = re.compile(
@@ -193,18 +200,21 @@ def _parse_response(raw: str, current_state: PlanState) -> tuple[str, PlanState,
 
 
 async def run_agent(request: PlanRequest) -> PlanResponse:
-    model = os.getenv("OPENAI_MODEL", "gpt-4o")
+    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
     client = _get_client()
-    messages = _build_messages(request.state, request.message)
+    system, contents = _build_contents(request.state, request.message)
 
-    response = await client.chat.completions.create(
+    response = await client.aio.models.generate_content(
         model=model,
-        messages=messages,
-        temperature=0.7,
-        max_tokens=16384,
+        contents=contents,
+        config=types.GenerateContentConfig(
+            system_instruction=system,
+            temperature=0.7,
+            max_output_tokens=16384,
+        ),
     )
 
-    raw = response.choices[0].message.content or ""
+    raw = response.text or ""
     agent_message, new_state, is_complete = _parse_response(raw, request.state)
 
     new_state.conversation_history.append({"role": "user", "content": request.message})
@@ -218,29 +228,28 @@ async def run_agent(request: PlanRequest) -> PlanResponse:
 
 
 async def run_agent_stream(request: PlanRequest) -> AsyncGenerator[dict, None]:
-    model = os.getenv("OPENAI_MODEL", "gpt-4o")
+    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
     client = _get_client()
-    messages = _build_messages(request.state, request.message)
+    system, contents = _build_contents(request.state, request.message)
 
-    total_chars = sum(len(m.get("content", "")) for m in messages)
-    print(f"[stream] sending {len(messages)} messages, ~{total_chars} chars to {model}", flush=True)
+    print(f"[stream] sending {len(contents)} contents to {model}", flush=True)
 
     full_response = ""
     plan_marker_seen = False
+    config = types.GenerateContentConfig(
+        system_instruction=system,
+        temperature=0.7,
+        max_output_tokens=16384,
+    )
 
     try:
-        stream = await client.chat.completions.create(
+        async for chunk in await client.aio.models.generate_content_stream(
             model=model,
-            messages=messages,
-            temperature=0.7,
-            max_tokens=16384,
-            stream=True,
-        )
-
-        async for chunk in stream:
-            delta = chunk.choices[0].delta
-            if delta.content:
-                token = delta.content
+            contents=contents,
+            config=config,
+        ):
+            token = chunk.text or ""
+            if token:
                 full_response += token
 
                 if not plan_marker_seen:
@@ -275,17 +284,17 @@ async def run_agent_stream(request: PlanRequest) -> AsyncGenerator[dict, None]:
         retry_state.conversation_history.append({"role": "user", "content": request.message})
         retry_state.conversation_history.append({"role": "assistant", "content": agent_message})
 
-        retry_messages = _build_messages(retry_state, "Generate the complete course outline now.")
+        retry_system, retry_contents = _build_contents(retry_state, "Generate the complete course outline now.")
         retry_response = ""
         try:
-            retry_stream = await client.chat.completions.create(
-                model=model, messages=retry_messages,
-                temperature=0.7, max_tokens=16384, stream=True,
-            )
-            async for chunk in retry_stream:
-                delta = chunk.choices[0].delta
-                if delta.content:
-                    retry_response += delta.content
+            async for chunk in await client.aio.models.generate_content_stream(
+                model=model, contents=retry_contents,
+                config=types.GenerateContentConfig(
+                    system_instruction=retry_system,
+                    temperature=0.7, max_output_tokens=16384,
+                ),
+            ):
+                retry_response += chunk.text or ""
         except Exception:
             pass
 
@@ -316,7 +325,7 @@ async def run_agent_stream(request: PlanRequest) -> AsyncGenerator[dict, None]:
 
 async def generate_export(state: PlanState) -> dict:
     """Generate a descriptive syllabus export using the LLM."""
-    model = os.getenv("OPENAI_MODEL", "gpt-4o")
+    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
     client = _get_client()
 
     weeks_json = json.dumps(
@@ -377,14 +386,16 @@ RULES:
 {weeks_json}
 """
 
-    response = await client.chat.completions.create(
+    response = await client.aio.models.generate_content(
         model=model,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.4,
-        max_tokens=16384,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            temperature=0.4,
+            max_output_tokens=16384,
+        ),
     )
 
-    raw = (response.choices[0].message.content or "").strip()
+    raw = (response.text or "").strip()
     if raw.startswith("```"):
         raw = re.sub(r"^```(?:json)?\s*", "", raw)
         raw = re.sub(r"\s*```$", "", raw)
