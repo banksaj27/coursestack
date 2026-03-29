@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useWeekModuleNeighbors } from "@/hooks/useWeekModuleNeighbors";
 import { motion } from "framer-motion";
 import AppNav from "@/components/AppNav";
+import GradedTestingModePanel from "@/components/graded/GradedTestingModePanel";
 import {
   EmptyWorkspaceScreen,
   WorkspacePlaceholderLink,
@@ -13,7 +15,10 @@ import {
 import LectureChatPanel from "@/components/lecture-studio/LectureChatPanel";
 import LectureContentPanel from "@/components/lecture-studio/LectureContentPanel";
 import QuizHouseRulesPanel from "@/components/lecture-studio/QuizHouseRulesPanel";
+import { useModuleProgress } from "@/hooks/useModuleAssessmentCompletion";
 import { useModuleStudio } from "@/hooks/useModuleStudio";
+import { clearGradedModuleAttempt } from "@/lib/moduleAssessmentCompletion";
+import { setLastCourseworkVisit } from "@/lib/courseworkNavigation";
 import { hydrateWeekWorkspace } from "@/lib/hydrateWeekWorkspace";
 import { APPLY_QUIZ_RULES_MESSAGE } from "@/lib/quizStudioApply";
 
@@ -40,6 +45,19 @@ export default function QuizWorkspacePage() {
     sendMessage,
     isBusy,
   } = useModuleStudio(week, moduleId);
+
+  const moduleNeighbors = useWeekModuleNeighbors(week, moduleId, module);
+  const progress = useModuleProgress(week, moduleId);
+  const [testingMode, setTestingMode] = useState(false);
+  const [reviewMode, setReviewMode] = useState(false);
+  const hasGradedAttempt = Boolean(progress.graded);
+
+  useEffect(() => {
+    if (!Number.isFinite(week) || !moduleId || notFound) return;
+    if (module?.kind === "quiz") {
+      setLastCourseworkVisit(week, moduleId, "quiz");
+    }
+  }, [week, moduleId, notFound, module]);
 
   if (!Number.isFinite(week) || !moduleId) {
     return (
@@ -97,11 +115,6 @@ export default function QuizWorkspacePage() {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-neutral-50/50">
       <AppNav />
-      <div className="flex shrink-0 items-center justify-center border-b border-neutral-100 bg-white px-4 py-1.5">
-        <span className="text-[10px] font-medium tracking-wide text-neutral-400">
-          Quiz workspace
-        </span>
-      </div>
 
       <motion.div
         initial={{ opacity: 0 }}
@@ -109,33 +122,70 @@ export default function QuizWorkspacePage() {
         transition={{ duration: 0.2 }}
         className="flex min-h-0 flex-1"
       >
-        <div className="w-[42%] border-r border-neutral-100 bg-white">
-          <LectureChatPanel
-            workspace="quiz"
+        {reviewMode && module && progress.graded ? (
+          <GradedTestingModePanel
             week={week}
             moduleId={moduleId}
-            moduleTitle={module?.title ?? ""}
-            messages={messages}
-            sendMessage={sendMessage}
-            isBusy={isBusy}
-            streamingContent={streamingContent}
-            agentStatus={agentStatus}
-            belowHeaderSlot={
-              <QuizHouseRulesPanel
-                disabled={isBusy}
-                onApplyRules={() => void sendMessage(APPLY_QUIZ_RULES_MESSAGE)}
-              />
-            }
-          />
-        </div>
-        <div className="min-h-0 min-w-0 flex-1 overflow-hidden bg-white">
-          <LectureContentPanel
-            workspace="quiz"
-            week={week}
-            courseTopic={syllabusTopic}
             module={module}
+            mode="review"
+            initialAnswers={progress.graded.answers}
+            savedScore={{
+              score: progress.graded.score,
+              maxScore: progress.graded.maxScore,
+            }}
+            onExit={() => setReviewMode(false)}
           />
-        </div>
+        ) : testingMode && module ? (
+          <GradedTestingModePanel
+            week={week}
+            moduleId={moduleId}
+            module={module}
+            onExit={() => setTestingMode(false)}
+          />
+        ) : !testingMode && !reviewMode && module ? (
+          <>
+            <div className="w-[42%] border-r border-neutral-100 bg-white">
+              <LectureChatPanel
+                workspace="quiz"
+                week={week}
+                moduleId={moduleId}
+                moduleTitle={module?.title ?? ""}
+                messages={messages}
+                sendMessage={sendMessage}
+                isBusy={isBusy}
+                streamingContent={streamingContent}
+                agentStatus={agentStatus}
+                belowHeaderSlot={
+                  <QuizHouseRulesPanel
+                    disabled={isBusy}
+                    onApplyRules={() =>
+                      void sendMessage(APPLY_QUIZ_RULES_MESSAGE)
+                    }
+                  />
+                }
+              />
+            </div>
+            <div className="min-h-0 min-w-0 flex-1 overflow-hidden bg-white">
+              <LectureContentPanel
+                workspace="quiz"
+                week={week}
+                courseTopic={syllabusTopic}
+                module={module}
+                moduleNeighbors={moduleNeighbors}
+                gradedWorkspaceBar={{
+                  onBeginTesting: () => setTestingMode(true),
+                  onViewAnswers: () => setReviewMode(true),
+                  onReattempt: () => {
+                    clearGradedModuleAttempt(week, moduleId);
+                    setReviewMode(false);
+                  },
+                  completedScore: progress.graded,
+                  hasGradedAttempt,
+                }}
+              />
+            </div>
+          </>
+        ) : null}
       </motion.div>
     </div>
   );

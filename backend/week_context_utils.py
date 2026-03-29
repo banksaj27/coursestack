@@ -15,6 +15,35 @@ _PART_ONLY_LINE = re.compile(
 )
 
 
+_FALLBACK_WEEK_MODULAR_CHAT = (
+    "I've updated this week's modules—open the timeline on the right for full "
+    "lecture chapters, assignments, quizzes, and exams."
+)
+
+
+def sanitize_week_modular_chat_prose(text: str) -> str:
+    """
+    The model sometimes pastes YAML/field dumps or body_md into the prose before
+    :::WEEK_MODULES_UPDATE:::. That text is redundant with the JSON block and
+    should not appear in chat history—replace with a short acknowledgment.
+    """
+    t = (text or "").strip()
+    if not t:
+        return t
+    if re.search(r"(?m)^\s*body_md\s*:", t):
+        return _FALLBACK_WEEK_MODULAR_CHAT
+    if re.search(r"(?m)^\s*one_line_summary\s*:", t):
+        return _FALLBACK_WEEK_MODULAR_CHAT
+    if re.search(r"(?m)^\s*kind\s*:", t) and re.search(r"(?m)^\s*id\s*:", t):
+        return _FALLBACK_WEEK_MODULAR_CHAT
+    low = t.lower()
+    if "```json" in low or ('```' in t and '"modules"' in t):
+        return _FALLBACK_WEEK_MODULAR_CHAT
+    if len(t) > 8000:
+        return _FALLBACK_WEEK_MODULAR_CHAT
+    return t
+
+
 def strip_meta_part_labels(text: str) -> str:
     """Drop 'Part 1 — …' / 'Part 2' heading lines from the visible assistant reply."""
     if not (text or "").strip():
@@ -72,6 +101,8 @@ def format_global_format_block(raw: str | None) -> str:
     return f"""=== GLOBAL FORMAT & STRUCTURE RULES (ALL WEEKS) ===
 The instructor authored the rules below. They apply to **every week** of this course, including the current week. Follow them in **all** outputs: lecture markdown, problem_set prompts, quiz and exam write-ups, module body_md, instructor notes—unless the user's **latest** chat message explicitly overrides them.
 
+**Module mix (critical):** If these rules specify **how many** modules of a kind appear each week (e.g. **at least one project**, **only one quiz**, **one problem set**), you **must** implement that in the `modules` array using the correct `kind` values (`project`, `quiz`, `problem_set`, …). That requirement **overrides** any generic “project optional” or “typical week” wording elsewhere in the system prompt.
+
 {t}
 
 === END GLOBAL RULES ===
@@ -122,6 +153,28 @@ The instructor authored the rules below. They apply to **every** module with `ki
 """
 
 EXAM_SPECIFIC_RULES_MAX_CHARS = 4000
+
+# Shown in system prompts for problem_set, quiz, and exam so body_md parses into MC vs short-answer UI.
+ASSESSMENT_MARKDOWN_MACHINE_READABLE = """=== ASSESSMENT body_md — FORMAT FOR THE LEARNING APP (problem_set, quiz, exam) ===
+The app parses each item to show **radio choices** (multiple choice / true–false) or a **text box** (short answer, proofs, calculations). Structure graded `body_md` accordingly:
+
+- **One heading per major graded item** when possible: prefer `## Question 1 (4 pts)` (or `###` for parts (a)(b)). Long exams may use **top-level `# Question …`** per item instead of `##`; either style is fine as long as each question is its own heading block. Prefer **clear headings** over a bare numbered list (`1.` `2.` …) for separate questions—if you use numbered lists, keep each item under a `##`, `###`, or `#` question heading so the app can split them.
+- **Multiple choice**: Write the stem (paragraphs, math). **End** that question with **consecutive lines**, one per option, using **letters A–Z** and this pattern (nothing after the last option except the next heading or question):
+  `A. …`
+  `B. …`
+  `C. …`
+  `D. …`
+  Do **not** put hints, “Correct:”, or answer keys **after** the option list—put notes **before** the options or omit them from the student-facing text.
+- **True/False**: End with two options whose labels read **True** and **False** (e.g. `A. True` and `B. False`).
+- **Short answer / written response**: Start the block with a heading such as `### Question`, `### Problem`, `### Short answer`, or `## Question …` with a clear prompt; the app shows a **textarea** under that block. Use verbs like *Prove*, *Show that*, *Compute*, *Explain*, *Find* when appropriate.
+
+=== END ASSESSMENT FORMAT ===
+"""
+
+
+def assessment_markdown_format_block() -> str:
+    """Instructions so problem_set / quiz / exam body_md matches the frontend parser."""
+    return ASSESSMENT_MARKDOWN_MACHINE_READABLE
 
 
 def format_exam_specific_rules_block(raw: str | None) -> str:

@@ -5,6 +5,9 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { WeekModule } from "@/types/weekModular";
 import { MarkdownMath } from "@/components/shared/MarkdownMath";
+import { useModuleProgress } from "@/hooks/useModuleAssessmentCompletion";
+import { effectiveAssessmentTotalPoints } from "@/lib/gradedAssessmentDefaults";
+import { isGradedAssessmentKind } from "@/lib/moduleAssessmentCompletion";
 
 const KIND_META: Record<
   WeekModule["kind"],
@@ -59,6 +62,9 @@ export default function ModuleTimelineNode({
   const [expanded, setExpanded] = useState(false);
   const meta = KIND_META[mod.kind] ?? KIND_META.lecture;
   const onlyNode = isFirst && isLast;
+  const graded = isGradedAssessmentKind(mod.kind);
+  const ptsTotal = graded ? effectiveAssessmentTotalPoints(mod) : 0;
+  const progress = useModuleProgress(week, mod.id);
 
   return (
     <motion.div
@@ -105,13 +111,33 @@ export default function ModuleTimelineNode({
                   ~{mod.estimated_minutes} min
                 </span>
               ) : null}
+              {graded ? (
+                <span className="text-[10px] font-medium text-neutral-600">
+                  {ptsTotal} pts
+                </span>
+              ) : null}
+              {mod.kind === "lecture" && progress.lectureComplete ? (
+                <span className="inline-flex items-center gap-0.5 rounded border border-emerald-200 bg-emerald-50/90 px-1.5 py-px text-[10px] font-semibold text-emerald-900">
+                  <span aria-hidden>✓</span>
+                  Done
+                </span>
+              ) : null}
+              {graded && progress.graded ? (
+                <span className="inline-flex items-center gap-0.5 rounded border border-emerald-200 bg-emerald-50/90 px-1.5 py-px text-[10px] font-semibold text-emerald-900">
+                  <span aria-hidden>✓</span>
+                  {progress.graded.score}/{progress.graded.maxScore}
+                </span>
+              ) : null}
             </div>
             <h3 className="truncate text-[13px] font-semibold text-neutral-900">
               {mod.title}
             </h3>
-            {mod.summary ? (
-              <p className="mt-0.5 line-clamp-2 text-[12px] leading-snug text-neutral-500">
-                {mod.summary}
+            {mod.one_line_summary?.trim() ? (
+              <p
+                className="mt-0.5 line-clamp-1 text-[11px] leading-snug text-neutral-500"
+                title={mod.one_line_summary}
+              >
+                {mod.one_line_summary.trim()}
               </p>
             ) : null}
             {mod.kind === "lecture" && mod.id ? (
@@ -178,7 +204,7 @@ export default function ModuleTimelineNode({
         </div>
 
         <AnimatePresence>
-          {expanded && mod.body_md.trim().length > 0 && (
+          {expanded ? (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
@@ -188,10 +214,27 @@ export default function ModuleTimelineNode({
               onClick={(e) => e.stopPropagation()}
             >
               <div className="border-t border-neutral-100 px-4 py-3">
-                <MarkdownMath source={mod.body_md} variant="light" />
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">
+                  Summary
+                </p>
+                {mod.summary?.trim() ? (
+                  <div className="mt-2">
+                    <MarkdownMath
+                      source={mod.summary}
+                      variant="light"
+                      className="text-neutral-700"
+                    />
+                  </div>
+                ) : (
+                  <p className="mt-2 text-[12px] leading-relaxed text-neutral-500">
+                    No summary on the timeline yet. Open the workspace above to
+                    view and edit the full module—body content stays there, not
+                    here.
+                  </p>
+                )}
               </div>
             </motion.div>
-          )}
+          ) : null}
         </AnimatePresence>
       </div>
     </motion.div>

@@ -12,6 +12,8 @@ export interface WeekModularSSECallbacks {
     generated: WeekModularStatePayload["generated"];
     conversation_history: { role: string; content: string }[];
     week_context_summary?: string | null;
+    /** False when the model omitted or broke the WEEK_MODULES_UPDATE JSON; timeline unchanged. */
+    timeline_parse_ok?: boolean;
   }) => void;
   onDone: () => void;
   onError: (error: Error) => void;

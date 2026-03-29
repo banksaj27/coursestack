@@ -59,10 +59,13 @@ function moduleSig(m: WeekModule): string {
     id: m.id,
     kind: m.kind,
     title: m.title,
+    oneLine: (m.one_line_summary ?? "").slice(0, 200),
     summary: m.summary,
     body: m.body_md.slice(0, 400),
     examRules:
       m.kind === "exam" ? (m.exam_specific_rules ?? "").slice(0, 300) : "",
+    assessment_total_points: m.assessment_total_points ?? null,
+    graded_item_points: m.graded_item_points ?? [],
   });
 }
 
@@ -403,11 +406,13 @@ export const useWeekModularStore = create<WeekModularStore>((set, get) => ({
     );
 
     await streamWeekModularRequest(text, statePayload, {
-      onToken: (token) => {
+      onToken: (_token) => {
         if (get().selectedWeek !== weekAtStart) return;
+        // Do not stream pre-marker tokens into chat: full module text belongs on the
+        // timeline only; streaming long drafts here clutters the conversation.
         set((s) => ({
           messages: stripStatusStub(s.messages),
-          streamingContent: s.streamingContent + token,
+          streamingContent: "",
           agentStatus: "streaming",
         }));
         statusStubId = null;
@@ -415,6 +420,11 @@ export const useWeekModularStore = create<WeekModularStore>((set, get) => ({
       onModulesUpdate: (data) => {
         if (get().selectedWeek !== weekAtStart) return;
         assistantMsg.content = data.agent_message;
+        if (data.timeline_parse_ok === false) {
+          console.warn(
+            "week-modular: timeline unchanged (missing or invalid WEEK_MODULES_UPDATE block)",
+          );
+        }
         if (data.week_context_summary) {
           setWeekSummaryForWeek(weekAtStart, data.week_context_summary);
         }

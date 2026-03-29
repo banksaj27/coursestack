@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import json
+import os
 from typing import AsyncGenerator
 
 from google.genai import types
 
 from gemini_client import get_gemini_client, get_gemini_model
 from models import LectureStudioState, WeekModule
+from week_modular_agent import _DEFAULT_ASSESSMENT_POINTS, _parse_graded_item_points
 from week_context_utils import (
+    assessment_markdown_format_block,
     build_gemini_turns_with_trim,
     format_exam_specific_rules_block,
     format_global_format_block,
@@ -30,6 +33,118 @@ def _extract_json(raw: str) -> str | None:
     if ei < 0:
         return None
     return raw[si + len(_START_TAG) : ei].strip()
+
+
+def _project_advisor_framework_block(state: LectureStudioState) -> str:
+    """Rich capstone-style guidance for project modules (humanities / social sciences friendly)."""
+    topic = (state.syllabus.topic or "this course").strip() or "this course"
+    prof = state.syllabus.user_profile
+    level_parts: list[str] = []
+    if prof.rigor_level:
+        level_parts.append(prof.rigor_level)
+    if prof.goals:
+        level_parts.append("; ".join(prof.goals[:4]))
+    if prof.background:
+        level_parts.append(f"Learner background: {prof.background[:200]}")
+    course_level = " — ".join(level_parts) if level_parts else "infer level and stakes from syllabus and week context"
+
+    weeks = state.syllabus.course_plan.weeks
+    week_obj = next((w for w in weeks if w.week == state.selected_week), None)
+    week_ctx = ""
+    if week_obj is not None:
+        week_ctx = f"Week {week_obj.week}: {week_obj.title}"
+        if week_obj.topics:
+            week_ctx += f" (topics: {', '.join(week_obj.topics[:6])})"
+
+    return f"""=== PROJECT — ACADEMIC ADVISOR FRAMEWORK ===
+Act as an **expert academic advisor** in **{topic}** (adjust subfield as needed: political science, history, philosophy, economics, CS capstone, etc., according to the real discipline of this course).
+
+You are helping design a **final / major project** for **{topic}** with course context: **{course_level}**.
+Timeline anchor: **{week_ctx or "this module week on the timeline"}**.
+
+**Constraints — take from the user message, existing `body_md`, and GLOBAL FORMAT when present; otherwise infer sensibly:**
+- Length / format (e.g. 10–15 page paper, presentation, mixed media, code + report, etc.)
+- Timeframe (e.g. 3–4 weeks or fit to this week’s milestones)
+- Requirements (e.g. primary sources, quantitative analysis, implementation + evaluation)
+
+**Workflow when the user wants new ideas, a redesign, or `body_md` is thin / placeholder:**
+
+1. Propose **4** project ideas that are **original**, **intellectually interesting**, **arguable** (not merely descriptive), and **feasible** in the stated timeframe.
+
+2. For **each** of the **4** ideas, in **chat** (discussion-only; no JSON block yet unless they ask to save), include:
+   - A clear **central question or thesis**
+   - **Why it’s interesting** (tension, debate, or gap in the literature / practice)
+   - **What evidence** would be used
+   - A **rough outline of the argument**
+   - **What would make it stand out** vs. a typical A-level project
+   - **Mandatory — “Starter Kit”** (so the instructor or student could **start within ~30 minutes**). Pick the **one** medium that best fits that idea and make the kit **concrete** (not generic). Use a `## Starter Kit` subheading under that idea.
+
+   **Coding / technical projects** — include:
+   - Minimal **starter code** (core structure, key functions, or tight **pseudocode** they can paste or follow)
+   - **Suggested libraries / tools** (named packages, versions if relevant)
+   - **Example input/output** (at least one realistic pair or small table)
+
+   **Writing / research projects** — include:
+   - A **sample thesis statement** (one or two sharpened sentences)
+   - A **paragraph-level outline** (each bullet must be a **short paragraph** of what that section does—not one-word bullets)
+   - **2–3 example sources** *or* precise **directions** for finding sources (databases, keywords, archive types, datasets)
+
+   **Art / creative projects** — include:
+   - **2–3 specific reference works** (named artists, styles, movements, or pieces)
+   - A **suggested composition or structure** (e.g. acts, panels, movements, layers)
+   - **Constraints**: color palette, medium, theme, duration, format dimensions—**specific enough** to remove blank-page paralysis
+
+   **Presentations / mixed media** — include:
+   - **Slide-by-slide** or **scene-by-scene** outline (titles + 1 line each)
+   - **Example narrative flow** (how the story or argument builds)
+   - **Visual or stylistic direction** (fonts, imagery metaphors, tone, analogous decks or films)
+
+   If an idea is **hybrid**, blend the two most relevant kits and say which medium is primary.
+
+3. **Then** identify the **strongest** idea and refine it in **chat** into:
+   - A **precise thesis statement**
+   - **Section-by-section outline**
+   - **Suggested sources or types of sources**
+   - **Potential counterarguments** (and how a strong submission would answer them)
+
+4. **After** that refinement, when the user confirms or asks to **put it in the handout / update the spec**, emit **one** `:::LECTURE_MODULE_UPDATE:::` block so **`body_md`** becomes the **complete student-facing project handout** embodying that chosen design: goals, deliverables, milestones, rubric, timeline, logistics, and **explicit expectations for argumentation and evidence** appropriate to **{topic}**.
+
+   The handout **must** include a dedicated **`## Starter Kit`** section for the **assigned** project (the one the handout specifies), **expanded** from your strongest idea: same medium-specific rules as above—**concrete enough to begin in under 30 minutes** (code/pseudocode + libs + I/O, *or* sample thesis + paragraph outline + 2–3 sources, *or* references + composition + constraints, *or* slide/scene outline + narrative + visual direction). This section belongs in **`body_md`**, not only in past chat.
+
+   **OUTPUT DELIVERABLES (IMPORTANT):** For the **chosen / best** project, `body_md` **must** also include a major section titled exactly **`## Output deliverables (copy-paste files)`** containing **concrete files** the instructor or student can **copy into separate files** on disk—**not** snippets that say “see chat.”
+
+   **Mandatory label format** (use this exact pattern for **every** file; one blank line after the label line, then the **full** file body):
+   ```
+   === path/to/filename.ext ===
+   <complete file contents>
+   ```
+
+   **By medium (include all that apply to the assigned project):**
+
+   - **Coding / technical:** (1) ASCII **file tree** at the start of the section (e.g. `project/`, `src/`, `data/`, `tests/`, `main.py`). (2) **Full** contents (not truncated “…” placeholders) of: the **main** entry script, **at least one** additional module, **`requirements.txt`** (or `package.json`, `go.mod`, `Cargo.toml`, etc. as appropriate), and **`README.md`** with setup, how to run, and how to test or verify. **The code must outline the full solution approach:** include real imports, class/function signatures with docstrings explaining each function's purpose, core algorithm logic as working code or clearly marked `# TODO: student implements ...` blocks with detailed comments explaining the expected approach (e.g. "use TF-IDF to score sentences, then pick top-k"), sample data loading, and a working `if __name__ == "__main__"` block that runs end-to-end. The student should be able to read the scaffold and understand the entire solution strategy before filling in the details.
+
+   - **Writing / research:** One structured document (**Markdown or LaTeX**) suitable to export as PDF: **Title**, **Abstract**, **section headings** each followed by **partial but real** drafted prose (not “TBD” one-liners). Put it in one or more labeled files (e.g. `paper.md`, `paper.tex`).
+
+   - **Art / creative:** A **project brief** document (Markdown or LaTeX): references, constraints, and a **step-by-step** creation plan—each in labeled files if multiple (e.g. `brief.md`).
+
+   - **Presentations / mixed media:** A **slide-by-slide** deck as **Markdown** (`## Slide N — Title` plus bullets per slide) **or** an explicit pseudo-**pptx** structure (for each slide: title line + body text). Use a clear filename (e.g. `slides.md` or `deck-outline.md`).
+
+   **Hybrids:** Include the file bundle for the **primary** medium first; add secondary files (e.g. `report.md` + `src/main.py`) when the assignment truly spans both.
+
+   **ABSOLUTE RULE — NO EMPTY OR STUB FILE BLOCKS:** Every `=== filename ===` block **must** be followed by the **complete file body** — real, runnable code (30–100+ lines for main scripts), real prose paragraphs (not headings-only), real config (not just comments). A block like:
+   ```
+   === main.py ===
+   # Python script implementing the POS tagger
+   ```
+   is **FORBIDDEN** — that is a one-line description, not a file. Instead, write the **actual working Python script** with imports, functions, main block, etc. If response length is tight, shorten **optional** handout prose first—never truncate the `=== ===` file bodies. Keep **README**, dependency manifest, and **main** script **complete** for code projects.
+
+   **Do not** paste the full handout into chat—only a short preface, per output rules.
+
+**Small edits** (typos, tweak one milestone, adjust a single bullet): skip the 4-idea workflow; patch `body_md` directly with a short chat note.
+
+Avoid **generic** topics. Prioritize **depth**, **originality**, and **strong argumentation** (or, for technical courses, non-trivial design choices and evaluation).
+
+"""
 
 
 def _build_system_prompt(state: LectureStudioState) -> str:
@@ -91,7 +206,8 @@ def _build_system_prompt(state: LectureStudioState) -> str:
             "Target on the order of **~2,500–8,000+ words** of instructional prose plus LaTeX and optional code. "
             "Use `##`/`###` structure; full proofs or proof sketches at course rigor; **three+** worked examples "
             "woven through the text; substantive pitfalls section; fenced code + commentary when CS/stats applies. "
-            "Unless the user asks to shorten, **expand** thin text toward chapter length."
+            "Unless the user asks to shorten, **expand** thin text toward chapter length. "
+            "Provide **one_line_summary**: **one** plain sentence for the **collapsed** timeline row—a hook (why it matters / main through-line)—**not** the opening of the paragraph **summary**, **not** the **Sections include:** list. Keep **summary** as a **~paragraph** (about **4–10 sentences**) for the **expanded** panel only: include an **ordered rundown of major `##`/`###` section titles** as they appear in `body_md`, plus scope and key ideas. When listing those sections (e.g. after **Sections include:**), use **lowercase** labels separated by **commas**, not semicolons or Title Case."
         )
     elif kind == "problem_set":
         kind_note = (
@@ -103,9 +219,10 @@ def _build_system_prompt(state: LectureStudioState) -> str:
             "**delete that entire section** from `body_md`—heading, body, and bullets—do **not** keep an empty heading, "
             "a one-line placeholder, or re-add it in `summary` only. "
             "Include **many** fully stated problems (not stubs): clear hypotheses, parts (a)(b)(c) where "
-            "appropriate, expected deliverables, and point values or rubric lines **if** the user wants grading. "
+            "appropriate, expected deliverables, and **point values per problem** in **body_md** (and mirror them in JSON **graded_item_points**). "
             "Optional **Hints** or **Solution sketches** only if the instructor asks. "
-            "Unless the user asks to shorten, **expand** thin text toward a complete take-home."
+            "Unless the user asks to shorten, **expand** thin text toward a complete take-home. "
+            "**one_line_summary**: one sentence, collapsed row—distinct from **summary**’s opening. **summary**: **~paragraph** (4–10 sentences) for the expanded panel—problem themes, progression, deliverables, logistics—**not** pasted problem text."
         )
     elif kind == "quiz":
         kind_note = (
@@ -117,15 +234,19 @@ def _build_system_prompt(state: LectureStudioState) -> str:
             "(e.g. one sentence, a number, a brief proof, fill in the blank with a single expression). "
             "**Do not** replace real questions with topic lists, “sample” items, blueprints, or placeholders like "
             "“Q3: induction”—each item must be a **complete** question students can answer as-is. "
-            "Unless the user asks to shorten, **expand** thin text toward a complete quiz."
+            "Unless the user asks to shorten, **expand** thin text toward a complete quiz. "
+            "**one_line_summary**: one sentence, collapsed row—distinct from **summary**’s opening. **summary**: **~paragraph** on coverage, MC vs short-answer mix, and skills assessed—expanded panel only."
         )
     elif kind == "project":
         kind_note = (
             "This module is a **project**: rewrite `body_md` as the **full project handout** students would receive—"
             "**clear goal**, **concrete deliverables**, **milestones** or checkpoints, **grading criteria** (rubric or weights), "
             "**timeline** within the week, collaboration/submission expectations, and constraints or starter materials as needed. "
-            "Target substantive length when appropriate (often **~1,000–5,000+ words** plus LaTeX/code when relevant). "
-            "Use `##`/`###` for sections. **No** one-line stubs: every deliverable must be actionable."
+            "Prefer **arguable**, **non-generic** assignments; when appropriate, make expectations for **thesis / question**, **evidence**, and **counterarguments** explicit in the handout (see **ACADEMIC ADVISOR FRAMEWORK**). "
+            "Include **`## Output deliverables (copy-paste files)`** with `=== path/file ===` markers, each followed by the **COMPLETE file body** (real runnable code of 30–100+ lines for scripts, full prose for docs — **NOT** one-line descriptions or placeholders). Code projects: tree + working main + module + requirements.txt + README.md. Writing: MD/LaTeX with drafted prose. "
+            "Target substantive length when appropriate (often **~1,000–5,000+ words** plus LaTeX/code when relevant; **much longer** when bundling full starter repos or papers). "
+            "Use `##`/`###` for sections. **No** one-line stubs: every deliverable must be actionable. "
+            "**one_line_summary**: one sentence, collapsed row—distinct from **summary**’s opening. **summary**: **~paragraph** on goal, milestones, main deliverables, and grading shape—**not** the full spec."
         )
     elif kind == "exam":
         kind_note = (
@@ -133,7 +254,8 @@ def _build_system_prompt(state: LectureStudioState) -> str:
             "instructions, coverage, duration, allowed materials, integrity; then **only** **multiple-choice** (stem + labeled options) "
             "and/or **short-answer** items, each **complete and gradable**—not blueprints or topic lists. "
             "Scale length and difficulty for a **cumulative** sitting when the title/summary indicate a final. "
-            "Unless the user asks to shorten, **expand** thin text toward a full exam."
+            "Unless the user asks to shorten, **expand** thin text toward a full exam. "
+            "**one_line_summary**: one sentence, collapsed row—distinct from **summary**’s opening. **summary**: **~paragraph** on coverage, format, cumulative emphasis, and logistics—expanded panel only."
         )
 
     if kind == "problem_set":
@@ -155,14 +277,16 @@ def _build_system_prompt(state: LectureStudioState) -> str:
 **When you change the module** (steps 3–4): write a **short** natural-language preface (see step 3), then **immediately** end with exactly (no large markdown draft of the assignment before this):
 
 :::LECTURE_MODULE_UPDATE:::
-{ "title": "...", "summary": "...", "body_md": "...", "estimated_minutes": null }
+{ "title": "...", "one_line_summary": "...", "summary": "...", "body_md": "...", "estimated_minutes": null, "assessment_total_points": 10, "graded_item_points": [2, 2, 3, 3] }
 :::END_LECTURE_MODULE_UPDATE:::
 
 **When you are only tutoring** (step 2): write your full reply in prose. **Do not** include `:::LECTURE_MODULE_UPDATE:::` or any JSON—the assignment text on the right must stay unchanged.
 
 Rules when the JSON block **is** present:
 - Valid JSON only inside the block. Use \\n inside strings for newlines in body_md.
+- **assessment_total_points** must be **10** for problem sets unless the user asks otherwise; **graded_item_points** must be a non-empty array of positive numbers summing to **assessment_total_points**, one per graded problem in order.
 - **estimated_minutes** may be a number or null.
+- **one_line_summary**: **one** plain sentence for the **collapsed** timeline row—a distinct hook; **do not** repeat or paraphrase the **opening** of **summary** or duplicate **title**. **summary**: **~paragraph** for the **expanded** panel only.
 - **body_md** must be **non-empty** and the **complete** updated assignment unless the user explicitly asked to clear it (brief placeholder + explanation).
 - **body_md** must be the **full** problem set text—not a topic list or one-line stubs.
 - **Section removal** requests must change `body_md`: the removed section must be **absent** from the string you emit (verify mentally: no `## Instructions` block if they asked to remove instructions).
@@ -171,6 +295,7 @@ Rules when the JSON block **is** present:
 Rules when **no** JSON block:
 - Your chat message is the entire answer. Be helpful and precise; do not silently change the stored assignment.
 """
+        output_format_section += "\n\n" + assessment_markdown_format_block()
     elif kind == "quiz":
         intro = (
             "You are an expert professor. The user is in **one quiz module** on the course timeline. "
@@ -190,14 +315,16 @@ Rules when **no** JSON block:
 **When you change the module** (steps 3–4): write a **short** natural-language preface (see step 3), then **immediately** end with exactly (no large markdown draft of the quiz before this):
 
 :::LECTURE_MODULE_UPDATE:::
-{ "title": "...", "summary": "...", "body_md": "...", "estimated_minutes": null }
+{ "title": "...", "one_line_summary": "...", "summary": "...", "body_md": "...", "estimated_minutes": null, "assessment_total_points": 20, "graded_item_points": [4, 4, 4, 4, 4] }
 :::END_LECTURE_MODULE_UPDATE:::
 
 **When you are only tutoring** (step 2): write your full reply in prose. **Do not** include `:::LECTURE_MODULE_UPDATE:::` or any JSON—the quiz text on the right must stay unchanged.
 
 Rules when the JSON block **is** present:
 - Valid JSON only inside the block. Use \\n inside strings for newlines in body_md.
+- **assessment_total_points** must be **20** for quizzes unless the user asks otherwise; **graded_item_points** must be a non-empty array of positive numbers summing to **assessment_total_points**, one per graded question in order.
 - **estimated_minutes** may be a number or null.
+- **one_line_summary**: **one** plain sentence for the **collapsed** timeline row—a distinct hook; **do not** repeat or paraphrase the **opening** of **summary** or duplicate **title**. **summary**: **~paragraph** for the **expanded** panel only.
 - **body_md** must be **non-empty** and the **complete** updated quiz unless the user explicitly asked to clear it (brief placeholder + explanation).
 - **body_md** must be the **full** quiz text—not a topic list, blueprint, or one-line stubs. **Questions must be real MC or short-answer items** (full stems and options where MC; explicit prompts where SA)—not “sample” or illustrative placeholders.
 - **Section removal** requests must change `body_md`: the removed section must be **absent** from the string you emit.
@@ -206,6 +333,7 @@ Rules when the JSON block **is** present:
 Rules when **no** JSON block:
 - Your chat message is the entire answer. Be helpful and precise; do not silently change the stored quiz.
 """
+        output_format_section += "\n\n" + assessment_markdown_format_block()
     elif kind == "project":
         intro = (
             "You are an expert professor. The user is in **one project module** on the course timeline. "
@@ -225,7 +353,7 @@ Rules when **no** JSON block:
 **When you change the module** (steps 3–4): write a **short** natural-language preface (see step 3), then **immediately** end with exactly (no large markdown draft of the project before this):
 
 :::LECTURE_MODULE_UPDATE:::
-{ "title": "...", "summary": "...", "body_md": "...", "estimated_minutes": null }
+{ "title": "...", "one_line_summary": "...", "summary": "...", "body_md": "...", "estimated_minutes": null }
 :::END_LECTURE_MODULE_UPDATE:::
 
 **When you are only discussing** (step 2): write your full reply in prose. **Do not** include `:::LECTURE_MODULE_UPDATE:::` or any JSON—the project spec on the right must stay unchanged.
@@ -233,8 +361,10 @@ Rules when **no** JSON block:
 Rules when the JSON block **is** present:
 - Valid JSON only inside the block. Use \\n inside strings for newlines in body_md.
 - **estimated_minutes** may be a number or null.
+- **one_line_summary**: **one** plain sentence for the **collapsed** timeline row—a distinct hook; **do not** repeat or paraphrase the **opening** of **summary** or duplicate **title**. **summary**: **~paragraph** for the **expanded** panel only.
 - **body_md** must be **non-empty** and the **complete** updated project spec unless the user explicitly asked to clear it (brief placeholder + explanation).
 - **body_md** must be the **full** handout—not a topic list or stub bullets replacing real deliverables.
+- For a **full** project handout (not a tiny patch), **body_md** must include **`## Starter Kit`** and **`## Output deliverables (copy-paste files)`** with **`=== relative/path/filename.ext ===`** labels and **complete** file bodies per the **ACADEMIC ADVISOR FRAMEWORK** (escape newlines as `\\n` inside JSON strings).
 - **Section removal** requests must change `body_md`: the removed section must be **absent** from the string you emit.
 - The visible chat **before** the marker must stay **brief**: no full reproduction of the spec. Put the full text **only** in `body_md`.
 
@@ -259,14 +389,16 @@ Rules when **no** JSON block:
 **When you change the module** (steps 3–4): write a **short** natural-language preface (see step 3), then **immediately** end with exactly (no large markdown draft of the exam before this):
 
 :::LECTURE_MODULE_UPDATE:::
-{ "title": "...", "summary": "...", "body_md": "...", "estimated_minutes": null }
+{ "title": "...", "one_line_summary": "...", "summary": "...", "body_md": "...", "estimated_minutes": null, "assessment_total_points": 100, "graded_item_points": [10, 10, 10, 10, 10, 10, 10, 10, 10, 10] }
 :::END_LECTURE_MODULE_UPDATE:::
 
 **When you are only tutoring** (step 2): write your full reply in prose. **Do not** include `:::LECTURE_MODULE_UPDATE:::` or any JSON—the exam text on the right must stay unchanged.
 
 Rules when the JSON block **is** present:
 - Valid JSON only inside the block. Use \\n inside strings for newlines in body_md.
+- **assessment_total_points** must be **100** for exams unless the user asks otherwise; **graded_item_points** must be a non-empty array of positive numbers summing to **assessment_total_points**, one per graded question in order.
 - **estimated_minutes** may be a number or null.
+- **one_line_summary**: **one** plain sentence for the **collapsed** timeline row—a distinct hook; **do not** repeat or paraphrase the **opening** of **summary** or duplicate **title**. **summary**: **~paragraph** for the **expanded** panel only.
 - **body_md** must be **non-empty** and the **complete** updated exam unless the user explicitly asked to clear it (brief placeholder + explanation).
 - **body_md** must be the **full** exam text—not a topic list or stubs. **Questions must be real MC or short-answer items**—not illustrative placeholders.
 - **Section removal** requests must change `body_md`: the removed section must be **absent** from the string you emit.
@@ -275,13 +407,14 @@ Rules when the JSON block **is** present:
 Rules when **no** JSON block:
 - Your chat message is the entire answer. Be helpful and precise; do not silently change the stored exam.
 """
+        output_format_section += "\n\n" + assessment_markdown_format_block()
     else:
         intro = (
             "You are an expert professor. The instructor is editing **one module** inside a week timeline."
         )
         job_section = f"""=== YOUR JOB ===
 1. Answer the instructor's **latest** message: explain, confirm edits, or ask one focused follow-up.
-2. Update **only** this module's **title**, **summary**, **body_md**, and optionally **estimated_minutes** to match what they want.
+2. Update **only** this module's **title**, **one_line_summary**, **summary**, **body_md**, and optionally **estimated_minutes** to match what they want.
 3. {kind_note}
 4. Preserve **id** and **kind** logically in the JSON (we will force them to match the existing module server-side).
 """
@@ -289,15 +422,20 @@ Rules when **no** JSON block:
 Write a short natural reply first (no JSON). Then end with exactly:
 
 :::LECTURE_MODULE_UPDATE:::
-{ "title": "...", "summary": "...", "body_md": "...", "estimated_minutes": null }
+{ "title": "...", "one_line_summary": "...", "summary": "...", "body_md": "...", "estimated_minutes": null }
 :::END_LECTURE_MODULE_UPDATE:::
 
 Rules:
 - Valid JSON only inside the block. Use \\n inside strings for newlines in body_md.
 - **estimated_minutes** may be a number or null.
+- **one_line_summary**: **one** plain sentence for the **collapsed** timeline row—a distinct hook (payoff / tension / what students do); **forbidden:** copying the **opening** of **summary**, listing **Sections include:**, or duplicating **title**. **summary**: **~paragraph** (4–10 sentences) for the **expanded** panel only.
 - **Every** reply must include the block with non-empty **body_md** unless the user explicitly asked to clear it (then use a brief placeholder explaining why).
-- For **lecture** modules, **body_md** in the JSON must be the **full chapter-length** material (5–10 pages, paragraph-heavy)—not an outline, not a shortened summary, not bullet-topic lists replacing prose.
+- For **lecture** modules, **body_md** in the JSON must be the **full chapter-length** material (5–10 pages, paragraph-heavy)—not an outline, not a shortened summary, not bullet-topic lists replacing prose. **summary** must be a **~paragraph** timeline preview that **lists major `##`/`###` section titles in order** matching `body_md`; in that list (e.g. **Sections include:**), **lowercase** names and **comma** separators—no semicolons, no Title Case in the list.
 """
+
+    project_advisor_injection = (
+        _project_advisor_framework_block(state) if kind == "project" else ""
+    )
 
     return f"""{intro}
 
@@ -325,8 +463,8 @@ If this module is a **problem_set**, treat `body_md` as the **complete assignmen
 === QUIZ DEPTH (WHEN kind IS quiz) ===
 If this module is a **quiz**, treat `body_md` as the **complete quiz** students would receive: a **mix or sequence of real questions**, each in **multiple choice** (stem + labeled choices, exactly one intended correct answer unless the instructor specifies otherwise) **or short answer** (clear prompt + expected response shape). **No** blueprints, topic-only lines, or “sample question” framing—only **gradable** items. Add timing and policies when relevant; LaTeX where needed. **Strip** whole sections when the user asks to remove them (no leftover headings). Whenever you emit an update block, the JSON `body_md` must be the **full quiz text**, not an outline—**do not** mirror it in chat. For **tutoring-only** replies, rely on the existing `body_md` and do not emit a block.
 
-=== PROJECT DEPTH (WHEN kind IS project) ===
-If this module is a **project**, treat `body_md` as the **complete project handout**: goal, **actionable** deliverables, milestones, grading expectations, timeline, logistics, and constraints—written so a student could start work without guessing. Whenever you emit an update block, the JSON `body_md` must be the **full spec**, not an outline—**do not** mirror it in chat. For **discussion-only** replies, rely on the existing `body_md` and do not emit a block.
+{project_advisor_injection}=== PROJECT DEPTH (WHEN kind IS project) ===
+If this module is a **project**, treat `body_md` as the **complete project handout**: goal, **actionable** deliverables, milestones, grading expectations, timeline, logistics, and constraints—written so a student could start work without guessing. Follow the **PROJECT — ACADEMIC ADVISOR FRAMEWORK** above for brainstorming and for shaping **argumentative depth** (thesis, evidence, counterarguments) when the discipline calls for it. The handout **must** contain **`## Starter Kit`** and **`## Output deliverables (copy-paste files)`** with **`=== filename ===`** blocks (**full** key files for code; MD/LaTeX PDF-ready drafts for writing; brief + plan for creative; slide-by-slide for decks). Whenever you emit an update block, the JSON `body_md` must be the **full spec**, not an outline—**do not** mirror it in chat. For **discussion-only** replies, rely on the existing `body_md` and do not emit a block.
 
 === EXAM DEPTH (WHEN kind IS exam) ===
 If this module is an **exam**, treat `body_md` as the **complete exam** students would receive: cumulative coverage as appropriate for midterm/final; clear logistics; **only** real **multiple-choice** and/or **short-answer** questions. Whenever you emit an update block, the JSON `body_md` must be the **full exam**, not an outline—**do not** mirror it in chat. For **tutoring-only** replies, rely on the existing `body_md` and do not emit a block.
@@ -375,34 +513,95 @@ def _parse_module_update(
     try:
         data = json.loads(blob)
         est = data.get("estimated_minutes")
+        ols = data.get("one_line_summary")
+        if ols is None:
+            one_line = fallback.one_line_summary
+        else:
+            one_line = str(ols).strip()
+        kind = fallback.kind
+        atp_raw = data.get("assessment_total_points")
+        atp: int | None
+        if atp_raw is not None:
+            try:
+                atp = int(float(atp_raw))
+            except (TypeError, ValueError):
+                atp = fallback.assessment_total_points
+        else:
+            atp = fallback.assessment_total_points
+        if atp is None and kind in _DEFAULT_ASSESSMENT_POINTS:
+            atp = _DEFAULT_ASSESSMENT_POINTS[kind]
+
+        if "graded_item_points" in data:
+            gip = _parse_graded_item_points(data.get("graded_item_points"))
+        else:
+            gip = list(fallback.graded_item_points)
+
+        ex_rules = str(
+            data.get("exam_specific_rules", fallback.exam_specific_rules)
+            if kind == "exam"
+            else fallback.exam_specific_rules
+        )
+
         return agent_message, WeekModule(
             id=fallback.id,
             kind=fallback.kind,
             title=str(data.get("title", fallback.title)),
+            one_line_summary=one_line,
             summary=str(data.get("summary", fallback.summary)),
             body_md=str(data.get("body_md", fallback.body_md)),
             estimated_minutes=int(est) if est is not None else None,
-            exam_specific_rules=fallback.exam_specific_rules,
+            exam_specific_rules=ex_rules,
+            assessment_total_points=atp,
+            graded_item_points=gip,
         )
     except (json.JSONDecodeError, TypeError, ValueError):
         return agent_message, fallback
 
 
+def _lecture_studio_model(state: LectureStudioState) -> str:
+    """Use GEMINI_MODEL_PROJECT for project modules when set; else GEMINI_MODEL."""
+    default = get_gemini_model()
+    if state.module.kind == "project":
+        return os.getenv("GEMINI_MODEL_PROJECT", default)
+    return default
+
+
+def _lecture_studio_max_tokens(state: LectureStudioState) -> int:
+    """Gemini max_output_tokens; project modules honor GEMINI_MAX_OUTPUT_TOKENS_PROJECT."""
+    default_cap = 65536
+    if state.module.kind != "project":
+        raw = os.getenv("GEMINI_MAX_OUTPUT_TOKENS", str(default_cap))
+    else:
+        raw = (
+            os.getenv("GEMINI_MAX_OUTPUT_TOKENS_PROJECT")
+            or os.getenv("OPENAI_MAX_OUTPUT_TOKENS_PROJECT")
+            or str(default_cap)
+        )
+    try:
+        cap = int(raw.strip())
+    except ValueError:
+        cap = default_cap
+    return max(4096, min(cap, 128_000))
+
+
 async def run_lecture_studio_stream(
     state: LectureStudioState, user_message: str
 ) -> AsyncGenerator[dict, None]:
-    model = get_gemini_model()
+    model = _lecture_studio_model(state)
     client = get_gemini_client()
     system, turns = _build_gemini_turns(state, user_message)
     contents = _turns_to_contents(turns)
+
+    temperature = 0.55 if state.module.kind == "project" else 0.5
+    max_tokens = _lecture_studio_max_tokens(state)
 
     stream = await client.aio.models.generate_content_stream(
         model=model,
         contents=contents,
         config=types.GenerateContentConfig(
             system_instruction=system,
-            temperature=0.5,
-            max_output_tokens=65536,
+            temperature=temperature,
+            max_output_tokens=max_tokens,
         ),
     )
 

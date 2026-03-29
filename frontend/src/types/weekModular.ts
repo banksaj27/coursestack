@@ -12,12 +12,18 @@ export interface WeekModule {
   id: string;
   kind: WeekModuleKind;
   title: string;
+  /** One plain sentence for the collapsed timeline row; must differ from the opening of `summary`. */
+  one_line_summary?: string;
   summary: string;
   body_md: string;
   estimated_minutes?: number | null;
   is_new?: boolean;
   /** Per-exam notes (exam workspace only); not shared across exams. */
   exam_specific_rules?: string;
+  /** Total points for graded modules (defaults: problem set 10, quiz 20, exam 100). */
+  assessment_total_points?: number | null;
+  /** Points per graded item, same order as `##` sections in body_md. */
+  graded_item_points?: number[];
 }
 
 export interface WeekModularGenerated {

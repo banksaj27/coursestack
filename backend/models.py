@@ -71,6 +71,7 @@ class WeekModule(BaseModel):
     id: str = ""
     kind: str = "lecture"  # lecture | project | problem_set | quiz | exam
     title: str = ""
+    one_line_summary: str = ""
     summary: str = ""
     body_md: str = ""
     estimated_minutes: int | None = None
@@ -79,6 +80,10 @@ class WeekModule(BaseModel):
         default="",
         description="Per-exam instructor rules (exam studio only); not a course-wide global.",
     )
+    #: Target points for graded modules (problem_set=10, quiz=20, exam=100 when unset).
+    assessment_total_points: int | None = None
+    #: Points per numbered problem/question; should sum to assessment_total_points.
+    graded_item_points: list[float] = Field(default_factory=list)
 
 
 class WeekModularGenerated(BaseModel):
@@ -135,3 +140,25 @@ class LectureStudioState(BaseModel):
 class LectureStudioRequest(BaseModel):
     message: str
     state: LectureStudioState
+
+
+class LectureNotesGenerateRequest(BaseModel):
+    """Trigger multi-step lecture body generation (outline → per-section → concat)."""
+
+    state: LectureStudioState
+
+
+class ProjectScaffoldRequest(BaseModel):
+    """Extract ``=== file ===`` blocks from body_md and write real files to disk."""
+
+    body_md: str
+    project_name: str = "project"
+
+
+class ProjectGradeRequest(BaseModel):
+    """Submit student work for AI grading against the project spec."""
+
+    body_md: str
+    submission: str
+    project_title: str = ""
+    course_topic: str = ""

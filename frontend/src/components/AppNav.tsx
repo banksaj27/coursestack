@@ -14,7 +14,7 @@ const idle =
   "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900";
 
 function isModuleWorkspacePath(path: string): boolean {
-  return /^\/(lecture|problem-set|quiz|project)\//.test(path);
+  return /^\/(lecture|problem-set|quiz|project|exam)\//.test(path);
 }
 
 /** Primary navigation: About (home + about page), course tabs, CourseStack, My Classes. */
