@@ -204,7 +204,7 @@ export default function LectureContentPanel({
                   }
                 >
                   {lectureWorkspaceBar.isComplete
-                    ? "✓ Marked complete"
+                    ? "✓ Marked Complete"
                     : "Mark complete"}
                 </button>
               ) : null}

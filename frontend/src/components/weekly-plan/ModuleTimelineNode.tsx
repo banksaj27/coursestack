@@ -9,6 +9,10 @@ import { useModuleProgress } from "@/hooks/useModuleAssessmentCompletion";
 import { effectiveAssessmentTotalPoints } from "@/lib/gradedAssessmentDefaults";
 import { isGradedAssessmentKind } from "@/lib/moduleAssessmentCompletion";
 
+/** Matches kind / Done / score chips in the module row header. */
+const MODULE_KIND_PILL_LAYOUT =
+  "inline-flex shrink-0 items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold tracking-wider";
+
 const KIND_META: Record<
   WeekModule["kind"],
   { label: string; dot: string; badge: string; pulse: string }
@@ -146,7 +150,7 @@ export default function ModuleTimelineNode({
           <div className="min-w-0 flex-1">
             <div className="mb-1 flex flex-wrap items-center gap-2">
               <span
-                className={`shrink-0 rounded border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wider ${
+                className={`${MODULE_KIND_PILL_LAYOUT} uppercase ${
                   isDone
                     ? "border-neutral-300 bg-neutral-200/80 text-neutral-600"
                     : meta.badge
@@ -251,12 +255,16 @@ export default function ModuleTimelineNode({
           <div className="flex shrink-0 items-start gap-2 pt-0.5">
             <div className="flex flex-col items-end gap-1">
               {mod.kind === "lecture" && progress.lectureComplete ? (
-                <span className="shrink-0 rounded border border-emerald-200 bg-emerald-50/90 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wider text-emerald-900">
+                <span
+                  className={`${MODULE_KIND_PILL_LAYOUT} uppercase border-emerald-200 bg-emerald-50/90 text-emerald-900`}
+                >
                   ✓ Done
                 </span>
               ) : null}
               {graded && progress.graded ? (
-                <span className="shrink-0 rounded border border-emerald-200 bg-emerald-50/90 px-1.5 py-px text-[10px] font-semibold tracking-wider text-emerald-900">
+                <span
+                  className={`${MODULE_KIND_PILL_LAYOUT} border-emerald-200 bg-emerald-50/90 text-emerald-900`}
+                >
                   ✓ {progress.graded.score}/{progress.graded.maxScore}
                 </span>
               ) : null}

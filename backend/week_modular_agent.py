@@ -568,7 +568,7 @@ async def run_week_modular_stream(
         agent_message += (
             "\n\n_(The timeline was **not** updated: the model response had no valid "
             "`:::WEEK_MODULES_UPDATE:::` / JSON block. Try sending your request again, "
-            "or use **Reset & regenerate**.)_"
+            "or use **Reset & Regenerate**.)_"
         )
 
     new_hist = list(state.conversation_history)
