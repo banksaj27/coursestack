@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import syllabusData from "@/data/syllabus.json";
 import { getGlobalFormatInstructions } from "@/lib/weekFormatInstructions";
-import { needsFullModuleBodyGeneration } from "@/lib/needsFullModuleBodyGeneration";
-import { streamLectureNotesPipeline } from "@/lib/lectureNotesPipelineApi";
+import { getProblemSetGlobalRules } from "@/lib/problemSetGlobalRules";
+import { needsFullProblemSetBodyGeneration } from "@/lib/needsFullModuleBodyGeneration";
+import { streamProblemSetPipeline } from "@/lib/problemSetPipelineApi";
 import {
   loadModularWeekPack,
   patchModuleInWeekPack,
@@ -18,14 +19,14 @@ import type { WeekModule } from "@/types/weekModular";
 
 const syllabus = syllabusData as Syllabus;
 
-export type LectureNotesProgressUI = {
+export type ProblemSetProgressUI = {
   step: string;
   index: number;
   total: number;
   label: string;
 } | null;
 
-export function useLectureNotesBootstrap(
+export function useProblemSetBootstrap(
   week: number,
   moduleId: string,
   module: WeekModule | null,
@@ -33,27 +34,28 @@ export function useLectureNotesBootstrap(
   refreshModuleFromPack: () => void,
   appendAssistantMessage: (content: string) => void,
 ) {
-  const [notesProgress, setNotesProgress] = useState<LectureNotesProgressUI>(null);
-  const [notesError, setNotesError] = useState<string | null>(null);
-  const [notesGenerating, setNotesGenerating] = useState(false);
+  const [problemSetProgress, setProblemSetProgress] =
+    useState<ProblemSetProgressUI>(null);
+  const [problemSetError, setProblemSetError] = useState<string | null>(null);
+  const [problemSetGenerating, setProblemSetGenerating] = useState(false);
   const inFlightRef = useRef(false);
 
   const runPipeline = useCallback(async () => {
     const m = loadModularWeekPack(week)?.generated.modules.find(
       (x) => x.id === moduleId,
     );
-    if (!m || m.kind !== "lecture") return;
-    if (!needsFullModuleBodyGeneration(m.body_md)) return;
+    if (!m || m.kind !== "problem_set") return;
+    if (!needsFullProblemSetBodyGeneration(m.body_md, m.solution_md)) return;
     if (inFlightRef.current) return;
     inFlightRef.current = true;
 
-    setNotesGenerating(true);
-    setNotesError(null);
-    setNotesProgress({
+    setProblemSetGenerating(true);
+    setProblemSetError(null);
+    setProblemSetProgress({
       step: "starting",
       index: 0,
       total: 0,
-      label: "Starting lecture notes…",
+      label: "Starting problem set…",
     });
 
     const maxConv = defaultMaxHistoryMessages();
@@ -64,46 +66,46 @@ export function useLectureNotesBootstrap(
       conversation_history: [],
       week_summaries: weekSummariesForApiPayload(),
       global_format_instructions: getGlobalFormatInstructions(),
+      problem_set_global_instructions: getProblemSetGlobalRules(),
       ...(maxConv !== undefined ? { max_conversation_messages: maxConv } : {}),
     };
 
     try {
-      await streamLectureNotesPipeline(payload, {
-        onProgress: (p) => setNotesProgress(p),
+      await streamProblemSetPipeline(payload, {
+        onProgress: (p) => setProblemSetProgress(p),
         onModuleUpdate: (data) => {
-          const merged = { ...data.module, id: moduleId, kind: "lecture" as const };
+          const merged = {
+            ...data.module,
+            id: moduleId,
+            kind: "problem_set" as const,
+          };
           patchModuleInWeekPack(week, moduleId, merged);
           useWeekModularStore.getState().syncWeekFromPackIfActive(week);
           refreshModuleFromPack();
           appendAssistantMessage(data.agent_message);
         },
-        onError: (msg) => setNotesError(msg),
+        onError: (msg) => setProblemSetError(msg),
         onDone: () => {
-          setNotesGenerating(false);
-          setNotesProgress(null);
+          setProblemSetGenerating(false);
+          setProblemSetProgress(null);
         },
       });
     } finally {
       inFlightRef.current = false;
     }
-  }, [
-    week,
-    moduleId,
-    refreshModuleFromPack,
-    appendAssistantMessage,
-  ]);
+  }, [week, moduleId, refreshModuleFromPack, appendAssistantMessage]);
 
   useEffect(() => {
-    if (notFound || !module || module.kind !== "lecture") return;
-    if (!needsFullModuleBodyGeneration(module.body_md)) return;
+    if (notFound || !module || module.kind !== "problem_set") return;
+    if (!needsFullProblemSetBodyGeneration(module.body_md, module.solution_md))
+      return;
     void runPipeline();
-  }, [notFound, module, module?.id, module?.body_md, runPipeline]);
+  }, [notFound, module, module?.id, module?.body_md, module?.solution_md, runPipeline]);
 
   return {
-    notesProgress,
-    notesError,
-    notesGenerating,
-    /** Re-run if the stub is still short (e.g. after a failed attempt). */
-    retryLectureNotes: runPipeline,
+    problemSetProgress,
+    problemSetError,
+    problemSetGenerating,
+    retryProblemSet: runPipeline,
   };
 }

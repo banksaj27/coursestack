@@ -1,9 +1,11 @@
 "use client";
 
+import { useRef } from "react";
 import Link from "next/link";
 import type { WeekModule } from "@/types/weekModular";
 import { MarkdownMath } from "@/components/shared/MarkdownMath";
 import { effectiveAssessmentTotalPoints } from "@/lib/gradedAssessmentDefaults";
+import { stripProblemSetDisplayPreamble } from "@/lib/stripProblemSetDisplayPreamble";
 import { isGradedAssessmentKind } from "@/lib/moduleAssessmentCompletion";
 import type { ModuleNavLink } from "@/lib/moduleWorkspaceNavigation";
 
@@ -24,6 +26,10 @@ function previewKey(moduleId: string, bodyMd: string): string {
   }
   return `${moduleId}:${bodyMd.length}:${h}`;
 }
+
+/** Matches `MarkdownMath` boxed `##` (lecture notes) — used only for manual PS section titles. */
+const PROBLEM_SET_SECTION_TITLE_CLASS =
+  "mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-base font-semibold tracking-tight text-emerald-900 shadow-sm";
 
 const EMPTY_BODY: Record<WorkspaceKind, string> = {
   lecture:
@@ -74,6 +80,23 @@ type Props = {
   notesProgress?: NotesProgress | null;
   notesError?: string | null;
   onRetryLectureNotes?: () => void;
+  /** Problem set workspace: multi-step assignment generation (mirror lecture notes pipeline). */
+  problemSetGenerating?: boolean;
+  problemSetProgress?: NotesProgress | null;
+  problemSetError?: string | null;
+  onRetryProblemSet?: () => void;
+  /** Problem set: PDF grading + answer key (replaces in-panel testing mode). */
+  problemSetBar?: {
+    grading: boolean;
+    gradeError: string | null;
+    feedbackMd: string | null;
+    hasAnswerKey: boolean;
+    showAnswerKey: boolean;
+    onToggleAnswerKey: () => void;
+    onPdfSelected: (file: File) => void;
+    hasGradedAttempt: boolean;
+    canSubmitPdf: boolean;
+  };
 };
 
 function NeighborCard({
@@ -93,7 +116,9 @@ function NeighborCard({
         href={link.href}
         className={`flex min-w-0 flex-1 flex-col rounded-lg border border-neutral-200 bg-neutral-50/80 px-3 py-2 transition-colors hover:border-neutral-300 hover:bg-neutral-100/80 sm:max-w-[48%] ${flexAlign}`}
       >
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
+        <span
+          className={`text-[10px] font-semibold uppercase tracking-wider text-neutral-400 ${align}`}
+        >
           {side === "prev" ? "Previous" : "Next"}
         </span>
         <span className={`truncate text-sm font-medium text-neutral-900 ${align}`}>
@@ -109,7 +134,9 @@ function NeighborCard({
     <div
       className={`flex min-w-0 flex-1 flex-col rounded-lg border border-dashed border-neutral-200 bg-neutral-50/40 px-3 py-2 opacity-60 sm:max-w-[48%] ${flexAlign}`}
     >
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
+      <span
+        className={`text-[10px] font-semibold uppercase tracking-wider text-neutral-400 ${align}`}
+      >
         {side === "prev" ? "Previous" : "Next"}
       </span>
       <span className={`text-sm text-neutral-400 ${align}`}>{emptyLabel}</span>
@@ -129,7 +156,14 @@ export default function LectureContentPanel({
   notesProgress = null,
   notesError = null,
   onRetryLectureNotes,
+  problemSetGenerating = false,
+  problemSetProgress = null,
+  problemSetError = null,
+  onRetryProblemSet,
+  problemSetBar,
 }: Props) {
+  const pdfInputRef = useRef<HTMLInputElement>(null);
+
   if (!module) {
     return (
       <div className="flex h-full items-center justify-center bg-white px-8">
@@ -143,6 +177,14 @@ export default function LectureContentPanel({
   const kindLabel = KIND_LABEL[module.kind] ?? module.kind;
   const graded = isGradedAssessmentKind(module.kind);
   const ptsTotal = graded ? effectiveAssessmentTotalPoints(module) : 0;
+  const displayBodyMd =
+    workspace === "problem_set"
+      ? stripProblemSetDisplayPreamble(module.body_md)
+      : module.body_md;
+  const displaySolutionMd =
+    workspace === "problem_set" && (module.solution_md ?? "").trim()
+      ? stripProblemSetDisplayPreamble(module.solution_md ?? "")
+      : "";
 
   return (
     <div className="flex h-full min-w-0 flex-col bg-white">
@@ -174,7 +216,7 @@ export default function LectureContentPanel({
             <div className="flex shrink-0 flex-col items-end gap-2">
               {graded && gradedWorkspaceBar?.completedScore ? (
                 <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-900">
-                  Score {gradedWorkspaceBar.completedScore.score}/
+                  Score: {gradedWorkspaceBar.completedScore.score}/
                   {gradedWorkspaceBar.completedScore.maxScore}
                 </span>
               ) : null}
@@ -194,7 +236,50 @@ export default function LectureContentPanel({
                     : "Mark complete"}
                 </button>
               ) : null}
-              {graded && gradedWorkspaceBar ? (
+              {workspace === "problem_set" && problemSetBar ? (
+                <div className="flex flex-col items-end gap-2">
+                  <input
+                    ref={pdfInputRef}
+                    type="file"
+                    accept="application/pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      e.target.value = "";
+                      if (f) problemSetBar.onPdfSelected(f);
+                    }}
+                  />
+                  <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+                    {problemSetBar.hasGradedAttempt && problemSetBar.hasAnswerKey ? (
+                      <button
+                        type="button"
+                        onClick={problemSetBar.onToggleAnswerKey}
+                        className="rounded-xl border-2 border-neutral-300 bg-white px-5 py-2 text-sm font-semibold text-neutral-900 shadow-sm transition-colors hover:bg-neutral-50"
+                      >
+                        {problemSetBar.showAnswerKey ? "Hide answer key" : "Show answer key"}
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => pdfInputRef.current?.click()}
+                      disabled={
+                        problemSetBar.grading ||
+                        !problemSetBar.canSubmitPdf
+                      }
+                      className="rounded-xl border-2 border-neutral-800 bg-neutral-900 px-5 py-2 text-sm font-semibold tracking-wide text-white shadow-sm transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {problemSetBar.hasGradedAttempt
+                        ? "Re-submit PDF"
+                        : "Submit PDF for grading"}
+                    </button>
+                  </div>
+                  {problemSetBar.gradeError ? (
+                    <p className="max-w-xs text-right text-xs text-red-600">
+                      {problemSetBar.gradeError}
+                    </p>
+                  ) : null}
+                </div>
+              ) : graded && gradedWorkspaceBar ? (
                 <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
                   {gradedWorkspaceBar.hasGradedAttempt ? (
                     <>
@@ -255,10 +340,52 @@ export default function LectureContentPanel({
           </div>
         ) : null}
 
-        {module.body_md.trim().length > 0 ? (
+        {problemSetError && workspace === "problem_set" ? (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50/90 px-3 py-2 text-sm text-amber-950">
+            <p className="font-medium">Couldn&apos;t finish auto-generated problem set</p>
+            <p className="mt-1 text-amber-900/90">{problemSetError}</p>
+            {onRetryProblemSet ? (
+              <button
+                type="button"
+                onClick={onRetryProblemSet}
+                className="mt-2 text-sm font-medium text-amber-900 underline decoration-amber-400 underline-offset-2 hover:text-amber-950"
+              >
+                Try again
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {workspace === "problem_set" &&
+        problemSetBar?.feedbackMd &&
+        problemSetBar.feedbackMd.trim().length > 0 ? (
+          <div className="mb-6 max-w-3xl border-b border-neutral-100 pb-6">
+            <h2 className={PROBLEM_SET_SECTION_TITLE_CLASS}>Grading Feedback</h2>
+            <MarkdownMath
+              key={`${module.id}-feedback`}
+              source={problemSetBar.feedbackMd}
+              variant="light"
+              uniformScale
+              className="max-w-3xl text-sm"
+            />
+          </div>
+        ) : null}
+
+        {workspace === "problem_set" && displayBodyMd.trim().length > 0 ? (
+          <div className="mb-6 max-w-3xl">
+            <h2 className={PROBLEM_SET_SECTION_TITLE_CLASS}>Problems</h2>
+            <MarkdownMath
+              key={previewKey(module.id, displayBodyMd)}
+              source={displayBodyMd}
+              variant="light"
+              uniformScale
+              className="max-w-3xl"
+            />
+          </div>
+        ) : displayBodyMd.trim().length > 0 ? (
           <MarkdownMath
-            key={previewKey(module.id, module.body_md)}
-            source={module.body_md}
+            key={previewKey(module.id, displayBodyMd)}
+            source={displayBodyMd}
             variant="light"
             uniformScale
             boxedSectionHeadings={workspace === "lecture"}
@@ -267,6 +394,21 @@ export default function LectureContentPanel({
         ) : (
           <p className="text-sm text-neutral-400">{EMPTY_BODY[workspace]}</p>
         )}
+
+        {workspace === "problem_set" &&
+        problemSetBar?.showAnswerKey &&
+        displaySolutionMd.trim().length > 0 ? (
+          <div className="mt-8 max-w-3xl border-t border-neutral-100 pt-6">
+            <h2 className={PROBLEM_SET_SECTION_TITLE_CLASS}>Answer Key</h2>
+            <MarkdownMath
+              key={previewKey(`${module.id}-sol`, displaySolutionMd)}
+              source={displaySolutionMd}
+              variant="light"
+              uniformScale
+              className="max-w-3xl"
+            />
+          </div>
+        ) : null}
 
         {notesGenerating && workspace === "lecture" ? (
           <div
@@ -287,6 +429,55 @@ export default function LectureContentPanel({
               ) : null}
               <p className="mt-2 text-xs leading-relaxed text-neutral-500">
                 Outlining sections, then writing each part—this can take a minute.
+              </p>
+            </div>
+          </div>
+        ) : null}
+
+        {problemSetGenerating && workspace === "problem_set" ? (
+          <div
+            className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center bg-white/75 px-6 backdrop-blur-[1px]"
+            aria-live="polite"
+          >
+            <div className="max-w-md rounded-xl border border-neutral-200 bg-white px-5 py-4 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                Building problem set
+              </p>
+              <p className="mt-2 text-sm font-medium text-neutral-900">
+                {problemSetProgress?.label ?? "Working…"}
+              </p>
+              {problemSetProgress &&
+              problemSetProgress.total > 0 &&
+              problemSetProgress.step === "problem" ? (
+                <p className="mt-1 text-xs text-neutral-500">
+                  Problem {problemSetProgress.index} of {problemSetProgress.total}
+                </p>
+              ) : null}
+              {problemSetProgress &&
+              problemSetProgress.total > 0 &&
+              problemSetProgress.step === "solution" ? (
+                <p className="mt-1 text-xs text-neutral-500">
+                  Solution {problemSetProgress.index} of {problemSetProgress.total}
+                </p>
+              ) : null}
+              <p className="mt-2 text-xs leading-relaxed text-neutral-500">
+                Planning problems, writing questions, then the answer key—this can take a minute.
+              </p>
+            </div>
+          </div>
+        ) : null}
+
+        {workspace === "problem_set" && problemSetBar?.grading ? (
+          <div
+            className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center bg-white/75 px-6 backdrop-blur-[1px]"
+            aria-live="polite"
+          >
+            <div className="max-w-md rounded-xl border border-neutral-200 bg-white px-5 py-4 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                Grading your PDF
+              </p>
+              <p className="mt-2 text-sm text-neutral-600">
+                Comparing your work to the assignment and answer key…
               </p>
             </div>
           </div>

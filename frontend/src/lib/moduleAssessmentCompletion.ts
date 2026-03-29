@@ -1,4 +1,5 @@
 import type { WeekModule } from "@/types/weekModular";
+import { loadModularWeekPack } from "@/lib/weekModularPersistence";
 
 const STORAGE_KEY = "yhack-module-assessment-completion-v1";
 
@@ -9,6 +10,10 @@ type StoredEntry = {
   lectureComplete?: boolean;
   /** Saved responses from testing mode, keyed `pageIdx-blockIdx`. */
   gradedAnswers?: Record<string, string>;
+  /** Problem set: model feedback after PDF grading. */
+  gradedFeedbackMd?: string;
+  /** Problem set: once true, stays true (module stays “complete” on timeline). */
+  problemSetCompleted?: boolean;
 };
 
 type Root = Record<string, StoredEntry>;
@@ -44,11 +49,14 @@ export type GradedAttempt = {
   maxScore: number;
   completedAt: number;
   answers: Record<string, string>;
+  feedbackMd?: string;
 };
 
 export type ModuleProgress = {
   lectureComplete: boolean;
   graded: GradedAttempt | null;
+  /** Problem set: sticky after first successful PDF grade. */
+  problemSetCompleted: boolean;
 };
 
 function toGradedAttempt(v: StoredEntry): GradedAttempt | null {
@@ -59,12 +67,17 @@ function toGradedAttempt(v: StoredEntry): GradedAttempt | null {
     v.gradedAnswers && typeof v.gradedAnswers === "object"
       ? { ...v.gradedAnswers }
       : {};
+  const feedbackMd =
+    typeof v.gradedFeedbackMd === "string" && v.gradedFeedbackMd.trim()
+      ? v.gradedFeedbackMd
+      : undefined;
   return {
     score: v.score,
     maxScore: v.maxScore,
     completedAt:
       typeof v.completedAt === "number" ? v.completedAt : Date.now(),
     answers,
+    ...(feedbackMd ? { feedbackMd } : {}),
   };
 }
 
@@ -73,11 +86,12 @@ export function getModuleProgress(week: number, moduleId: string): ModuleProgres
   const root = readRoot();
   const v = root[k];
   if (!v || typeof v !== "object") {
-    return { lectureComplete: false, graded: null };
+    return { lectureComplete: false, graded: null, problemSetCompleted: false };
   }
   return {
     lectureComplete: v.lectureComplete === true,
     graded: toGradedAttempt(v),
+    problemSetCompleted: v.problemSetCompleted === true,
   };
 }
 
@@ -124,7 +138,32 @@ export function clearGradedModuleAttempt(week: number, moduleId: string): void {
   delete next.score;
   delete next.maxScore;
   delete next.gradedAnswers;
+  delete next.gradedFeedbackMd;
+  // problemSetCompleted is preserved for problem sets (sticky completion).
   root[k] = next;
+  writeRoot(root);
+}
+
+/** Record PDF grading for a problem set; sets sticky `problemSetCompleted`. */
+export function setProblemSetPdfGrade(
+  week: number,
+  moduleId: string,
+  score: number,
+  maxScore: number,
+  feedbackMd: string,
+): void {
+  const root = readRoot();
+  const k = key(week, moduleId);
+  const prev = root[k];
+  root[k] = {
+    ...(prev && typeof prev === "object" ? prev : {}),
+    score,
+    maxScore,
+    gradedFeedbackMd: feedbackMd,
+    problemSetCompleted: true,
+    gradedAnswers: {},
+    completedAt: Date.now(),
+  };
   writeRoot(root);
 }
 
@@ -163,4 +202,31 @@ export function clearAllModuleAssessmentCompletions(): void {
 
 export function isGradedAssessmentKind(k: WeekModule["kind"]): boolean {
   return k === "problem_set" || k === "quiz" || k === "exam";
+}
+
+/** Same predicate as Weekly Plan module rows (`ModuleTimelineNode` “done”). */
+export function isModuleCompleteForWeeklyPlan(
+  mod: WeekModule,
+  progress: ModuleProgress,
+): boolean {
+  const graded = isGradedAssessmentKind(mod.kind);
+  return (
+    (mod.kind === "lecture" && progress.lectureComplete) ||
+    (graded && progress.graded != null) ||
+    (mod.kind === "problem_set" && progress.problemSetCompleted)
+  );
+}
+
+/** True when every module in the saved week pack is complete per `isModuleCompleteForWeeklyPlan`. */
+export function isWeekAllModulesComplete(week: number): boolean {
+  if (typeof window === "undefined") return false;
+  const pack = loadModularWeekPack(week);
+  const modules = pack?.generated.modules ?? [];
+  if (modules.length === 0) return false;
+  for (const mod of modules) {
+    if (!mod.id) return false;
+    const p = getModuleProgress(week, mod.id);
+    if (!isModuleCompleteForWeeklyPlan(mod, p)) return false;
+  }
+  return true;
 }

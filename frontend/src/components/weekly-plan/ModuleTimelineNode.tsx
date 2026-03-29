@@ -7,7 +7,10 @@ import type { WeekModule } from "@/types/weekModular";
 import { MarkdownMath } from "@/components/shared/MarkdownMath";
 import { useModuleProgress } from "@/hooks/useModuleAssessmentCompletion";
 import { effectiveAssessmentTotalPoints } from "@/lib/gradedAssessmentDefaults";
-import { isGradedAssessmentKind } from "@/lib/moduleAssessmentCompletion";
+import {
+  isGradedAssessmentKind,
+  isModuleCompleteForWeeklyPlan,
+} from "@/lib/moduleAssessmentCompletion";
 
 /** Matches kind / Done / score chips in the module row header. */
 const MODULE_KIND_PILL_LAYOUT =
@@ -70,9 +73,7 @@ export default function ModuleTimelineNode({
   const graded = isGradedAssessmentKind(mod.kind);
   const ptsTotal = graded ? effectiveAssessmentTotalPoints(mod) : 0;
   const progress = useModuleProgress(week, mod.id);
-  const isDone =
-    (mod.kind === "lecture" && progress.lectureComplete) ||
-    (graded && progress.graded != null);
+  const isDone = isModuleCompleteForWeeklyPlan(mod, progress);
 
   useEffect(() => {
     if (mod.is_new) {

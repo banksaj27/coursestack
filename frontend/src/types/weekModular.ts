@@ -24,6 +24,8 @@ export interface WeekModule {
   assessment_total_points?: number | null;
   /** Points per graded item, same order as `##` sections in body_md. */
   graded_item_points?: number[];
+  /** Reference answer key (problem_set); hidden until after PDF grading. */
+  solution_md?: string;
 }
 
 export interface WeekModularGenerated {

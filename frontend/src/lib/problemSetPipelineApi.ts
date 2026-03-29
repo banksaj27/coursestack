@@ -6,15 +6,15 @@ import {
   parseSseMessageBlock,
 } from "@/lib/sseStreamParse";
 
-export type LectureNotesProgress = {
+export type ProblemSetProgress = {
   step: string;
   index: number;
   total: number;
   label: string;
 };
 
-export interface LectureNotesPipelineCallbacks {
-  onProgress: (p: LectureNotesProgress) => void;
+export interface ProblemSetPipelineCallbacks {
+  onProgress: (p: ProblemSetProgress) => void;
   onModuleUpdate: (data: {
     agent_message: string;
     module: WeekModule;
@@ -24,19 +24,19 @@ export interface LectureNotesPipelineCallbacks {
   onDone: () => void;
 }
 
-function dispatchNotesEvent(
+function dispatchProblemSetEvent(
   eventName: string,
   dataStr: string,
-  callbacks: LectureNotesPipelineCallbacks,
+  callbacks: ProblemSetPipelineCallbacks,
 ): void {
   if (!dataStr) return;
   try {
     const parsed = JSON.parse(dataStr) as unknown;
     switch (eventName) {
-      case "lecture_notes_progress":
-        callbacks.onProgress(parsed as LectureNotesProgress);
+      case "problem_set_progress":
+        callbacks.onProgress(parsed as ProblemSetProgress);
         break;
-      case "lecture_module_update":
+      case "problem_set_module_update":
         callbacks.onModuleUpdate(
           parsed as {
             agent_message: string;
@@ -54,23 +54,23 @@ function dispatchNotesEvent(
         break;
     }
   } catch {
-    if (eventName === "lecture_module_update") {
+    if (eventName === "problem_set_module_update") {
       console.warn(
-        "lecture-notes: failed to parse lecture_module_update",
+        "problem-set-pipeline: failed to parse problem_set_module_update",
         dataStr.slice(0, 200),
       );
     }
   }
 }
 
-/** Multi-step lecture generation: outline → each section → concat (server-side). */
-export async function streamLectureNotesPipeline(
+/** Multi-step problem set generation: outline → each problem → concat (server-side). */
+export async function streamProblemSetPipeline(
   state: LectureStudioStatePayload,
-  callbacks: LectureNotesPipelineCallbacks,
+  callbacks: ProblemSetPipelineCallbacks,
 ): Promise<void> {
   let response: Response;
   try {
-    response = await fetch(`${API_URL}/lecture-studio/generate-notes`, {
+    response = await fetch(`${API_URL}/lecture-studio/generate-problem-set`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ state }),
@@ -113,7 +113,7 @@ export async function streamLectureNotesPipeline(
         buf = next.rest;
         const msg = parseSseMessageBlock(next.raw);
         if (msg?.data) {
-          dispatchNotesEvent(msg.event, msg.data, callbacks);
+          dispatchProblemSetEvent(msg.event, msg.data, callbacks);
         }
       }
 
@@ -121,7 +121,7 @@ export async function streamLectureNotesPipeline(
         if (buf.trim()) {
           const msg = parseSseMessageBlock(buf);
           if (msg?.data) {
-            dispatchNotesEvent(msg.event, msg.data, callbacks);
+            dispatchProblemSetEvent(msg.event, msg.data, callbacks);
           }
         }
         break;

@@ -2,8 +2,13 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useClassesStore } from "@/store/useClassesStore";
+
+/** Defer heavy course switch until after the drawer has started closing (avoids jank during exit). */
+const DEFER_SWITCH_MS = 90;
+
+const easeOut = [0.32, 0.72, 0, 1] as const;
 
 function timeAgo(ts: number): string {
   const diff = Date.now() - ts;
@@ -18,6 +23,7 @@ function timeAgo(ts: number): string {
 
 export default function MyClassesPanel() {
   const router = useRouter();
+  const reduceMotion = useReducedMotion();
   const courses = useClassesStore((s) => s.courses);
   const activeCourseId = useClassesStore((s) => s.activeCourseId);
   const closeDrawer = useClassesStore((s) => s.closeDrawer);
@@ -29,18 +35,40 @@ export default function MyClassesPanel() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const editRef = useRef<HTMLInputElement>(null);
+  const deferSwitchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (deferSwitchRef.current) clearTimeout(deferSwitchRef.current);
+    };
+  }, []);
+
+  const drawerTransition = reduceMotion
+    ? { duration: 0.01 }
+    : { type: "tween" as const, duration: 0.26, ease: easeOut };
+  const backdropTransition = reduceMotion
+    ? { duration: 0.01 }
+    : { type: "tween" as const, duration: 0.2, ease: "easeOut" as const };
 
   const handleSwitch = (id: string) => {
-    if (id !== activeCourseId) {
-      switchCourse(id);
-    }
     closeDrawer();
-    router.push("/syllabus");
+    if (deferSwitchRef.current) clearTimeout(deferSwitchRef.current);
+    deferSwitchRef.current = setTimeout(() => {
+      deferSwitchRef.current = null;
+      const switched = switchCourse(id);
+      if (switched) {
+        router.push("/syllabus");
+      }
+    }, reduceMotion ? 0 : DEFER_SWITCH_MS);
   };
 
   const handleNewCourseClick = () => {
     closeDrawer();
-    router.push("/");
+    if (deferSwitchRef.current) clearTimeout(deferSwitchRef.current);
+    deferSwitchRef.current = setTimeout(() => {
+      deferSwitchRef.current = null;
+      router.push("/");
+    }, reduceMotion ? 0 : DEFER_SWITCH_MS);
   };
 
   const handleDelete = (e: React.MouseEvent, id: string) => {
@@ -92,16 +120,18 @@ export default function MyClassesPanel() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        transition={backdropTransition}
         className="fixed inset-0 z-[60] bg-black/20"
         onClick={closeDrawer}
       />
 
-      {/* Drawer */}
+      {/* Drawer — tween (not spring) for smoother exit; heavy work deferred in handleSwitch */}
       <motion.div
         initial={{ x: "100%" }}
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        transition={drawerTransition}
+        style={{ willChange: "transform" }}
         className="fixed -right-16 top-0 z-[61] flex h-full w-[calc(20rem+4rem)] flex-col border-l border-neutral-200 bg-white shadow-xl"
       >
         {/* Header */}

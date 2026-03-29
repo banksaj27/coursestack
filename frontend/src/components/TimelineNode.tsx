@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Week } from "@/types/course";
+import { useWeekAllModulesComplete } from "@/hooks/useWeekAllModulesComplete";
 
 interface TimelineNodeProps {
   week: Week;
@@ -13,6 +14,7 @@ interface TimelineNodeProps {
 export default function TimelineNode({ week, isLast, isFirst }: TimelineNodeProps) {
   const [expanded, setExpanded] = useState(false);
   const [highlight, setHighlight] = useState(week.is_new);
+  const weekAllDone = useWeekAllModulesComplete(week.week);
   const onlyNode = isFirst && isLast;
   const isExamWeek =
     week.assessment === "midterm" || week.assessment === "final";
@@ -50,7 +52,7 @@ export default function TimelineNode({ week, isLast, isFirst }: TimelineNodeProp
       {/* Dot column */}
       <div className="relative flex flex-col items-center w-3.5 shrink-0">
         <div className="relative z-10 mt-[13px] h-3.5 w-3.5 shrink-0" style={{ marginLeft: "0.5px" }}>
-          {week.is_new && (
+          {week.is_new && !weekAllDone && (
             <motion.div
               key={`pulse-${week.week}-${week.title}-${week.topics.join(",")}`}
               className="absolute inset-0 rounded-full bg-emerald-400"
@@ -59,7 +61,11 @@ export default function TimelineNode({ week, isLast, isFirst }: TimelineNodeProp
               transition={{ duration: 0.8, ease: "easeOut" }}
             />
           )}
-          <div className="h-full w-full rounded-full border-2 border-white bg-emerald-500 shadow-sm" />
+          <div
+            className={`h-full w-full rounded-full border-2 border-white shadow-sm ${
+              weekAllDone ? "bg-neutral-400" : "bg-emerald-500"
+            }`}
+          />
         </div>
       </div>
 
@@ -68,7 +74,9 @@ export default function TimelineNode({ week, isLast, isFirst }: TimelineNodeProp
         className={`flex-1 rounded-xl border cursor-pointer ${
           highlight
             ? "border-indigo-300 bg-indigo-50/50"
-            : "border-neutral-200 bg-white"
+            : weekAllDone
+              ? "border-neutral-200 bg-neutral-100/70"
+              : "border-neutral-200 bg-white"
         }`}
         style={{
           transition: highlight ? "none" : "background-color 600ms ease, border-color 600ms ease",
@@ -78,10 +86,18 @@ export default function TimelineNode({ week, isLast, isFirst }: TimelineNodeProp
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-2.5">
           <div className="flex items-center gap-2.5 min-w-0">
-            <span className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider shrink-0">
+            <span
+              className={`text-[11px] font-semibold uppercase tracking-wider shrink-0 ${
+                weekAllDone && !highlight ? "text-neutral-500" : "text-neutral-400"
+              }`}
+            >
               Week {week.week}
             </span>
-            <h3 className="text-[13px] font-semibold text-neutral-900 truncate">
+            <h3
+              className={`text-[13px] font-semibold truncate ${
+                weekAllDone && !highlight ? "text-neutral-600" : "text-neutral-900"
+              }`}
+            >
               {week.title}
             </h3>
           </div>
@@ -95,6 +111,11 @@ export default function TimelineNode({ week, isLast, isFirst }: TimelineNodeProp
                 }`}
               >
                 {week.assessment === "midterm" ? "Midterm" : "Final"}
+              </span>
+            )}
+            {weekAllDone && (
+              <span className="inline-flex shrink-0 items-center rounded border border-emerald-200 bg-emerald-50/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-900">
+                ✓ Done
               </span>
             )}
             <motion.svg

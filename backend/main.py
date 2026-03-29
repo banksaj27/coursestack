@@ -5,7 +5,7 @@ import io
 from typing import AsyncGenerator
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from sse_starlette.sse import EventSourceResponse
 from PyPDF2 import PdfReader
@@ -17,11 +17,15 @@ from models import (
     PlanRequest,
     PlanResponse,
     PlanState,
+    ProblemSetGenerateRequest,
+    ProblemSetGradePayload,
     ProjectGradeRequest,
     ProjectScaffoldRequest,
     WeekModularRequest,
 )
 from lecture_notes_pipeline import run_lecture_notes_pipeline
+from problem_set_pipeline import run_problem_set_pipeline
+from problem_set_grader import grade_problem_set_pdf
 from lecture_studio_agent import run_lecture_studio_stream
 from project_grader import run_project_grading_stream
 from project_scaffold import parse_scaffold_blocks, write_scaffold
@@ -71,6 +75,13 @@ async def _lecture_notes_generator(
         yield event
 
 
+async def _problem_set_generator(
+    request: ProblemSetGenerateRequest,
+) -> AsyncGenerator[dict, None]:
+    async for event in run_problem_set_pipeline(request.state):
+        yield event
+
+
 @app.post("/plan/stream")
 async def plan_stream(request: PlanRequest):
     return EventSourceResponse(_event_generator(request))
@@ -111,6 +122,39 @@ async def lecture_studio_stream(request: LectureStudioRequest):
 @app.post("/lecture-studio/generate-notes")
 async def lecture_studio_generate_notes(request: LectureNotesGenerateRequest):
     return EventSourceResponse(_lecture_notes_generator(request))
+
+
+@app.post("/lecture-studio/generate-problem-set")
+async def lecture_studio_generate_problem_set(request: ProblemSetGenerateRequest):
+    return EventSourceResponse(_problem_set_generator(request))
+
+
+@app.post("/lecture-studio/grade-problem-set")
+async def lecture_studio_grade_problem_set(
+    file: UploadFile = File(...),
+    payload: str = Form(...),
+):
+    """Grade a problem-set submission PDF against assignment + answer key (Gemini)."""
+    try:
+        p = ProblemSetGradePayload.model_validate_json(payload)
+    except Exception as e:
+        return {"error": f"Invalid payload: {e!s}"}
+    contents = await file.read()
+    if not contents:
+        return {"error": "Empty file"}
+    try:
+        result = await grade_problem_set_pdf(
+            contents,
+            p.syllabus_topic,
+            p.module_title,
+            p.body_md,
+            p.solution_md,
+            float(p.assessment_total_points),
+            list(p.graded_item_points),
+        )
+    except Exception as e:
+        return {"error": str(e)}
+    return result
 
 
 async def _project_grade_generator(

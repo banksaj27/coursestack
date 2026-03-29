@@ -12,6 +12,7 @@ import {
   loadClassesIndex,
   saveClassesIndex,
 } from "@/lib/classesStorage";
+import { snapshotGlobalKeysWithLiveStores } from "@/lib/snapshotGlobalKeysWithLiveStores";
 import { useCourseStore, emptyPlanState } from "./useCourseStore";
 import { useWeekModularStore } from "./useWeekModularStore";
 import { loadWeekModularSnapshot } from "@/lib/weekModularSyllabusPersistence";
@@ -123,7 +124,8 @@ interface ClassesStore {
   saveActiveCourse: () => void;
   deactivateCourse: () => void;
   createCourse: (name?: string) => string;
-  switchCourse: (id: string) => void;
+  /** Returns false if the switch was skipped (same course, unknown id, or agent busy). */
+  switchCourse: (id: string) => boolean;
   deleteCourse: (id: string) => void;
   renameCourse: (id: string, name: string) => void;
   moveCourse: (id: string, direction: "up" | "down") => void;
@@ -195,7 +197,7 @@ export const useClassesStore = create<ClassesStore>((set, get) => ({
     const { activeCourseId, courses } = get();
     if (!activeCourseId) return;
 
-    saveCourseData(activeCourseId, snapshotGlobalKeys());
+    saveCourseData(activeCourseId, snapshotGlobalKeysWithLiveStores());
 
     const topic = useCourseStore.getState().planState.topic;
     const updated = courses.map((c) => {
@@ -245,21 +247,22 @@ export const useClassesStore = create<ClassesStore>((set, get) => ({
     const updatedCourses = [...get().courses, course];
     set({ courses: updatedCourses, activeCourseId: id });
     saveClassesIndex({ courses: updatedCourses, activeCourseId: id });
+    saveCourseData(id, snapshotGlobalKeysWithLiveStores());
 
     return id;
   },
 
   switchCourse: (id: string) => {
     const { activeCourseId, courses } = get();
-    if (id === activeCourseId) return;
-    if (!courses.find((c) => c.id === id)) return;
+    if (id === activeCourseId) return true;
+    if (!courses.find((c) => c.id === id)) return false;
 
     // Don't switch while agent is busy
     if (
       useCourseStore.getState().agentStatus !== "idle" ||
       useWeekModularStore.getState().agentStatus !== "idle"
     ) {
-      return;
+      return false;
     }
 
     if (activeCourseId) get().saveActiveCourse();
@@ -276,6 +279,8 @@ export const useClassesStore = create<ClassesStore>((set, get) => ({
 
     set({ activeCourseId: id });
     saveClassesIndex({ courses, activeCourseId: id });
+    saveCourseData(id, snapshotGlobalKeysWithLiveStores());
+    return true;
   },
 
   deleteCourse: (id: string) => {

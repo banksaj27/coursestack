@@ -10,6 +10,7 @@ import {
 import { setModuleAssessmentCompletion } from "@/lib/moduleAssessmentCompletion";
 import { splitMarkdownIntoH2Pages } from "@/lib/splitMarkdownByH2";
 import { stripAnswerSpoilersForTesting } from "@/lib/stripAnswerSpoilersForTesting";
+import { stripProblemSetDisplayPreamble } from "@/lib/stripProblemSetDisplayPreamble";
 import {
   isInstructionBlock,
   parseQuestionBlock,
@@ -218,9 +219,13 @@ export default function GradedTestingModePanel({
 }: Props) {
   const isReview = mode === "review";
   const displayBodyMd = useMemo(() => {
-    if (isReview) return module.body_md;
-    return stripAnswerSpoilersForTesting(module.body_md);
-  }, [isReview, module.body_md]);
+    let raw = module.body_md;
+    if (module.kind === "problem_set") {
+      raw = stripProblemSetDisplayPreamble(raw);
+    }
+    if (isReview) return raw;
+    return stripAnswerSpoilersForTesting(raw);
+  }, [isReview, module.body_md, module.kind]);
 
   const pages = useMemo(() => {
     const p = splitMarkdownIntoH2Pages(displayBodyMd);
