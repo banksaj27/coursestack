@@ -17,7 +17,7 @@ import type { WeekModule } from "@/types/weekModular";
 
 const syllabus = syllabusData as Syllabus;
 
-/** Weekly Plan lecture stubs are ~500–2,500 words; full chapters are usually much longer. */
+/** Weekly Plan uses a one-line placeholder in `body_md`; full notes run in Lecture workspace. */
 function needsFullLectureGeneration(body: string): boolean {
   const t = body.trim();
   if (t.length < 120) return true;

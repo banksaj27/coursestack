@@ -284,6 +284,10 @@ def _build_system_prompt(state: WeekModularState) -> str:
     )
     quiz_global_fmt = format_quiz_global_block(state.quiz_global_instructions)
 
+    _weekly_body_placeholder = (
+        "Content will be generated when you open this module's workspace."
+    )
+
     exam_week_rule = ""
     if week_obj is not None:
         a = (week_obj.assessment or "").strip().lower()
@@ -293,8 +297,8 @@ def _build_system_prompt(state: WeekModularState) -> str:
 === EXAM WEEK (syllabus tags this week as **{a}**) ===
 The selected week's JSON includes `"assessment": "{a}"`. You **must**:
 1. Put **exactly one** module with **kind** `exam` as the **last** item in `modules` (after every lecture, problem_set, quiz, and project for this week). **Nothing** may follow it.
-2. That **exam** module's `body_md` must be a complete **{exam_label.lower()}** document students could receive: coverage (aligned with this week and cumulative expectations for a {a}), duration, allowed materials, academic integrity, and **only** **multiple-choice** (full stems + labeled options) and/or **short-answer** questions—every item **complete and gradable** (same bar as **quiz**), scaled longer than a weekly quiz when appropriate.
-3. **title** / **summary** should clearly identify it as the **{exam_label.lower()}** so the timeline matches the syllabus tag.
+2. **title** / **summary** / **one_line_summary** must clearly identify it as the **{exam_label.lower()}** (coverage intent, format, logistics) so the timeline matches the syllabus tag. **Do not** put full exam questions or a handout in `body_md` here—use the same **one-line placeholder** as every other module (see **WEEKLY PLAN — body_md** below). The full exam is generated when the instructor opens the **Exam workspace**.
+3. Set **assessment_total_points** to **100**; **graded_item_points** may be **[]** until exam content exists in the workspace.
 
 When `assessment` is **null** or missing, **do not** emit any module with **kind** `exam`.
 
@@ -318,60 +322,44 @@ Short memories of what was generated for *other* weeks. Use for consistency; ful
 **Current modular plan + content for THIS week:**
 {json.dumps(current, indent=2)}
 
+=== WEEKLY PLAN — body_md (CRITICAL) ===
+This export is **timeline metadata only**. For **every** module (all kinds), `body_md` must be **exactly** this one line, verbatim—no extra characters or lines:
+`{_weekly_body_placeholder}`
+Do **not** put lecture outlines, problem statements, quiz questions, project files, or exam items in `body_md`. Full content is created when the instructor opens each module’s **workspace** (Lecture uses a multi-step notes pipeline; other kinds use studio chat or their generators).
+
 === MODULE TYPES (use these exact `kind` strings) ===
-- **lecture** — See **LECTURE MODULES — TIMELINE STUB** below. Full chapter-length notes are generated when the instructor opens the **Lecture workspace** (separate pipeline), not in this export.
-- **project** — Spec in `body_md`: goal, deliverables, milestones, grading criteria, suggested timeline within the week. Include **`## Starter Kit`** (medium-specific, **~30-minute** start) and **`## Output deliverables (copy-paste files)`** with **`=== path/filename.ext ===`** markers. **CRITICAL:** After each `=== filename ===` line, write the **COMPLETE file body** — real, runnable code or full prose — **NOT** a one-line description, heading, or placeholder like "# Script implementing X". Code projects: file tree + **working** main script (30–100+ lines) that **outlines the solution approach** — real imports, class/function signatures with docstrings, core algorithm logic as working code or `# TODO: student implements ...` with detailed comments on the expected approach, sample data loading, and a runnable `if __name__ == "__main__"` block. Also at least one helper module, `requirements.txt`, and `README.md` with setup/run instructions. Writing: MD/LaTeX with title, abstract, section headings + partial drafted prose (not stubs). Creative: full project brief. Slides: slide-by-slide MD. **Every** `=== ===` block must contain **substantive content** a student can save and immediately use.
-- **problem_set** — `body_md` lists concrete problems (numbered) with full statements; students could submit written solutions. If **GLOBAL PROBLEM SET HOUSE RULES** appear above, **every** `problem_set` module’s `body_md` must satisfy them (notation, length, sections, collaboration policy, etc.).
-- **quiz** — `body_md`: the **actual quiz** students would take—**only multiple-choice** (stems with labeled options) **and/or short-answer** questions (explicit prompts); plus instructions, timing, and policies as needed. **Not** a blueprint or list of topics—every item must be a complete, gradable question. If **GLOBAL QUIZ HOUSE RULES** appear above, **every** `quiz` module’s `body_md` must satisfy them (MC/SA mix, length, timing, difficulty, etc.).
-- **exam** — **Only** when **EXAM WEEK** rules apply above (`assessment` is **midterm** or **final**). One **terminal** module: full **midterm** or **final** handout with real MC and/or short-answer items (longer/cumulative as appropriate). Per-exam instructor notes live in `exam_specific_rules` on the module (usually empty until set in exam studio). **Never** use `exam` when there is no exam week tag.
+- **lecture** — **title**, **one_line_summary**, and **summary** describe the slice of the week’s topics this reading covers. Full chapter-length notes are generated when the instructor opens the **Lecture workspace**, not here.
+- **project** — Describe the project goal and shape in **summary** only; the full spec and deliverables are created in the **Project workspace**.
+- **problem_set** — **summary** describes themes and what students will practice; numbered problems are written in the **Problem set workspace**. If **GLOBAL PROBLEM SET HOUSE RULES** appear above, future workspace content should follow them; this weekly export does not include the problems in `body_md`.
+- **quiz** — **summary** describes coverage and intent; actual questions belong in the **Quiz workspace**. If **GLOBAL QUIZ HOUSE RULES** appear above, they apply when the quiz is drafted later.
+- **exam** — **Only** when **EXAM WEEK** rules apply above. One **terminal** module; **title** / **summary** identify the midterm or final. Full questions and handout live in the **Exam workspace**. Per-exam instructor notes may use `exam_specific_rules` later. **Never** use `exam` when there is no exam week tag.
 
 === GRADED MODULES — POINTS (problem_set, quiz, exam) ===
 For **every** module with **kind** `problem_set`, `quiz`, or `exam` you **must** set:
-- **assessment_total_points** — total for that module: **10** for `problem_set`, **20** for `quiz`, **100** for `exam` (use these defaults unless the instructor’s message explicitly asks for different totals).
-- **graded_item_points** — a JSON array of **positive numbers**, **one per graded problem or question** in **the same order** as they appear in `body_md` (typically one entry per top-level `##` question block). The numbers **must sum exactly** to **assessment_total_points**.
-In **body_md**, label each item with its points (e.g. lines like **(2 pts)** or **Points: 3**) so the weights match **graded_item_points**.
+- **assessment_total_points** — planned total for that module: **10** for `problem_set`, **20** for `quiz`, **100** for `exam` (unless the instructor’s message explicitly asks for different totals).
+- **graded_item_points** — may be an **empty array** `[]` until real problems/questions exist in the workspace. If you include entries, they should be positive numbers that sum to **assessment_total_points** once content exists; for this lightweight weekly export, **`[]` is preferred**.
 
 {assessment_markdown_format_block()}
-=== LECTURE MODULES — TIMELINE STUB body_md (CRITICAL) ===
-For every **lecture** module, `body_md` here is a **planning stub for the Weekly Plan export**, not the full chapter students read in the Lecture workspace.
-
-**Length:** Aim for roughly **~500–2,500 words** (or a bit more if needed for clarity). Use `##` and `###` headings for the **planned section structure** of the eventual chapter. Under each heading, write **short paragraphs or tight bullets** that say **what** the full section will teach (definitions named, theorems stated without full proofs, example *topics*), **not** the full textbook prose.
-
-**Why:** When the instructor opens **Lecture workspace**, the app runs a **multi-step generator** (section outline → write each section → concatenate) to produce the **actual long-form** lecture notes. This export must give that pipeline a clear **roadmap** plus enough context to stay aligned with the week’s topics.
-
-You MUST still include:
-1. **Clear `##` / `###` roadmap** covering motivation → core ideas → formal results → examples (planned) → pitfalls (planned).
-2. **LaTeX** where notation matters (you may keep key equations compact).
-3. **Pointers to at least three worked-example *topics*** (what each example will demonstrate)—full step-by-step examples belong in the Lecture workspace pass, not here.
-4. **Code discipline (when relevant):** note what kinds of snippets the full chapter will include; optional short fenced snippet if it helps the stub read concretely.
-
-You MUST NOT:
-- Paste a **full** 5–10 page chapter into `body_md` in this weekly export (that belongs in Lecture workspace generation).
-- Replace structure with a flat topic list with no headings.
-- Leave “TBD” for every section—each planned heading should have substantive stub text.
-
-**If multiple lecture modules share one week:** Each lecture’s stub still reflects **one** coherent chapter-sized slice for its title/topics.
-
-**Lecture `one_line_summary` vs `summary` vs `body_md`:** **`one_line_summary`** is a **single** plain sentence for the **collapsed** timeline row (see **MODULE timeline text** below)—a hook only, **no** section roadmap. **`summary`** is **not** a one-liner: it is **~one short paragraph** (about **4–10 sentences**, often **100–450 words**) shown **only when the row is expanded**. It must **outline the chapter**: what the reading covers, the **pedagogical arc**, and—**critically**—an **ordered list of the major sections** matching `body_md`’s `##` / `###` order. When you introduce that list (e.g. **Sections include:**), write the listed names in **lowercase** (sentence-style labels, **not** Title Case) and separate them with **commas**, **not** semicolons—e.g. “Sections include: motivation and scope, formal definitions, main result and proof sketch, worked examples, pitfalls.” (`body_md` headings stay normally titled; only this **summary** inline list uses lowercase comma-separated labels.) Mention one or two central definitions or results students will meet. **Do not** paste the full chapter into `summary`; **do** make the section roadmap concrete enough that the expanded panel reads like a table of contents. **`one_line_summary` must not** repeat or paraphrase the **opening** of **`summary`**.
+**Weekly Plan vs. studio:** The block above describes how **graded** `body_md` should look **when** problems and questions are drafted in **quiz / problem set / exam studio**. For **this** weekly timeline export, **`body_md` stays the one-line placeholder**—ignore any wording elsewhere that asks for full `body_md` content in the weekly JSON.
 
 === STRUCTURE RULES ===
 1. Produce **ordered** `modules` (top = earlier in the week, bottom = later). **GLOBAL FORMAT & STRUCTURE RULES** (if present above) **define required module kinds and counts**—e.g. “at least one project per week” ⇒ include **≥1** module with `"kind": "project"`; “only one quiz” ⇒ **exactly one** `quiz` (exam week: still one **terminal** `exam` as specified elsewhere). If global rules are silent on projects, still include **≥1 `project`** when the week’s topic supports implementation, data, or an extended artifact; only omit a project when the subject is purely theoretical **and** global rules do not require one. Typical week: multiple **lecture**s + **problem_set** + **quiz** + **project** when required or fitting. If **EXAM WEEK** rules apply, the **last** module **must** be **kind** `exam`.
 2. Cover the week's **topics** across the **lecture** modules; do not leave syllabus topics only in titles.
-3. Each module needs: **id** (unique snake_case, e.g. `w3_lecture_axioms`), **kind**, **title**, **`one_line_summary`**, **`summary`** (see **MODULE timeline text** below), **`body_md`** (substantive full content), optional **estimated_minutes**.
+3. Each module needs: **id** (unique snake_case, e.g. `w3_lecture_axioms`), **kind**, **title**, **`one_line_summary`**, **`summary`** (see below), **`body_md`** (the single-line placeholder only), optional **estimated_minutes**.
 4. **instructor_notes_md**: pacing for the whole week, how modules connect, what to do in class vs async.
 
 === MODULE timeline text — TWO FIELDS (every `kind`) ===
-Every module has **two** strings for the Weekly Plan timeline (full `body_md` is for workspaces):
+Every module has **two** strings for the Weekly Plan timeline; substantive curriculum lives in workspaces, not in `body_md`.
 
-1. **`one_line_summary`** — **Exactly one sentence** (~12–26 words), plain text. Shown on the **collapsed** row under **title**. It must be a **different idea** from the paragraph: a hook—learning payoff, central tension, or what students will practice—**not** a truncated **summary**. **Forbidden:** repeating, rephrasing, or continuing the **first sentence** (or first ~15 words) of **`summary`**; echoing **title**; putting the **Sections include:** list here (lectures: that list belongs **only** in **`summary`**).
+1. **`one_line_summary`** — **Exactly one sentence** (~12–26 words), plain text. Shown on the **collapsed** row under **title**. A hook—learning payoff, central tension, or what students will practice—**not** a truncated **`summary`**. **Forbidden:** repeating or paraphrasing the **opening** of **`summary`**; echoing **title**; long roadmap lists.
 
-2. **`summary`** — **~one paragraph** (**4–10 sentences**), plain text or light Markdown. Shown **only in the expanded** panel. Must **not** be a single short sentence or a duplicate of **title**. Substantive detail.
+2. **`summary`** — **One short paragraph** (**about 3–6 sentences**), plain text or light Markdown. Shown **only in the expanded** panel. Describe scope, learning goals, and intent—**no** enumerated section lists, no “Key concepts” blocks, no pasted `body_md`, no multi-part outlines that duplicate a full lecture outline.
 
-- **lecture** — **one_line_summary:** why this reading matters or the through-line in one breath—**no** section list. **summary:** paragraph + **ordered outline of major `##`/`###` headings** from `body_md`, plus scope and key ideas. In **Sections include:** (or equivalent), **lowercase** labels and **comma** separation—no semicolons, no Title Case in that list.
-- **problem_set** — **one_line_summary:** what they’ll spend the block doing (one angle). **summary:** paragraph on themes, progression, deliverables, logistics—**not** pasted problem statements.
-- **quiz** — **one_line_summary:** one-sentence stake (e.g. what skills are probed). **summary:** paragraph on coverage, MC vs short-answer mix, length, skills.
-- **exam** — **one_line_summary:** one-sentence framing (e.g. cumulative check). **summary:** paragraph on coverage, format, cumulative emphasis, logistics.
-- **project** — **one_line_summary:** the deliverable or goal in one breath. **summary:** paragraph on goal, milestones, deliverables, grading shape—**not** the full spec.
+- **lecture** — **one_line_summary:** why this reading matters in one breath. **summary:** one paragraph on what the chapter will cover and the pedagogical arc—**without** listing `##` section titles as a formal table of contents.
+- **problem_set** — **one_line_summary:** what they’ll spend the block doing. **summary:** themes and progression—**not** problem statements.
+- **quiz** — **one_line_summary:** what skills are probed. **summary:** coverage and intent—**not** quiz items.
+- **exam** — **one_line_summary:** framing (e.g. cumulative check). **summary:** coverage, format, logistics—**not** exam questions.
+- **project** — **one_line_summary:** deliverable or goal in one breath. **summary:** goal and milestones at a high level—**not** the full spec.
 
 === RESPOND TO THE INSTRUCTOR ===
 The **last user message** in the thread is their current request. The text you show **above** the `:::WEEK_MODULES_UPDATE:::` block must **directly answer** that message in **brief conversational prose only**—questions get concise answers; edit requests get a **short** confirmation of what you changed; vague asks get **one** focused clarifying question.
@@ -391,10 +379,10 @@ At the **very end**, exactly one block:
 
 Rules:
 - Valid JSON only inside the block. Use \\n inside strings for newlines in body_md and summary.
-- Pack as much **chapter-length** lecture material as the response allows; if constrained, prioritize **complete** proofs and worked examples over filler—then the instructor can ask to continue in a follow-up turn.
+- Keep **body_md** minimal: **only** the single-line placeholder (see **WEEKLY PLAN — body_md**). Do not stuff long lecture stubs or full assessments into the weekly export.
 - **Every** reply must include the block with **`:::END_WEEK_MODULES_UPDATE:::`** closing the JSON. **modules** must be a non-empty array unless the user explicitly asked to clear it.
 - **one_line_summary** on every module: required, **one** sentence, distinct from **summary**’s opening (see **MODULE timeline text**).
-- **summary** on every module: paragraph-length expanded preview (lectures must outline section headings in **summary** only).
+- **summary** on every module: **one short paragraph** (3–6 sentences)—scope and intent only, not full outlines or section enumerations.
 - **kind** must be exactly one of: lecture, project, problem_set, quiz, exam.
 - **GLOBAL FORMAT** overrides defaults: if rules require **≥1 project per week**, include at least one `"kind": "project"` entry; if they cap weekly quizzes, match that count (exam week rules still apply for `exam`).
 - **week_context_summary** (REQUIRED): 4–10 sentences, plain text, max ~1200 characters. Summarize THIS week's module line-up and what students do in each type—stored for when other weeks are edited. If global format rules or global problem set or quiz house rules are in effect, note that modules follow those constraints.
