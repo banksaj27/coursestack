@@ -53,15 +53,13 @@ export default function TimelineNode({ week, isLast, isFirst }: TimelineNodeProp
           {week.is_new && (
             <motion.div
               key={`pulse-${week.week}-${week.title}-${week.topics.join(",")}`}
-              className={`absolute inset-0 rounded-full ${isExamWeek ? "bg-rose-400" : "bg-emerald-400"}`}
+              className="absolute inset-0 rounded-full bg-emerald-400"
               initial={{ scale: 1, opacity: 0.6 }}
               animate={{ scale: 2.2, opacity: 0 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
             />
           )}
-          <div
-            className={`h-full w-full rounded-full border-2 border-white shadow-sm ${isExamWeek ? "bg-rose-500" : "bg-emerald-500"}`}
-          />
+          <div className="h-full w-full rounded-full border-2 border-white bg-emerald-500 shadow-sm" />
         </div>
       </div>
 
@@ -70,9 +68,7 @@ export default function TimelineNode({ week, isLast, isFirst }: TimelineNodeProp
         className={`flex-1 rounded-xl border cursor-pointer ${
           highlight
             ? "border-indigo-300 bg-indigo-50/50"
-            : isExamWeek
-              ? "border-rose-200 bg-rose-50/40"
-              : "border-neutral-200 bg-white"
+            : "border-neutral-200 bg-white"
         }`}
         style={{
           transition: highlight ? "none" : "background-color 600ms ease, border-color 600ms ease",
@@ -94,7 +90,7 @@ export default function TimelineNode({ week, isLast, isFirst }: TimelineNodeProp
               <span
                 className={`text-[10px] font-medium uppercase tracking-wider rounded px-1.5 py-px ${
                   isExamWeek
-                    ? "border border-rose-200 bg-rose-50 text-rose-800"
+                    ? "border border-neutral-200 bg-neutral-50 text-neutral-600"
                     : "border border-neutral-200 text-neutral-500"
                 }`}
               >
