@@ -193,7 +193,7 @@ export default function ChatPanel() {
           </p>
         </div>
       )}
-      <div className="border-b border-neutral-100 px-6 py-3">
+      <div className="shrink-0 border-b border-neutral-100 px-8 py-3">
         <h2 className="text-sm font-semibold text-neutral-900">
           Conversation
         </h2>
@@ -201,7 +201,7 @@ export default function ChatPanel() {
 
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-6 py-4 space-y-2.5"
+        className="flex-1 overflow-y-auto px-8 py-4 space-y-2.5"
       >
         <AnimatePresence mode="popLayout">
           {messages.map((msg) => (
@@ -221,13 +221,13 @@ export default function ChatPanel() {
       </div>
 
       {isDone ? (
-        <div className="border-t border-neutral-100 px-6 py-4 text-center">
+        <div className="border-t border-neutral-100 px-8 py-4 text-center">
           <p className="text-xs text-neutral-400">
             Course finalized.
           </p>
         </div>
       ) : (
-        <div className="border-t border-neutral-100 px-6 py-3">
+        <div className="border-t border-neutral-100 px-8 py-3">
           <input
             ref={fileInputRef}
             type="file"

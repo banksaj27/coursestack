@@ -61,30 +61,28 @@ export default function LectureContentPanel({
 
   return (
     <div className="flex h-full min-w-0 flex-col bg-white">
-      <header className="shrink-0 border-b border-neutral-100 px-8 py-3">
-        {courseTopic ? (
-          <h2 className="text-lg font-semibold tracking-tight text-neutral-900">
-            {courseTopic}
-          </h2>
-        ) : null}
-        <p className="mt-0.5 text-xs text-neutral-500">Week {week}</p>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
+      <div className="shrink-0 border-b border-neutral-100 px-8 py-3">
+        <h2 className="text-sm font-semibold text-neutral-900 truncate">
+          {module.title}
+        </h2>
+      </div>
+
+      <div className="shrink-0 border-b border-neutral-100 px-8 py-3">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="rounded border border-neutral-200 bg-neutral-50 px-2 py-0.5 text-xs font-semibold text-neutral-700">
             {kindLabel}
           </span>
+          <span className="text-xs text-neutral-500">Week {week}</span>
           {module.estimated_minutes != null && module.estimated_minutes > 0 ? (
             <span className="text-xs text-neutral-500">
               ~{module.estimated_minutes} min
             </span>
           ) : null}
         </div>
-        <h3 className="mt-2 text-base font-semibold text-neutral-900">
-          {module.title}
-        </h3>
         {module.summary ? (
-          <p className="mt-1 text-sm text-neutral-600">{module.summary}</p>
+          <p className="mt-1.5 text-xs leading-relaxed text-neutral-500">{module.summary}</p>
         ) : null}
-      </header>
+      </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-8 py-6">
         {module.body_md.trim().length > 0 ? (

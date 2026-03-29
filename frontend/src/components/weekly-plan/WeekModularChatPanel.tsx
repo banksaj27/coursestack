@@ -129,7 +129,7 @@ export default function WeekModularChatPanel() {
 
   return (
     <div className="flex h-full flex-col bg-white">
-      <div className="shrink-0 border-b border-neutral-100 px-6 py-3">
+      <div className="shrink-0 border-b border-neutral-100 px-8 py-3">
         <h2 className="text-sm font-semibold text-neutral-900">
           Conversation
         </h2>
@@ -137,7 +137,7 @@ export default function WeekModularChatPanel() {
 
       <section
         aria-label="Course-wide format and structure"
-        className="shrink-0 border-b border-neutral-100 bg-white px-6 py-2"
+        className="shrink-0 border-b border-neutral-100 bg-white px-8 py-2"
       >
         <div className="overflow-hidden rounded-md border border-neutral-200 bg-neutral-50/40">
           <button
@@ -216,7 +216,7 @@ export default function WeekModularChatPanel() {
 
       <div
         ref={scrollRef}
-        className="flex-1 space-y-2.5 overflow-y-auto px-6 py-4"
+        className="flex-1 space-y-2.5 overflow-y-auto px-8 py-4"
       >
         {messages.length === 0 && !isBusy ? (
           <p className="text-xs leading-relaxed text-neutral-400">
@@ -246,7 +246,7 @@ export default function WeekModularChatPanel() {
         </AnimatePresence>
       </div>
 
-      <div className="shrink-0 border-t border-neutral-100 px-6 py-2.5">
+      <div className="shrink-0 border-t border-neutral-100 px-8 py-2.5">
         <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
           Week {selectedWeek}
         </p>
@@ -255,7 +255,7 @@ export default function WeekModularChatPanel() {
         </p>
       </div>
 
-      <div className="shrink-0 border-t border-neutral-100 px-6 py-3">
+      <div className="shrink-0 border-t border-neutral-100 px-8 py-3">
         <div className="flex items-center gap-2">
           <button
             type="button"

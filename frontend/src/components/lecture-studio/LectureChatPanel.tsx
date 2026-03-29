@@ -163,7 +163,7 @@ export default function LectureChatPanel({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="shrink-0 border-b border-neutral-100 px-6 py-3">
+      <div className="shrink-0 border-b border-neutral-100 px-8 py-3">
         <h2 className="text-sm font-semibold text-neutral-900">
           Conversation
         </h2>
@@ -172,7 +172,7 @@ export default function LectureChatPanel({
       {belowHeaderSlot ? (
         <section
           aria-label="Module format and structure"
-          className="shrink-0 border-b border-neutral-100 bg-white px-6 py-2"
+          className="shrink-0 border-b border-neutral-100 bg-white px-8 py-2"
         >
           {belowHeaderSlot}
         </section>
@@ -180,7 +180,7 @@ export default function LectureChatPanel({
 
       <div
         ref={scrollRef}
-        className="min-h-0 flex-1 space-y-2.5 overflow-y-auto px-6 py-4"
+        className="min-h-0 flex-1 space-y-2.5 overflow-y-auto px-8 py-4"
       >
         {messages.length === 0 && !isBusy ? (
           <p className="text-xs leading-relaxed text-neutral-400">
@@ -213,7 +213,7 @@ export default function LectureChatPanel({
         </AnimatePresence>
       </div>
 
-      <footer className="shrink-0 border-t border-neutral-100 px-6 py-3">
+      <footer className="shrink-0 border-t border-neutral-100 px-8 py-3">
         <div className="flex items-end gap-2">
           <textarea
             ref={textareaRef}

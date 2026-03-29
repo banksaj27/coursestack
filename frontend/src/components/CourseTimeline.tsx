@@ -89,7 +89,7 @@ export default function CourseTimeline() {
             {isExporting
               ? "Generating courses..."
               : hasGeneratedCourse
-                ? "View Courses"
+                ? "View Course"
                 : "Generate Courses"}
           </button>
         </div>
