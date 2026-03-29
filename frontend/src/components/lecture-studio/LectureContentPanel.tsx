@@ -91,15 +91,15 @@ function NeighborCard({
     return (
       <Link
         href={link.href}
-        className={`flex min-w-0 flex-1 flex-col rounded-lg border border-neutral-200 bg-neutral-50/80 px-3 py-2 transition-colors hover:border-neutral-300 hover:bg-neutral-100/80 sm:max-w-[48%] ${flexAlign}`}
+        className={`flex min-w-0 flex-1 flex-col rounded-lg border border-neutral-200 bg-neutral-50/80 px-3 py-2 transition-colors hover:border-neutral-300 hover:bg-neutral-100/80 dark:border-neutral-600 dark:bg-neutral-800/90 dark:hover:border-neutral-500 dark:hover:bg-neutral-700 sm:max-w-[48%] ${flexAlign}`}
       >
         <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
           {side === "prev" ? "Previous" : "Next"}
         </span>
-        <span className={`truncate text-sm font-medium text-neutral-900 ${align}`}>
+        <span className={`truncate text-sm font-medium text-neutral-900 dark:text-neutral-100 ${align}`}>
           {link.title}
         </span>
-        <span className={`text-[11px] text-neutral-500 ${align}`}>
+        <span className={`text-[11px] text-neutral-500 dark:text-neutral-400 ${align}`}>
           {link.kindLabel}
         </span>
       </Link>
@@ -107,7 +107,7 @@ function NeighborCard({
   }
   return (
     <div
-      className={`flex min-w-0 flex-1 flex-col rounded-lg border border-dashed border-neutral-200 bg-neutral-50/40 px-3 py-2 opacity-60 sm:max-w-[48%] ${flexAlign}`}
+      className={`flex min-w-0 flex-1 flex-col rounded-lg border border-dashed border-neutral-200 bg-neutral-50/40 px-3 py-2 opacity-60 dark:border-neutral-600 dark:bg-neutral-800/40 sm:max-w-[48%] ${flexAlign}`}
     >
       <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
         {side === "prev" ? "Previous" : "Next"}
@@ -132,7 +132,7 @@ export default function LectureContentPanel({
 }: Props) {
   if (!module) {
     return (
-      <div className="flex h-full items-center justify-center bg-white px-8">
+      <div className="flex h-full items-center justify-center bg-white px-8 dark:bg-neutral-900">
         <p className="text-center text-sm text-neutral-500">
           No module loaded.
         </p>
@@ -145,7 +145,7 @@ export default function LectureContentPanel({
   const ptsTotal = graded ? effectiveAssessmentTotalPoints(module) : 0;
 
   return (
-    <div className="flex h-full min-w-0 flex-col bg-white">
+    <div className="flex h-full min-w-0 flex-col bg-white dark:bg-neutral-900">
       <div className="shrink-0 border-b border-neutral-100 px-8 py-3">
         <h2 className="text-sm font-semibold text-neutral-900 truncate">
           {module.title}
@@ -156,7 +156,7 @@ export default function LectureContentPanel({
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded border border-neutral-200 bg-neutral-50 px-2 py-0.5 text-xs font-semibold text-neutral-700">
+              <span className="rounded border border-neutral-200 bg-neutral-50 px-2 py-0.5 text-xs font-semibold text-neutral-700 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200">
                 {kindLabel}
               </span>
               <span className="text-xs text-neutral-500">Week {week}</span>
@@ -208,7 +208,7 @@ export default function LectureContentPanel({
                       <button
                         type="button"
                         onClick={gradedWorkspaceBar.onViewAnswers}
-                        className="rounded-xl border-2 border-neutral-300 bg-white px-6 py-3 text-sm font-semibold text-neutral-900 shadow-sm transition-colors hover:bg-neutral-50"
+                        className="rounded-xl border-2 border-neutral-300 bg-white px-6 py-3 text-sm font-semibold text-neutral-900 shadow-sm transition-colors hover:bg-neutral-50 dark:border-neutral-500 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700"
                       >
                         View answers
                       </button>
@@ -227,7 +227,7 @@ export default function LectureContentPanel({
                   <button
                     type="button"
                     onClick={gradedWorkspaceBar.onBeginTesting}
-                    className="rounded-xl border-2 border-neutral-800 bg-neutral-900 px-6 py-3 text-sm font-semibold tracking-wide text-white shadow-sm transition-colors hover:bg-neutral-800"
+                    className="rounded-xl border-2 border-neutral-800 bg-neutral-900 px-6 py-3 text-sm font-semibold tracking-wide text-white shadow-sm transition-colors hover:bg-neutral-800 dark:border-neutral-200 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-white"
                   >
                     Begin Testing
                   </button>
@@ -270,10 +270,10 @@ export default function LectureContentPanel({
 
         {notesGenerating && workspace === "lecture" ? (
           <div
-            className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center bg-white/75 px-6 backdrop-blur-[1px]"
+            className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center bg-white/75 px-6 backdrop-blur-[1px] dark:bg-neutral-950/85"
             aria-live="polite"
           >
-            <div className="max-w-md rounded-xl border border-neutral-200 bg-white px-5 py-4 shadow-sm">
+            <div className="max-w-md rounded-xl border border-neutral-200 bg-white px-5 py-4 shadow-sm dark:border-neutral-600 dark:bg-neutral-800">
               <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
                 Building lecture notes
               </p>
@@ -294,7 +294,7 @@ export default function LectureContentPanel({
       </div>
 
       {moduleNeighbors ? (
-        <div className="shrink-0 border-t border-neutral-100 bg-white px-8 py-3">
+        <div className="shrink-0 border-t border-neutral-100 bg-white px-8 py-3 dark:border-neutral-800 dark:bg-neutral-950">
           <div className="flex max-w-3xl flex-wrap items-stretch justify-between gap-3">
             <NeighborCard
               side="prev"

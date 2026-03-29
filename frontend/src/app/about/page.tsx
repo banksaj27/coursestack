@@ -28,7 +28,7 @@ const TEAM: TeamMember[] = [
 
 export default function AboutPage() {
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-neutral-50/50">
+    <div className="flex h-screen flex-col overflow-hidden bg-neutral-50/50 dark:bg-neutral-950">
       <AppNav />
       <main className="min-h-0 flex-1 overflow-y-auto px-4 py-8 sm:px-8">
         <div className="mx-auto max-w-2xl">
@@ -47,7 +47,7 @@ export default function AboutPage() {
             {TEAM.map((member, i) => (
               <li
                 key={`${member.name}-${i}`}
-                className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm"
+                className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-700 dark:bg-neutral-900"
               >
                 <p className="font-medium text-neutral-900">{member.name}</p>
                 <p className="mt-0.5 text-sm text-neutral-500">{member.role}</p>

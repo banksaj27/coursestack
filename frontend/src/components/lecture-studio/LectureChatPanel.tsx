@@ -226,7 +226,7 @@ export default function LectureChatPanel({
       {belowHeaderSlot ? (
         <section
           aria-label="Module format and structure"
-          className="shrink-0 border-b border-neutral-100 bg-white px-8 py-2"
+          className="shrink-0 border-b border-neutral-100 bg-white px-8 py-2 dark:border-neutral-800 dark:bg-neutral-900"
         >
           {belowHeaderSlot}
         </section>
@@ -321,13 +321,13 @@ export default function LectureChatPanel({
             placeholder={isBusy ? "Working…" : copy.placeholder}
             disabled={isBusy}
             rows={1}
-            className="min-h-[40px] max-h-[120px] flex-1 resize-none rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-neutral-400 disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-[40px] max-h-[120px] flex-1 resize-none rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-neutral-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-600 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
           />
           <button
             type="button"
             onClick={submit}
             disabled={isBusy || !input.trim()}
-            className="shrink-0 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-30"
+            className="shrink-0 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-30 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-white"
           >
             Send
           </button>

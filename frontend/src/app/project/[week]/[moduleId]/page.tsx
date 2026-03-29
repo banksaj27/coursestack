@@ -128,9 +128,9 @@ export default function ProjectWorkspacePage() {
   }
 
   return (
-    <div className="app-shell-surface flex h-screen flex-col overflow-hidden">
+    <div className="flex h-screen flex-col overflow-hidden bg-neutral-50/50 dark:bg-neutral-950">
       <AppNav />
-      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-neutral-100 bg-white px-4 py-1.5 sm:px-6">
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-neutral-100 bg-white px-4 py-1.5 dark:bg-neutral-900 sm:px-6">
         <span className="text-[10px] font-medium tracking-wide text-neutral-400">
           Project workspace
         </span>
@@ -157,7 +157,7 @@ export default function ProjectWorkspacePage() {
               type="button"
               onClick={() => void handleScaffold()}
               disabled={scaffolding || isBusy}
-              className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-neutral-800 shadow-sm transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-neutral-800 shadow-sm transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700"
             >
               {scaffolding ? "Creating…" : "Create project files"}
             </button>
@@ -171,7 +171,7 @@ export default function ProjectWorkspacePage() {
         transition={{ duration: 0.2 }}
         className="flex min-h-0 flex-1"
       >
-        <div className="w-[42%] border-r border-neutral-100 bg-white">
+        <div className="w-[42%] border-r border-neutral-100 bg-white dark:bg-neutral-900">
           <LectureChatPanel
             workspace="project"
             week={week}
@@ -184,7 +184,7 @@ export default function ProjectWorkspacePage() {
             agentStatus={agentStatus}
           />
         </div>
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-white">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-white dark:bg-neutral-900">
           <div className="min-h-[200px] flex-1 overflow-hidden">
             <LectureContentPanel
               workspace="project"

@@ -164,7 +164,7 @@ export default function WeekModularChatPanel() {
   }, [reloadCurrentWeekFromStorage, bootstrapModularWeek]);
 
   return (
-    <div className="flex h-full flex-col bg-white">
+    <div className="flex h-full flex-col bg-white dark:bg-neutral-900">
       <div className="shrink-0 border-b border-neutral-100 px-8 py-3">
         <h2 className="text-sm font-semibold text-neutral-900">
           Conversation
@@ -173,9 +173,9 @@ export default function WeekModularChatPanel() {
 
       <section
         aria-label="Course-wide format and structure"
-        className="shrink-0 border-b border-neutral-100 bg-white px-8 py-2"
+        className="shrink-0 border-b border-neutral-100 bg-white px-8 py-2 dark:border-neutral-800 dark:bg-neutral-900"
       >
-        <div className="overflow-hidden rounded-md border border-neutral-200 bg-neutral-50/40">
+        <div className="overflow-hidden rounded-md border border-neutral-200 bg-neutral-50/40 dark:border-neutral-600 dark:bg-neutral-800/40">
           <button
             type="button"
             id={houseRulesToggleId}
@@ -227,7 +227,7 @@ export default function WeekModularChatPanel() {
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
-                className="overflow-hidden border-t border-neutral-200/80 bg-white"
+                className="overflow-hidden border-t border-neutral-200/80 bg-white dark:border-neutral-700 dark:bg-neutral-900"
               >
                 <div className="px-3 pb-3 pt-2.5">
                   <GlobalFormatRulesField
@@ -282,7 +282,7 @@ export default function WeekModularChatPanel() {
         </AnimatePresence>
       </div>
 
-      <div className="shrink-0 border-t border-neutral-100 px-8 py-2.5">
+      <div className="shrink-0 border-t border-neutral-100 bg-white px-8 py-2.5 dark:border-neutral-800 dark:bg-neutral-900">
         <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
           Week {selectedWeek}
         </p>
@@ -291,7 +291,7 @@ export default function WeekModularChatPanel() {
         </p>
       </div>
 
-      <div className="shrink-0 border-t border-neutral-100 px-8 py-3">
+      <div className="shrink-0 border-t border-neutral-100 bg-white px-8 py-3 dark:border-neutral-800 dark:bg-neutral-900">
         <input
           ref={fileInputRef}
           type="file"
@@ -348,9 +348,10 @@ export default function WeekModularChatPanel() {
             disabled={isBusy}
             rows={1}
             className="flex-1 resize-none rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm
-                       text-neutral-900 placeholder-neutral-400 outline-none
+                       text-neutral-900 outline-none placeholder:text-neutral-400
                        transition-colors focus:border-neutral-400
-                       disabled:cursor-not-allowed disabled:opacity-50"
+                       disabled:cursor-not-allowed disabled:opacity-50
+                       dark:border-neutral-600 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
             style={{ minHeight: "36px", maxHeight: "120px" }}
           />
           <button
@@ -359,7 +360,8 @@ export default function WeekModularChatPanel() {
             disabled={isBusy || !input.trim()}
             className="shrink-0 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white
                        transition-colors hover:bg-neutral-800
-                       disabled:cursor-not-allowed disabled:opacity-30"
+                       disabled:cursor-not-allowed disabled:opacity-30
+                       dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-white"
           >
             Send
           </button>

@@ -28,7 +28,7 @@ export default function SyllabusPage() {
 
   if (!clientReady) {
     return (
-      <div className="flex h-screen flex-col overflow-hidden bg-neutral-50/50">
+      <div className="flex h-screen flex-col overflow-hidden bg-neutral-50/50 dark:bg-neutral-950">
         <AppNav />
         <div className="flex flex-1 items-center justify-center text-sm text-neutral-500">
           Loading…
@@ -39,7 +39,7 @@ export default function SyllabusPage() {
 
   if (phase === "topic_input") {
     return (
-      <div className="flex h-screen flex-col overflow-hidden bg-neutral-50/50">
+      <div className="flex h-screen flex-col overflow-hidden bg-neutral-50/50 dark:bg-neutral-950">
         <AppNav />
         <div className="flex flex-1 items-center justify-center text-sm text-neutral-500">
           Redirecting…
@@ -49,7 +49,7 @@ export default function SyllabusPage() {
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-neutral-50/50">
+    <div className="flex h-screen flex-col overflow-hidden bg-neutral-50/50 dark:bg-neutral-950">
       <AppNav />
       <motion.div
         initial={{ opacity: 0 }}
@@ -57,7 +57,7 @@ export default function SyllabusPage() {
         transition={{ duration: 0.2 }}
         className="flex min-h-0 flex-1"
       >
-        <div className="w-[42%] border-r border-neutral-100 bg-white">
+        <div className="w-[42%] border-r border-neutral-100 bg-white dark:bg-neutral-900">
           <ChatPanel />
         </div>
         <div className="w-[58%] min-w-0">

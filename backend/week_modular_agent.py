@@ -323,13 +323,24 @@ Short memories of what was generated for *other* weeks. Use for consistency; ful
 {json.dumps(current, indent=2)}
 
 === WEEKLY PLAN — body_md (CRITICAL) ===
-This export is **timeline metadata only**. For **every** module (all kinds), `body_md` must be **exactly** this one line, verbatim—no extra characters or lines:
+For **lecture**, **problem_set**, **quiz**, and **exam** modules, `body_md` must be **exactly** this one line, verbatim—no extra characters or lines:
 `{_weekly_body_placeholder}`
-Do **not** put lecture outlines, problem statements, quiz questions, project files, or exam items in `body_md`. Full content is created when the instructor opens each module’s **workspace** (Lecture uses a multi-step notes pipeline; other kinds use studio chat or their generators).
+Do **not** put lecture outlines, problem statements, quiz questions, or exam items in `body_md` for those kinds.
+
+**EXCEPTION — project modules:** For **project** modules, `body_md` must contain the **COMPLETE project handout** — NOT the placeholder. Generate the full specification inline, including:
+- Clear project goal and concrete deliverables
+- Milestones and timeline
+- Grading criteria / rubric
+- A **## Starter Kit** section (medium-specific, concrete enough to begin in under 30 minutes)
+- **## Output deliverables (copy-paste files)** with `=== path/filename.ext ===` markers followed by **FULL file bodies**
+
+For coding projects: provide a file tree, then full working scripts (30–100+ lines each) with real imports, class/function signatures, docstrings, core algorithm logic or `# TODO: student implements ...` with detailed comments, sample data, runnable `if __name__ == "__main__"` blocks, at least one helper module, `requirements.txt`, and `README.md`.
+For writing/research projects: generate structured Markdown with title, abstract, section headings + partial drafted prose.
+The project `body_md` should be **1,000–3,000+ words**. Students must be able to start working immediately from this handout.
 
 === MODULE TYPES (use these exact `kind` strings) ===
 - **lecture** — **title**, **one_line_summary**, and **summary** describe the slice of the week’s topics this reading covers. Full chapter-length notes are generated when the instructor opens the **Lecture workspace**, not here.
-- **project** — Describe the project goal and shape in **summary** only; the full spec and deliverables are created in the **Project workspace**.
+- **project** — `body_md` is the **FULL project handout** (see EXCEPTION above). Must include goal, deliverables, milestones, rubric, Starter Kit, and Output deliverables with `=== file ===` blocks containing complete file bodies. **Do NOT use the placeholder for projects.**
 - **problem_set** — **summary** describes themes and what students will practice; numbered problems are written in the **Problem set workspace**. If **GLOBAL PROBLEM SET HOUSE RULES** appear above, future workspace content should follow them; this weekly export does not include the problems in `body_md`.
 - **quiz** — **summary** describes coverage and intent; actual questions belong in the **Quiz workspace**. If **GLOBAL QUIZ HOUSE RULES** appear above, they apply when the quiz is drafted later.
 - **exam** — **Only** when **EXAM WEEK** rules apply above. One **terminal** module; **title** / **summary** identify the midterm or final. Full questions and handout live in the **Exam workspace**. Per-exam instructor notes may use `exam_specific_rules` later. **Never** use `exam` when there is no exam week tag.
@@ -340,12 +351,12 @@ For **every** module with **kind** `problem_set`, `quiz`, or `exam` you **must**
 - **graded_item_points** — may be an **empty array** `[]` until real problems/questions exist in the workspace. If you include entries, they should be positive numbers that sum to **assessment_total_points** once content exists; for this lightweight weekly export, **`[]` is preferred**.
 
 {assessment_markdown_format_block()}
-**Weekly Plan vs. studio:** The block above describes how **graded** `body_md` should look **when** problems and questions are drafted in **quiz / problem set / exam studio**. For **this** weekly timeline export, **`body_md` stays the one-line placeholder**—ignore any wording elsewhere that asks for full `body_md` content in the weekly JSON.
+**Weekly Plan vs. studio:** The block above describes how **graded** `body_md` should look **when** problems and questions are drafted in **quiz / problem set / exam studio**. For **this** weekly timeline export, lecture/problem_set/quiz/exam `body_md` stays the one-line placeholder. **Project** modules are the exception—their `body_md` must be the full handout (see EXCEPTION above).
 
 === STRUCTURE RULES ===
 1. Produce **ordered** `modules` (top = earlier in the week, bottom = later). **GLOBAL FORMAT & STRUCTURE RULES** (if present above) **define required module kinds and counts**—e.g. “at least one project per week” ⇒ include **≥1** module with `"kind": "project"`; “only one quiz” ⇒ **exactly one** `quiz` (exam week: still one **terminal** `exam` as specified elsewhere). If global rules are silent on projects, still include **≥1 `project`** when the week’s topic supports implementation, data, or an extended artifact; only omit a project when the subject is purely theoretical **and** global rules do not require one. Typical week: multiple **lecture**s + **problem_set** + **quiz** + **project** when required or fitting. If **EXAM WEEK** rules apply, the **last** module **must** be **kind** `exam`.
 2. Cover the week's **topics** across the **lecture** modules; do not leave syllabus topics only in titles.
-3. Each module needs: **id** (unique snake_case, e.g. `w3_lecture_axioms`), **kind**, **title**, **`one_line_summary`**, **`summary`** (see below), **`body_md`** (the single-line placeholder only), optional **estimated_minutes**.
+3. Each module needs: **id** (unique snake_case, e.g. `w3_lecture_axioms`), **kind**, **title**, **`one_line_summary`**, **`summary`** (see below), **`body_md`** (single-line placeholder for non-project kinds; full handout for projects), optional **estimated_minutes**.
 4. **instructor_notes_md**: pacing for the whole week, how modules connect, what to do in class vs async.
 
 === MODULE timeline text — TWO FIELDS (every `kind`) ===
@@ -359,7 +370,7 @@ Every module has **two** strings for the Weekly Plan timeline; substantive curri
 - **problem_set** — **one_line_summary:** what they’ll spend the block doing. **summary:** themes and progression—**not** problem statements.
 - **quiz** — **one_line_summary:** what skills are probed. **summary:** coverage and intent—**not** quiz items.
 - **exam** — **one_line_summary:** framing (e.g. cumulative check). **summary:** coverage, format, logistics—**not** exam questions.
-- **project** — **one_line_summary:** deliverable or goal in one breath. **summary:** goal and milestones at a high level—**not** the full spec.
+- **project** — **one_line_summary:** deliverable or goal in one breath. **summary:** goal and milestones at a high level. Note: unlike other kinds, the project’s `body_md` contains the full spec (see EXCEPTION above).
 
 === RESPOND TO THE INSTRUCTOR ===
 The **last user message** in the thread is their current request. The text you show **above** the `:::WEEK_MODULES_UPDATE:::` block must **directly answer** that message in **brief conversational prose only**—questions get concise answers; edit requests get a **short** confirmation of what you changed; vague asks get **one** focused clarifying question.
@@ -379,7 +390,7 @@ At the **very end**, exactly one block:
 
 Rules:
 - Valid JSON only inside the block. Use \\n inside strings for newlines in body_md and summary.
-- Keep **body_md** minimal: **only** the single-line placeholder (see **WEEKLY PLAN — body_md**). Do not stuff long lecture stubs or full assessments into the weekly export.
+- Keep **body_md** minimal for lecture/problem_set/quiz/exam: **only** the single-line placeholder. **Project** modules are the exception—their `body_md` must be the complete project handout (see **EXCEPTION — project modules** above).
 - **Every** reply must include the block with **`:::END_WEEK_MODULES_UPDATE:::`** closing the JSON. **modules** must be a non-empty array unless the user explicitly asked to clear it.
 - **one_line_summary** on every module: required, **one** sentence, distinct from **summary**’s opening (see **MODULE timeline text**).
 - **summary** on every module: **one short paragraph** (3–6 sentences)—scope and intent only, not full outlines or section enumerations.

@@ -20,7 +20,7 @@ export default function StreamingAssistantBubble({
       transition={{ duration: 0.1 }}
       className="flex justify-start"
     >
-      <div className="max-w-[85%] rounded-2xl bg-neutral-50 px-4 py-3 text-neutral-900">
+      <div className="max-w-[85%] rounded-2xl bg-neutral-50 px-4 py-3 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100">
         <MarkdownMath
           source={content}
           variant="light"

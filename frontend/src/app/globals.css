@@ -1,8 +1,16 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
+  --background: #fafafa;
   --foreground: #171717;
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #fafafa;
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -18,9 +26,79 @@ body {
   height: 100%;
 }
 
+html {
+  background-color: var(--background);
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    transition:
+      background-color 0.35s ease,
+      color 0.35s ease;
+  }
+
+  body {
+    transition:
+      background-color 0.35s ease,
+      color 0.35s ease;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.4s;
+    animation-timing-function: ease-in-out;
+  }
+}
+
+/* Improve legibility of common Tailwind neutrals on dark surfaces */
+.dark .text-neutral-900 {
+  color: rgb(250 250 250);
+}
+.dark .text-neutral-800 {
+  color: rgb(245 245 245);
+}
+.dark .text-neutral-700 {
+  color: rgb(212 212 212);
+}
+.dark .text-neutral-600 {
+  color: rgb(163 163 163);
+}
+.dark .text-neutral-500 {
+  color: rgb(163 163 163);
+}
+.dark .text-neutral-400 {
+  color: rgb(163 163 163);
+}
+.dark .text-neutral-300 {
+  color: rgb(115 115 115);
+}
+
+.dark .border-neutral-100 {
+  border-color: rgb(38 38 38);
+}
+.dark .border-neutral-200 {
+  border-color: rgb(55 55 55);
+}
+.dark .border-neutral-300 {
+  border-color: rgb(82 82 82);
+}
+
+.dark .overflow-y-auto {
+  scrollbar-color: rgb(64 64 64) transparent;
+}
+
+.dark .overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: rgb(82 82 82);
+}
+
+/* KaTeX in light-markdown panels (lecture reader) on dark shell */
+.dark .week-md-math .katex {
+  color: rgb(245 245 245);
 }
 
 button,

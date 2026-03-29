@@ -65,7 +65,7 @@ export default function ChatMessage({
             ? useUserMd
               ? "bg-neutral-800 text-white text-sm leading-relaxed"
               : "bg-neutral-800 text-white whitespace-pre-wrap text-sm leading-relaxed"
-            : `bg-neutral-50 text-neutral-900 ${useMd ? "" : "text-sm leading-relaxed"}`
+            : `bg-neutral-50 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100 ${useMd ? "" : "text-sm leading-relaxed"}`
         }`}
       >
         {isUser ? (
