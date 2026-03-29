@@ -13,7 +13,7 @@ from gemini_client import (
     get_gemini_model,
     streaming_chunk_text,
 )
-from models import LectureStudioState, WeekModule
+from models import LectureStudioState, WeekModule, parse_assessment_items_from_payload
 from week_modular_agent import _DEFAULT_ASSESSMENT_POINTS, _parse_graded_item_points
 from week_context_utils import (
     assessment_markdown_format_block,
@@ -287,15 +287,15 @@ def _build_system_prompt(state: LectureStudioState) -> str:
         )
     elif kind == "quiz":
         kind_note = (
-            "This module is a **quiz**: rewrite `body_md` as the **actual quiz** students would take—roughly "
-            "**2–6 printed pages** when rendered (instructions, timing, policies, then numbered questions). "
-            "Target on the order of **~800–4,000+ words** plus LaTeX where needed. "
-            "**Every graded item must be either (a) multiple choice** with a **clear stem** and **labeled options** "
-            "(e.g. A–D or A–E), **or (b) short answer** with an explicit prompt and a defined response format "
-            "(e.g. one sentence, a number, a brief proof, fill in the blank with a single expression). "
-            "**Do not** replace real questions with topic lists, “sample” items, blueprints, or placeholders like "
-            "“Q3: induction”—each item must be a **complete** question students can answer as-is. "
-            "Unless the user asks to shorten, **expand** thin text toward a complete quiz. "
+            "This module is a **quiz**: put **every gradable question** in the JSON array **`assessment_items`**—"
+            "one object per question. Each object has **`id`** (stable string, e.g. `q1`, `q2`), **`kind`**: "
+            "`multiple_choice` | `true_false` | `short_answer`, **`question_md`**: stem/prompt **only** "
+            "(markdown/LaTeX; **no** answer-choice lines in `question_md` for MC), **`choices`**: for MC only, "
+            "array of `{ \"id\": \"A\", \"text_md\": \"...\" }` for every option, **`correct_answer`**: for MC a letter or "
+            "`\"A, C\"` when multiple are correct; for T/F `True` or `False`; for short answer a **concise reference / sample answer** "
+            "for autograding (not shown to students in testing mode). Optional **`points`** per item. "
+            "Use **`body_md`** for **instructions, timing, honor code, logistics** only (short markdown)—**not** for duplicating full questions. "
+            "Unless the user asks to shorten, include enough items and detail for a complete quiz. "
             "**one_line_summary**: one sentence, collapsed row—distinct from **summary**’s opening. **summary**: **~paragraph** on coverage, MC vs short-answer mix, and skills assessed—expanded panel only."
         )
     elif kind == "project":
@@ -311,11 +311,11 @@ def _build_system_prompt(state: LectureStudioState) -> str:
         )
     elif kind == "exam":
         kind_note = (
-            "This module is an **exam** (midterm or final): rewrite `body_md` as the **actual exam** students would sit—"
-            "instructions, coverage, duration, allowed materials, integrity; then **only** **multiple-choice** (stem + labeled options) "
-            "and/or **short-answer** items, each **complete and gradable**—not blueprints or topic lists. "
+            "This module is an **exam** (midterm or final): put **every gradable question** in **`assessment_items`** "
+            "(same schema as quiz: `id`, `kind` `multiple_choice` | `true_false` | `short_answer`, `question_md`, "
+            "`choices` for MC, `correct_answer`, optional `points`). **`question_md`** is stem only for MC; "
+            "**`body_md`** holds instructions, coverage, duration, allowed materials, integrity—**not** full duplicated questions. "
             "Scale length and difficulty for a **cumulative** sitting when the title/summary indicate a final. "
-            "Unless the user asks to shorten, **expand** thin text toward a full exam. "
             "**one_line_summary**: one sentence, collapsed row—distinct from **summary**’s opening. **summary**: **~paragraph** on coverage, format, cumulative emphasis, and logistics—expanded panel only."
         )
 
@@ -365,31 +365,29 @@ Rules when **no** JSON block:
             "changing that write-up."
         )
         job_section = f"""=== YOUR JOB ===
-1. Read the **latest** user message and the current module JSON (especially `body_md`).
-2. **Tutoring / Q&A** (explain a concept the quiz covers, discuss approach, “is this answer reasonable?”, compare methods): reply in **prose only** (markdown, LaTeX/code fences as needed). Treat the existing `body_md` as the **source of truth** for quiz items; cite question numbers. Prefer **hints and guiding questions** over giving a **full answer key** unless they **explicitly** ask for solutions or official grading notes.
-3. **Quiz editing** (add/remove/reword **multiple-choice or short-answer** questions, timing, instructions, difficulty, logistics, LaTeX, **whole sections**): before the update block, write **only a short** chat message (about **1–4 sentences**): what you changed or a quick confirmation. **Do not** paste the full quiz or long excerpts into chat—the **entire** revised quiz must appear **only** inside the JSON `body_md` string, not duplicated in prose above the marker. Honor **GLOBAL QUIZ HOUSE RULES** whenever that block is present. **Structural removals:** if they ask to remove “Instructions”, “logistics”, “honor code”, or any `##` section, output `body_md` **without** that section at all—**actually delete the text**, do not claim it is gone while leaving it in JSON.
-4. **Mixed** requests: give tutoring in normal prose, then **one brief** line (optional) before the block—still **no** full quiz text in chat—then **one** update block with the **full** `body_md` when edits are needed.
+1. Read the **latest** user message and the current module JSON (especially **`assessment_items`** and `body_md`).
+2. **Tutoring / Q&A** (explain a concept the quiz covers, discuss approach, “is this answer reasonable?”, compare methods): reply in **prose only** (markdown, LaTeX/code fences as needed). Treat **`assessment_items`** (if non-empty) as the **source of truth** for questions; otherwise `body_md`. Cite **`id`** or order. Prefer **hints and guiding questions** over a **full answer key** unless they **explicitly** ask for solutions or official grading notes.
+3. **Quiz editing** (add/remove/reword questions, timing, instructions, difficulty, logistics, LaTeX): before the update block, write **only a short** chat message (about **1–4 sentences**). **Do not** paste the full quiz into chat—the revised **`assessment_items`** and optional `body_md` must appear **only** inside the JSON block. Honor **GLOBAL QUIZ HOUSE RULES** when present. **Structural removals:** if they ask to remove instructions/logistics from `body_md`, delete that text from `body_md`; update or remove the matching **`assessment_items`** entries when they ask to drop questions.
+4. **Mixed** requests: give tutoring in normal prose, then **one brief** line (optional) before the block—then **one** update block with the full JSON when edits are needed.
 5. {kind_note}
-6. Whenever you emit JSON, preserve logical **id** and **kind** (enforced server-side).
+6. Whenever you emit JSON, preserve the module’s logical **id** and **kind** (enforced server-side).
 """
         output_format_section = """=== OUTPUT FORMAT (quiz) ===
-**When you change the module** (steps 3–4): write a **short** natural-language preface (see step 3), then **immediately** end with exactly (no large markdown draft of the quiz before this):
+**When you change the module** (steps 3–4): write a **short** natural-language preface (see step 3), then **immediately** end with exactly:
 
 :::LECTURE_MODULE_UPDATE:::
-{ "title": "...", "one_line_summary": "...", "summary": "...", "body_md": "...", "estimated_minutes": null, "assessment_total_points": 20, "graded_item_points": [4, 4, 4, 4, 4] }
+{ "title": "...", "one_line_summary": "...", "summary": "...", "body_md": "## Instructions\\n\\nTime: ...", "estimated_minutes": null, "assessment_total_points": 20, "graded_item_points": [4, 4, 4, 4, 4], "assessment_items": [ { "id": "q1", "kind": "multiple_choice", "question_md": "Stem only (no A–D lines here).", "choices": [ {"id": "A", "text_md": "..."}, {"id": "B", "text_md": "..."} ], "correct_answer": "B", "points": null }, { "id": "q2", "kind": "true_false", "question_md": "Statement to evaluate.", "choices": [], "correct_answer": "False", "points": null }, { "id": "q3", "kind": "short_answer", "question_md": "Prove or compute ...", "choices": [], "correct_answer": "2–6 sentence reference answer for the grader.", "points": null } ] }
 :::END_LECTURE_MODULE_UPDATE:::
 
-**When you are only tutoring** (step 2): write your full reply in prose. **Do not** include `:::LECTURE_MODULE_UPDATE:::` or any JSON—the quiz text on the right must stay unchanged.
+**When you are only tutoring** (step 2): write your full reply in prose. **Do not** include `:::LECTURE_MODULE_UPDATE:::` or any JSON.
 
 Rules when the JSON block **is** present:
-- Valid JSON only inside the block. Use \\n inside strings for newlines in body_md.
-- **assessment_total_points** must be **20** for quizzes unless the user asks otherwise; **graded_item_points** must be a non-empty array of positive numbers summing to **assessment_total_points**, one per graded question in order.
-- **estimated_minutes** may be a number or null.
-- **one_line_summary**: **one** plain sentence for the **collapsed** timeline row—a distinct hook; **do not** repeat or paraphrase the **opening** of **summary** or duplicate **title**. **summary**: **~paragraph** for the **expanded** panel only.
-- **body_md** must be **non-empty** and the **complete** updated quiz unless the user explicitly asked to clear it (brief placeholder + explanation).
-- **body_md** must be the **full** quiz text—not a topic list, blueprint, or one-line stubs. **Questions must be real MC or short-answer items** (full stems and options where MC; explicit prompts where SA)—not “sample” or illustrative placeholders.
-- **Section removal** requests must change `body_md`: the removed section must be **absent** from the string you emit.
-- The visible chat **before** the marker must stay **brief**: no numbered question lists, no multi-paragraph reproduction of the quiz, no fenced code blocks containing whole items. Put all of that **only** in `body_md`.
+- Valid JSON only inside the block. Use \\n inside strings for newlines.
+- **assessment_items** is **required** and must list **every** gradable question in order. Each item: **`id`** (unique string), **`kind`**, **`question_md`**, **`choices`** (MC only; each choice **`id`** single letter A–Z and **`text_md`**), **`correct_answer`** (see **kind_note**), optional **`points`**.
+- **assessment_total_points** must be **20** unless the user asks otherwise; **graded_item_points** must be a non-empty array of positive numbers **summing** to **assessment_total_points**, **one entry per `assessment_items` row in the same order** (or use per-item **`points`** consistently).
+- **body_md**: instructions / policies / timing only—**do not** paste the full MC option lists or answer keys there (those live in **`assessment_items`**).
+- **one_line_summary** / **summary**: as before.
+- The visible chat **before** the marker must stay **brief**: no full question dumps in chat.
 
 Rules when **no** JSON block:
 - Your chat message is the entire answer. Be helpful and precise; do not silently change the stored quiz.
@@ -439,31 +437,27 @@ Rules when **no** JSON block:
             "**review strategy**, **concept checks**, or **clarifications**—often **without** changing that write-up."
         )
         job_section = f"""=== YOUR JOB ===
-1. Read the **latest** user message and the current module JSON (especially `body_md`).
-2. **Tutoring / Q&A** (explain ideas the exam may cover, discuss study approach, “is this reasoning sound?”): reply in **prose only** (markdown, LaTeX/code fences as needed). Treat the existing `body_md` as the **source of truth**; cite question numbers. Prefer **hints and guiding questions** over a **full answer key** unless they **explicitly** ask for solutions or official grading notes.
-3. **Exam editing** (add/remove/reword MC or short-answer items, timing, coverage, instructions, logistics, LaTeX, **whole sections**): before the update block, write **only a short** chat message (about **1–4 sentences**): what you changed or a quick confirmation. **Do not** paste the full exam or long excerpts into chat—the **entire** revised exam must appear **only** inside the JSON `body_md` string, not duplicated in prose above the marker. Honor **THIS EXAM — INSTRUCTOR RULES** whenever that block is present. **Structural removals:** if they ask to remove a section, output `body_md` **without** that section—**actually delete the text**, do not claim it is gone while leaving it in JSON.
-4. **Mixed** requests: give tutoring in normal prose, then **one brief** line (optional) before the block—still **no** full exam text in chat—then **one** update block with the **full** `body_md` when edits are needed.
+1. Read the **latest** user message and the current module JSON (especially **`assessment_items`** and `body_md`).
+2. **Tutoring / Q&A** (explain ideas the exam may cover, discuss study approach, “is this reasoning sound?”): reply in **prose only** (markdown, LaTeX/code fences as needed). Treat **`assessment_items`** (if non-empty) as the **source of truth**; otherwise `body_md`. Prefer **hints** over a **full answer key** unless they **explicitly** ask for solutions.
+3. **Exam editing**: before the update block, write **only a short** chat message (about **1–4 sentences**). Put the revised exam in **`assessment_items`** + optional `body_md` **only** inside the JSON block. Honor **THIS EXAM — INSTRUCTOR RULES** when present.
+4. **Mixed** requests: tutoring in prose, then one update block when edits are needed.
 5. {kind_note}
-6. Whenever you emit JSON, preserve logical **id** and **kind** (enforced server-side).
+6. Whenever you emit JSON, preserve the module’s logical **id** and **kind** (enforced server-side).
 """
         output_format_section = """=== OUTPUT FORMAT (exam) ===
-**When you change the module** (steps 3–4): write a **short** natural-language preface (see step 3), then **immediately** end with exactly (no large markdown draft of the exam before this):
+**When you change the module** (steps 3–4): write a **short** natural-language preface, then **immediately** end with exactly:
 
 :::LECTURE_MODULE_UPDATE:::
-{ "title": "...", "one_line_summary": "...", "summary": "...", "body_md": "...", "estimated_minutes": null, "assessment_total_points": 100, "graded_item_points": [10, 10, 10, 10, 10, 10, 10, 10, 10, 10] }
+{ "title": "...", "one_line_summary": "...", "summary": "...", "body_md": "## Instructions\\n\\nCoverage, duration, materials ...", "estimated_minutes": null, "assessment_total_points": 100, "graded_item_points": [10, 10, 10, 10, 10, 10, 10, 10, 10, 10], "assessment_items": [ { "id": "q1", "kind": "multiple_choice", "question_md": "...", "choices": [{"id": "A", "text_md": "..."}], "correct_answer": "C", "points": null } ] }
 :::END_LECTURE_MODULE_UPDATE:::
 
-**When you are only tutoring** (step 2): write your full reply in prose. **Do not** include `:::LECTURE_MODULE_UPDATE:::` or any JSON—the exam text on the right must stay unchanged.
+**When you are only tutoring** (step 2): write your full reply in prose. **Do not** include the update markers or JSON.
 
 Rules when the JSON block **is** present:
-- Valid JSON only inside the block. Use \\n inside strings for newlines in body_md.
-- **assessment_total_points** must be **100** for exams unless the user asks otherwise; **graded_item_points** must be a non-empty array of positive numbers summing to **assessment_total_points**, one per graded question in order.
-- **estimated_minutes** may be a number or null.
-- **one_line_summary**: **one** plain sentence for the **collapsed** timeline row—a distinct hook; **do not** repeat or paraphrase the **opening** of **summary** or duplicate **title**. **summary**: **~paragraph** for the **expanded** panel only.
-- **body_md** must be **non-empty** and the **complete** updated exam unless the user explicitly asked to clear it (brief placeholder + explanation).
-- **body_md** must be the **full** exam text—not a topic list or stubs. **Questions must be real MC or short-answer items**—not illustrative placeholders.
-- **Section removal** requests must change `body_md`: the removed section must be **absent** from the string you emit.
-- The visible chat **before** the marker must stay **brief**: put the full exam **only** in `body_md`.
+- Same **`assessment_items`** schema as **quiz** (see quiz output rules). **assessment_items** is **required** for a full exam draft.
+- **assessment_total_points** **100** unless the user asks otherwise; **graded_item_points** non-empty, summing to total, **aligned with `assessment_items` order**.
+- **body_md**: exam instructions and logistics—not duplicated full question bodies.
+- The visible chat **before** the marker must stay **brief**.
 
 Rules when **no** JSON block:
 - Your chat message is the entire answer. Be helpful and precise; do not silently change the stored exam.
@@ -522,13 +516,13 @@ If this module is a **lecture**, treat `body_md` as a **standalone textbook chap
 If this module is a **problem_set**, treat `body_md` as the **complete assignment** students would receive: many numbered problems with **full** statements (not “Problem 3: induction” placeholders), LaTeX where needed, coding tasks with I/O or API specs when relevant. Add **instructions / logistics** or **rubric** sections **only when** they fit the user’s intent; **strip them completely** when the user asks to remove those parts (no leftover headings). Whenever you emit an update block, the JSON `body_md` must be the **full problem set text**, not an outline—**do not** mirror that full text in the chat; keep chat to a short note then the marker. For **tutoring-only** replies, rely on the existing `body_md` and do not emit a block.
 
 === QUIZ DEPTH (WHEN kind IS quiz) ===
-If this module is a **quiz**, treat `body_md` as the **complete quiz** students would receive: a **mix or sequence of real questions**, each in **multiple choice** (stem + labeled choices, exactly one intended correct answer unless the instructor specifies otherwise) **or short answer** (clear prompt + expected response shape). **No** blueprints, topic-only lines, or “sample question” framing—only **gradable** items. Add timing and policies when relevant; LaTeX where needed. **Strip** whole sections when the user asks to remove them (no leftover headings). Whenever you emit an update block, the JSON `body_md` must be the **full quiz text**, not an outline—**do not** mirror it in chat. For **tutoring-only** replies, rely on the existing `body_md` and do not emit a block.
+If this module is a **quiz**, put **all questions** in **`assessment_items`** with real stems, MC **`choices`**, and **`correct_answer`** keys; use **`body_md`** for instructions and logistics only. **No** blueprints or placeholder items. LaTeX in `question_md` / `text_md` is fine. Whenever you emit an update block, the JSON must include the full **`assessment_items`** array—**do not** mirror it in chat. For **tutoring-only** replies, rely on existing data and do not emit a block.
 
 {project_advisor_injection}=== PROJECT DEPTH (WHEN kind IS project) ===
 If this module is a **project**, treat `body_md` as the **complete project handout**: goal, **actionable** deliverables, milestones, grading expectations, timeline, logistics, and constraints—written so a student could start work without guessing. Follow the **PROJECT — ACADEMIC ADVISOR FRAMEWORK** above for brainstorming and for shaping **argumentative depth** (thesis, evidence, counterarguments) when the discipline calls for it. The handout **must** contain **`## Starter Kit`** and **`## Output deliverables (copy-paste files)`** with **`=== filename ===`** blocks (**full** key files for code; MD/LaTeX PDF-ready drafts for writing; brief + plan for creative; slide-by-slide for decks). Whenever you emit an update block, the JSON `body_md` must be the **full spec**, not an outline—**do not** mirror it in chat. For **discussion-only** replies, rely on the existing `body_md` and do not emit a block.
 
 === EXAM DEPTH (WHEN kind IS exam) ===
-If this module is an **exam**, treat `body_md` as the **complete exam** students would receive: cumulative coverage as appropriate for midterm/final; clear logistics; **only** real **multiple-choice** and/or **short-answer** questions. Whenever you emit an update block, the JSON `body_md` must be the **full exam**, not an outline—**do not** mirror it in chat. For **tutoring-only** replies, rely on the existing `body_md` and do not emit a block.
+If this module is an **exam**, use **`assessment_items`** for every real question (same rules as quiz); **`body_md`** for cumulative framing, logistics, and policies. Whenever you emit an update block, the JSON must include the full **`assessment_items`** array—**do not** mirror it in chat. For **tutoring-only** replies, rely on existing data and do not emit a block.
 
 {output_format_section}
 """
@@ -587,6 +581,18 @@ def _parse_module_update(
         else:
             gip = list(fallback.graded_item_points)
 
+        if "assessment_items" in data:
+            assessment_items = parse_assessment_items_from_payload(
+                data.get("assessment_items")
+            )
+        else:
+            assessment_items = list(fallback.assessment_items)
+
+        if "solution_md" in data:
+            solution_md = str(data.get("solution_md", fallback.solution_md))
+        else:
+            solution_md = fallback.solution_md
+
         ex_rules = str(
             data.get("exam_specific_rules", fallback.exam_specific_rules)
             if kind == "exam"
@@ -604,6 +610,8 @@ def _parse_module_update(
             exam_specific_rules=ex_rules,
             assessment_total_points=atp,
             graded_item_points=gip,
+            assessment_items=assessment_items,
+            solution_md=solution_md,
         )
     except (json.JSONDecodeError, TypeError, ValueError):
         return agent_message, fallback

@@ -1,102 +1,67 @@
 {
-  "topic": "Probability",
+  "topic": "Sample course",
   "user_profile": {
-    "background": "calculus, multivariable calculus, real analysis",
-    "goals": [
-      "calculus-based probability",
-      "proof-based"
-    ],
+    "background": "Set when you plan your syllabus in the Syllabus tab",
+    "goals": ["Foundational concepts", "Applied practice"],
     "constraints": {},
-    "learning_style": "theoretical and proof-oriented",
-    "rigor_level": "high"
+    "learning_style": "balanced",
+    "rigor_level": "intermediate"
   },
   "course_plan": {
     "weeks": [
       {
         "week": 1,
-        "title": "Foundations of Probability",
-        "topics": [
-          "Axioms of probability",
-          "Probability spaces",
-          "Combinatorial analysis"
-        ],
+        "title": "Week 1: Introduction",
+        "topics": ["Course overview", "Core vocabulary", "First principles"],
         "has_homework": true,
         "assessment": null
       },
       {
         "week": 2,
-        "title": "Random Variables and Distributions",
-        "topics": [
-          "Discrete random variables",
-          "Probability mass functions",
-          "Expectation and variance"
-        ],
+        "title": "Week 2: Building blocks",
+        "topics": ["Essential methods", "Worked examples", "Short exercises"],
         "has_homework": true,
         "assessment": null
       },
       {
         "week": 3,
-        "title": "Continuous Random Variables",
-        "topics": [
-          "Continuous random variables",
-          "Probability density functions",
-          "Cumulative distribution functions"
-        ],
+        "title": "Week 3: Going deeper",
+        "topics": ["Connecting ideas", "Common patterns", "Problem-solving"],
         "has_homework": true,
         "assessment": null
       },
       {
         "week": 4,
-        "title": "Joint Distributions",
-        "topics": [
-          "Joint, marginal, and conditional distributions",
-          "Independent random variables",
-          "Covariance and correlation"
-        ],
+        "title": "Week 4: Mid-quarter checkpoint",
+        "topics": ["Review themes", "Integrated application", "Midterm preparation"],
         "has_homework": true,
-        "assessment": null
+        "assessment": "midterm"
       },
       {
         "week": 5,
-        "title": "Transformations of Random Variables",
-        "topics": [
-          "Functions of random variables",
-          "Distribution of functions of random variables",
-          "Moment generating functions"
-        ],
+        "title": "Week 5: Intermediate topics",
+        "topics": ["New techniques", "Case studies", "Practice set"],
         "has_homework": true,
         "assessment": null
       },
       {
         "week": 6,
-        "title": "Limit Theorems",
-        "topics": [
-          "Law of Large Numbers",
-          "Central Limit Theorem",
-          "Convergence in distribution"
-        ],
+        "title": "Week 6: Advanced angle",
+        "topics": ["Extensions", "Tradeoffs", "Broader context"],
         "has_homework": true,
-        "assessment": "midterm"
+        "assessment": null
       },
       {
         "week": 7,
-        "title": "Introduction to Stochastic Processes",
-        "topics": [
-          "Poisson processes",
-          "Markov chains",
-          "Introduction to martingales"
-        ],
+        "title": "Week 7: Synthesis",
+        "topics": ["Project or capstone prep", "Open questions", "Peer review"],
         "has_homework": true,
         "assessment": null
       },
       {
         "week": 8,
-        "title": "Advanced Topics in Probability",
-        "topics": [
-          "Continuous-time Markov chains",
-          "Brownian motion",
-          "Applications of stochastic calculus"
-        ],
+        "title": "Week 8: Wrap-up",
+        "topics": ["Cumulative review", "Next steps", "Final assessment"],
         "has_homework": true,
         "assessment": "final"
       }

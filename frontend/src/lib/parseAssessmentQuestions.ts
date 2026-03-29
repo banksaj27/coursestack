@@ -1,3 +1,5 @@
+import { splitMarkdownIntoH2Pages } from "@/lib/splitMarkdownByH2";
+
 /**
  * Split one markdown page into sub-questions (### headings), numbered items, or a single block.
  */
@@ -61,6 +63,34 @@ function matchOptionLine(line: string) {
   return null;
 }
 
+function isTrailingAutograderKeyLine(line: string): boolean {
+  const t = line.trim();
+  if (!t) return false;
+  if (t.includes("<!--") && t.toLowerCase().includes("correct")) return true;
+  if (t.includes("(Correct:") || t.includes("**Correct")) return true;
+  if (/^\s*(?:Correct(?:\s+answer)?|Answer\s*key)\s*:/i.test(line)) return true;
+  if (/^\s*Answer\s*:/i.test(line)) return true;
+  return false;
+}
+
+/** Drop lines like **(Correct: A)** at the end so lettered options are found. */
+function dropTrailingAnswerKeyLines(lines: string[]): string[] {
+  let end = lines.length;
+  while (end > 0) {
+    while (end > 0 && !(lines[end - 1] ?? "").trim()) {
+      end -= 1;
+    }
+    if (end <= 0) break;
+    const ln = lines[end - 1] ?? "";
+    if (isTrailingAutograderKeyLine(ln)) {
+      end -= 1;
+      continue;
+    }
+    break;
+  }
+  return lines.slice(0, end);
+}
+
 function stripTrailingOptionLines(lines: string[]): {
   stemLines: string[];
   options: { id: string; label: string; text: string }[];
@@ -99,6 +129,30 @@ function isTrueFalseOptions(
   if (options.length !== 2) return false;
   const set = new Set(options.map((o) => tfNorm(o.text)));
   return set.has("true") && set.has("false");
+}
+
+/**
+ * Consecutive `A. …` `B. …` lines are parsed as MC by default. Multi-part prompts often reuse
+ * that pattern for sub-tasks ("A. Compute … B. Find …"). Detect task-like opens so we show
+ * one short-answer area instead of radio buttons.
+ */
+const MULTIPART_OPTION_START =
+  /^(?:\$[^$]{0,160}\$\s*)?(?:compute|find|show|prove|explain|determine|justify|derive|evaluate|sketch|write|state|give|list|identify|calculate|graph|plot|solve|set\s+up|use\s+the|apply|verify|demonstrate|let\s|suppose|assume|is\s+the|are\s+these|are\s+the|what\s+is|how\s+many|sketch\s+the|plot\s+the|define|construct|derive\s+the)/i;
+
+function optionTextForMultipartHeuristic(text: string): string {
+  let t = text.trim();
+  t = t.replace(/^\$[^$]{0,160}\$\s*/, "").trim();
+  return t;
+}
+
+function letteredOptionsLookLikeMultiPartTasks(
+  options: { id: string; text: string }[],
+): boolean {
+  if (options.length < 2 || isTrueFalseOptions(options)) return false;
+  const normalized = options.map((o) => optionTextForMultipartHeuristic(o.text));
+  const hits = normalized.filter((t) => MULTIPART_OPTION_START.test(t));
+  if (hits.length < options.length) return false;
+  return true;
 }
 
 const INSTRUCTION_TITLE =
@@ -152,13 +206,18 @@ function looksLikeShortAnswerBlock(blockMd: string): boolean {
 
 /** Classify one block: MC, T/F, short answer, or prose (no answer UI). */
 export function parseQuestionBlock(blockMd: string): ParsedQuestion {
-  const lines = blockMd.replace(/\r\n/g, "\n").split("\n");
+  const lines = dropTrailingAnswerKeyLines(
+    blockMd.replace(/\r\n/g, "\n").split("\n"),
+  );
   const { stemLines, options } = stripTrailingOptionLines(lines);
   const stemMd = stemLines.join("\n").trim();
 
   if (options.length >= 2) {
     if (isTrueFalseOptions(options)) {
       return { kind: "true_false", stemMd };
+    }
+    if (letteredOptionsLookLikeMultiPartTasks(options)) {
+      return { kind: "short_answer", stemMd: blockMd.trim() };
     }
     return {
       kind: "multiple_choice",
@@ -176,4 +235,31 @@ export function parseQuestionBlock(blockMd: string): ParsedQuestion {
   }
 
   return { kind: "prose", stemMd: blockMd.trim() };
+}
+
+/**
+ * For quiz / exam / problem-set previews (not testing mode): drop lettered MC lines and T/F option
+ * pairs so only stems and short-answer prompts are shown.
+ */
+export function stripChoiceOptionsFromAssessmentMarkdown(md: string): string {
+  const pages = splitMarkdownIntoH2Pages(md);
+  if (!pages.length) return md.trim();
+  const rebuilt: string[] = [];
+  for (const page of pages) {
+    const blocks = splitPageIntoQuestionBlocks(page);
+    if (!blocks.length) {
+      rebuilt.push(page.trim());
+      continue;
+    }
+    const parts = blocks.map((block) => {
+      if (isInstructionBlock(block)) return block.trim();
+      const p = parseQuestionBlock(block);
+      if (p.kind === "multiple_choice" || p.kind === "true_false") {
+        return p.stemMd;
+      }
+      return block.trim();
+    });
+    rebuilt.push(parts.filter(Boolean).join("\n\n"));
+  }
+  return rebuilt.join("\n\n").trim();
 }

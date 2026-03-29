@@ -42,7 +42,6 @@ export function useGradedWorkspaceBootstrap(
 
   useEffect(() => {
     if (notFound || !module) return;
-    if (!needsGradedWorkspaceGeneration(module.body_md)) return;
 
     const key = `${week}:${moduleId}`;
     if (pendingByKey.has(key)) return;
@@ -68,6 +67,15 @@ export function useGradedWorkspaceBootstrap(
       return;
     }
 
+    if (module.kind === "quiz" || module.kind === "exam") {
+      if ((module.assessment_items?.length ?? 0) > 0) return;
+      if (!needsGradedWorkspaceGeneration(module.body_md)) return;
+    } else if (module.kind === "problem_set") {
+      if (!needsGradedWorkspaceGeneration(module.body_md)) return;
+    } else {
+      return;
+    }
+
     const msg = autoGenerateMessage(module.kind);
     if (!msg) return;
 
@@ -78,5 +86,14 @@ export function useGradedWorkspaceBootstrap(
     });
     pendingByKey.set(key, p);
     void p;
-  }, [notFound, module, module?.id, module?.body_md, module?.kind, week, moduleId]);
+  }, [
+    notFound,
+    module,
+    module?.id,
+    module?.body_md,
+    module?.kind,
+    module?.assessment_items,
+    week,
+    moduleId,
+  ]);
 }

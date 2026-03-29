@@ -1,4 +1,4 @@
-/** Matches syllabus.json / course plan schema used by the planner. */
+/** Course plan schema: Syllabus tab, weekly planner, and studio API payloads. */
 export interface SyllabusUserProfile {
   background: string;
   goals: string[];

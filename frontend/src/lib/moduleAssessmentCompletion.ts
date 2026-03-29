@@ -1,3 +1,4 @@
+import type { AssessmentGradeItem } from "@/lib/assessmentGradeApi";
 import type { WeekModule } from "@/types/weekModular";
 import { loadModularWeekPack } from "@/lib/weekModularPersistence";
 
@@ -10,6 +11,8 @@ type StoredEntry = {
   lectureComplete?: boolean;
   /** Saved responses from testing mode, keyed `pageIdx-blockIdx`. */
   gradedAnswers?: Record<string, string>;
+  /** Per-question results from server grading (quiz/exam). */
+  gradedItems?: AssessmentGradeItem[];
   /** Problem set: model feedback after PDF grading. */
   gradedFeedbackMd?: string;
   /** Problem set: once true, stays true (module stays “complete” on timeline). */
@@ -49,6 +52,8 @@ export type GradedAttempt = {
   maxScore: number;
   completedAt: number;
   answers: Record<string, string>;
+  /** Populated after quiz/exam API grading; used in review UI. */
+  items?: AssessmentGradeItem[];
   feedbackMd?: string;
 };
 
@@ -58,6 +63,27 @@ export type ModuleProgress = {
   /** Problem set: sticky after first successful PDF grade. */
   problemSetCompleted: boolean;
 };
+
+function parseGradeItems(raw: unknown): AssessmentGradeItem[] | undefined {
+  if (!Array.isArray(raw) || raw.length === 0) return undefined;
+  const out: AssessmentGradeItem[] = [];
+  for (const row of raw) {
+    if (!row || typeof row !== "object") continue;
+    const o = row as Record<string, unknown>;
+    if (typeof o.key !== "string" || typeof o.kind !== "string") continue;
+    const earned = Number(o.earned);
+    const max = Number(o.max);
+    if (!Number.isFinite(earned) || !Number.isFinite(max)) continue;
+    out.push({
+      key: o.key,
+      kind: o.kind,
+      earned,
+      max,
+      note: typeof o.note === "string" ? o.note : "",
+    });
+  }
+  return out.length ? out : undefined;
+}
 
 function toGradedAttempt(v: StoredEntry): GradedAttempt | null {
   if (typeof v.score !== "number" || typeof v.maxScore !== "number") {
@@ -77,6 +103,7 @@ function toGradedAttempt(v: StoredEntry): GradedAttempt | null {
     completedAt:
       typeof v.completedAt === "number" ? v.completedAt : Date.now(),
     answers,
+    items: parseGradeItems(v.gradedItems),
     ...(feedbackMd ? { feedbackMd } : {}),
   };
 }
@@ -114,17 +141,24 @@ export function setModuleAssessmentCompletion(
   score: number,
   maxScore: number,
   answers: Record<string, string> = {},
+  gradeItems?: AssessmentGradeItem[],
 ): void {
   const root = readRoot();
   const k = key(week, moduleId);
   const prev = root[k];
-  root[k] = {
+  const next: StoredEntry = {
     ...(prev && typeof prev === "object" ? prev : {}),
     score,
     maxScore,
     gradedAnswers: answers,
     completedAt: Date.now(),
   };
+  if (gradeItems && gradeItems.length > 0) {
+    next.gradedItems = gradeItems;
+  } else {
+    delete next.gradedItems;
+  }
+  root[k] = next;
   writeRoot(root);
 }
 
@@ -138,6 +172,7 @@ export function clearGradedModuleAttempt(week: number, moduleId: string): void {
   delete next.score;
   delete next.maxScore;
   delete next.gradedAnswers;
+  delete next.gradedItems;
   delete next.gradedFeedbackMd;
   // problemSetCompleted is preserved for problem sets (sticky completion).
   root[k] = next;

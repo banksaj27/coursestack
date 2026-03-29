@@ -20,6 +20,9 @@ from PyPDF2 import PdfReader
 
 from agent import run_agent, run_agent_stream, generate_export
 from models import (
+    AssessmentGradeItem,
+    AssessmentGradeRequest,
+    AssessmentGradeResponse,
     LectureNotesGenerateRequest,
     LectureStudioRequest,
     LectureTtsRequest,
@@ -34,6 +37,7 @@ from models import (
     WeekModularRequest,
 )
 from elevenlabs_tts import synthesize_elevenlabs_mp3
+from graded_assessment import grade_quiz_or_exam
 from lecture_notes_pipeline import run_lecture_notes_pipeline
 from problem_set_pipeline import run_problem_set_pipeline
 from problem_set_grader import grade_problem_set_pdf
@@ -197,6 +201,37 @@ async def project_scaffold(request: ProjectScaffoldRequest):
 async def lecture_studio_tts(request: LectureTtsRequest):
     audio = await synthesize_elevenlabs_mp3(request.text.strip())
     return Response(content=audio, media_type="audio/mpeg")
+
+
+@app.post("/assessment/grade", response_model=AssessmentGradeResponse)
+async def assessment_grade(request: AssessmentGradeRequest) -> AssessmentGradeResponse:
+    total = request.assessment_total_points
+    if total is None or total <= 0:
+        total = 100.0 if request.kind == "exam" else 20.0
+    raw = await grade_quiz_or_exam(
+        body_md=request.body_md,
+        answers=request.answers,
+        assessment_total_points=float(total),
+        graded_item_points=list(request.graded_item_points or []),
+        assessment_title=request.title,
+        course_topic=request.course_topic,
+        assessment_items=request.assessment_items if request.assessment_items else None,
+    )
+    items = [
+        AssessmentGradeItem(
+            key=str(it["key"]),
+            kind=str(it["kind"]),
+            earned=float(it["earned"]),
+            max=float(it["max"]),
+            note=str(it.get("note") or ""),
+        )
+        for it in raw.get("items", [])
+    ]
+    return AssessmentGradeResponse(
+        score=float(raw["score"]),
+        max_score=float(raw["max_score"]),
+        items=items,
+    )
 
 
 @app.get("/health")

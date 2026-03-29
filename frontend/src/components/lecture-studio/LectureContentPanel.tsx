@@ -7,6 +7,8 @@ import { MarkdownMath } from "@/components/shared/MarkdownMath";
 import { effectiveAssessmentTotalPoints } from "@/lib/gradedAssessmentDefaults";
 import { stripProblemSetDisplayPreamble } from "@/lib/stripProblemSetDisplayPreamble";
 import { isGradedAssessmentKind } from "@/lib/moduleAssessmentCompletion";
+import { stripChoiceOptionsFromAssessmentMarkdown } from "@/lib/parseAssessmentQuestions";
+import { stripAnswerSpoilersForTesting } from "@/lib/stripAnswerSpoilersForTesting";
 import type { ModuleNavLink } from "@/lib/moduleWorkspaceNavigation";
 import LectureNotesListenButton from "@/components/lecture-studio/LectureNotesListenButton";
 
@@ -386,7 +388,35 @@ export default function LectureContentPanel({
           </div>
         ) : null}
 
-        {workspace === "problem_set" && displayBodyMd.trim().length > 0 ? (
+        {(module.assessment_items?.length ?? 0) > 0 &&
+        (workspace === "quiz" || workspace === "exam") ? (
+          <div key={previewKey(module.id, module.body_md)} className="w-full min-w-0 space-y-8">
+            {stripAnswerSpoilersForTesting(module.body_md).trim().length > 0 ? (
+              <MarkdownMath
+                source={stripAnswerSpoilersForTesting(module.body_md)}
+                variant="light"
+                uniformScale
+                className="w-full min-w-0 prose-neutral max-w-none dark:prose-invert"
+              />
+            ) : null}
+            {(module.assessment_items ?? []).map((it, i) => (
+              <div
+                key={it.id?.trim() || `q-${i}`}
+                className="border-b border-neutral-100 pb-8 last:border-b-0 dark:border-neutral-800"
+              >
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                  Question {i + 1}
+                </p>
+                <MarkdownMath
+                  source={it.question_md}
+                  variant="light"
+                  uniformScale
+                  className="w-full min-w-0 prose-neutral max-w-none dark:prose-invert"
+                />
+              </div>
+            ))}
+          </div>
+        ) : workspace === "problem_set" && displayBodyMd.trim().length > 0 ? (
           <div className="mb-6 w-full min-w-0">
             <h2 className={PROBLEM_SET_SECTION_TITLE_CLASS}>Problems</h2>
             <MarkdownMath
@@ -400,7 +430,13 @@ export default function LectureContentPanel({
         ) : displayBodyMd.trim().length > 0 ? (
           <MarkdownMath
             key={previewKey(module.id, displayBodyMd)}
-            source={displayBodyMd}
+            source={
+              workspace === "quiz" || workspace === "exam"
+                ? stripChoiceOptionsFromAssessmentMarkdown(
+                    stripAnswerSpoilersForTesting(displayBodyMd),
+                  )
+                : displayBodyMd
+            }
             variant="light"
             uniformScale
             boxedSectionHeadings={workspace === "lecture"}

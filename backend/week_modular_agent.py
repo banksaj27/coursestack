@@ -13,7 +13,12 @@ from gemini_client import (
     get_gemini_model,
     streaming_chunk_text,
 )
-from models import WeekModularGenerated, WeekModularState, WeekModule
+from models import (
+    WeekModularGenerated,
+    WeekModularState,
+    WeekModule,
+    parse_assessment_items_from_payload,
+)
 from week_context_utils import (
     assessment_markdown_format_block,
     build_gemini_turns_with_trim,
@@ -157,6 +162,7 @@ def _coerce_module_dict(m: dict) -> WeekModule | None:
     else:
         atp = _DEFAULT_ASSESSMENT_POINTS.get(kind)
     gip = _parse_graded_item_points(m.get("graded_item_points"))
+    aitems = parse_assessment_items_from_payload(m.get("assessment_items"))
     return WeekModule(
         id=str(m.get("id", "")),
         kind=kind,
@@ -168,6 +174,8 @@ def _coerce_module_dict(m: dict) -> WeekModule | None:
         exam_specific_rules=str(m.get("exam_specific_rules", "")),
         assessment_total_points=atp,
         graded_item_points=gip,
+        assessment_items=aitems,
+        solution_md=str(m.get("solution_md", "")),
     )
 
 
