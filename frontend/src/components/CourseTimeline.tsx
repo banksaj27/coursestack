@@ -20,29 +20,7 @@ function EmptyState() {
           ))}
         </div>
         <p className="text-xs text-neutral-400 leading-relaxed">
-          Getting to know you first
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function GeneratingState() {
-  return (
-    <div className="flex h-full items-center justify-center">
-      <div className="text-center max-w-[240px]">
-        <div className="flex justify-center gap-1 mb-3">
-          {[0, 1, 2].map((i) => (
-            <motion.span
-              key={i}
-              className="h-1.5 w-1.5 rounded-full bg-neutral-400"
-              animate={{ opacity: [0.3, 0.8, 0.3] }}
-              transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
-            />
-          ))}
-        </div>
-        <p className="text-xs text-neutral-400 leading-relaxed">
-          Generating your course outline...
+          Getting to know you
         </p>
       </div>
     </div>
@@ -65,7 +43,7 @@ export default function CourseTimeline() {
 
       <div className="flex-1 overflow-y-auto px-8 py-5">
         {!hasWeeks ? (
-          isBusy ? <GeneratingState /> : <EmptyState />
+          <EmptyState />
         ) : (
           <div className="relative">
             <AnimatePresence mode="popLayout">
