@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { WeekModule } from "@/types/weekModular";
@@ -36,6 +37,7 @@ const KIND_META: Record<
 };
 
 interface Props {
+  week: number;
   module: WeekModule;
   index: number;
   isLast: boolean;
@@ -43,6 +45,7 @@ interface Props {
 }
 
 export default function ModuleTimelineNode({
+  week,
   module: mod,
   isLast,
   isFirst,
@@ -104,6 +107,42 @@ export default function ModuleTimelineNode({
               <p className="mt-0.5 line-clamp-2 text-[12px] leading-snug text-neutral-500">
                 {mod.summary}
               </p>
+            ) : null}
+            {mod.kind === "lecture" && mod.id ? (
+              <Link
+                href={`/lecture/${week}/${encodeURIComponent(mod.id)}`}
+                onClick={(e) => e.stopPropagation()}
+                className="mt-1.5 inline-block text-[11px] font-medium text-emerald-700 underline decoration-emerald-200 underline-offset-2 hover:text-emerald-900"
+              >
+                Open lecture workspace →
+              </Link>
+            ) : null}
+            {mod.kind === "problem_set" && mod.id ? (
+              <Link
+                href={`/problem-set/${week}/${encodeURIComponent(mod.id)}`}
+                onClick={(e) => e.stopPropagation()}
+                className="mt-1.5 inline-block text-[11px] font-medium text-amber-800 underline decoration-amber-200 underline-offset-2 hover:text-amber-950"
+              >
+                Open problem set workspace →
+              </Link>
+            ) : null}
+            {mod.kind === "quiz" && mod.id ? (
+              <Link
+                href={`/quiz/${week}/${encodeURIComponent(mod.id)}`}
+                onClick={(e) => e.stopPropagation()}
+                className="mt-1.5 inline-block text-[11px] font-medium text-sky-800 underline decoration-sky-200 underline-offset-2 hover:text-sky-950"
+              >
+                Open quiz workspace →
+              </Link>
+            ) : null}
+            {mod.kind === "project" && mod.id ? (
+              <Link
+                href={`/project/${week}/${encodeURIComponent(mod.id)}`}
+                onClick={(e) => e.stopPropagation()}
+                className="mt-1.5 inline-block text-[11px] font-medium text-violet-800 underline decoration-violet-200 underline-offset-2 hover:text-violet-950"
+              >
+                Open project workspace →
+              </Link>
             ) : null}
           </div>
           <motion.svg

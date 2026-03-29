@@ -8,6 +8,7 @@ import {
   APPLY_GLOBAL_FORMAT_MODULAR_DISPLAY,
 } from "@/lib/weekModularBootstrap";
 import ChatMessage from "@/components/ChatMessage";
+import StreamingAssistantBubble from "@/components/StreamingAssistantBubble";
 import GlobalFormatRulesField from "@/components/shared/GlobalFormatRulesField";
 
 function PaperclipIcon() {
@@ -49,26 +50,6 @@ function ThinkingIndicator() {
           }}
         />
       ))}
-    </motion.div>
-  );
-}
-
-function StreamingBubble({ content }: { content: string }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.1 }}
-      className="flex justify-start"
-    >
-      <div className="max-w-[85%] rounded-2xl bg-neutral-50 px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap text-neutral-900">
-        {content}
-        <motion.span
-          animate={{ opacity: [1, 0] }}
-          transition={{ duration: 0.6, repeat: Infinity }}
-          className="ml-0.5 inline-block h-3.5 w-px align-middle bg-neutral-400"
-        />
-      </div>
     </motion.div>
   );
 }
@@ -255,7 +236,7 @@ export default function WeekModularChatPanel() {
         </AnimatePresence>
 
         {agentStatus === "streaming" && streamingContent ? (
-          <StreamingBubble content={streamingContent} />
+          <StreamingAssistantBubble content={streamingContent} />
         ) : null}
 
         <AnimatePresence>

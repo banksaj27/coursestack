@@ -1,4 +1,8 @@
 import type { WeekModularStatePayload } from "@/types/weekModular";
+import {
+  extractNextSseMessage,
+  parseSseMessageBlock,
+} from "@/lib/sseStreamParse";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -39,42 +43,73 @@ export async function streamWeekModularRequest(
   }
 
   const decoder = new TextDecoder();
-  let buffer = "";
-  let currentEvent = "";
+  let buf = "";
 
   try {
     while (true) {
       const { done, value } = await reader.read();
-      if (done) break;
+      if (value) {
+        buf += decoder.decode(value, { stream: true });
+      }
+      if (done) {
+        buf += decoder.decode();
+      }
 
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-
-      for (const line of lines) {
-        if (line.startsWith("event:")) {
-          currentEvent = line.slice(6).trim();
-        } else if (line.startsWith("data:")) {
-          const data = line.slice(5).trim();
-          if (!data) continue;
-
-          try {
-            const parsed = JSON.parse(data);
-            switch (currentEvent) {
-              case "token":
-                callbacks.onToken(parsed.token);
-                break;
-              case "week_modules_update":
-                callbacks.onModulesUpdate(parsed);
-                break;
-              case "done":
-                callbacks.onDone();
-                break;
-            }
-          } catch {
-            // skip malformed JSON chunks
+      for (;;) {
+        const next = extractNextSseMessage(buf);
+        if (next.raw === null) break;
+        buf = next.rest;
+        const msg = parseSseMessageBlock(next.raw);
+        if (!msg?.data) continue;
+        try {
+          const parsed = JSON.parse(msg.data) as unknown;
+          switch (msg.event) {
+            case "token":
+              callbacks.onToken((parsed as { token: string }).token);
+              break;
+            case "week_modules_update":
+              callbacks.onModulesUpdate(
+                parsed as Parameters<
+                  WeekModularSSECallbacks["onModulesUpdate"]
+                >[0],
+              );
+              break;
+            case "done":
+              break;
+            default:
+              break;
+          }
+        } catch {
+          if (msg.event === "week_modules_update") {
+            console.warn(
+              "week-modular: failed to parse week_modules_update (see SSE framing)",
+              String(msg.data).slice(0, 200),
+            );
           }
         }
+      }
+
+      if (done) {
+        if (buf.trim()) {
+          const msg = parseSseMessageBlock(buf);
+          if (msg?.data) {
+            try {
+              const parsed = JSON.parse(msg.data) as unknown;
+              if (msg.event === "token") {
+                callbacks.onToken((parsed as { token: string }).token);
+              } else if (msg.event === "week_modules_update") {
+                callbacks.onModulesUpdate(
+                  parsed as Parameters<
+                    WeekModularSSECallbacks["onModulesUpdate"]
+                  >[0],
+                );
+              }
+            } catch {
+              /* ignore trailing garbage */
+            }
+          }
+        }
+        break;
       }
     }
   } catch (err) {

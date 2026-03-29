@@ -99,9 +99,11 @@ export default function MarkdownContent({
 }: MarkdownContentProps) {
   return (
     <div className={`chat-markdown text-sm leading-relaxed [&_*]:break-words ${className}`}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
-        {children}
-      </ReactMarkdown>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={components}
+        children={children}
+      />
     </div>
   );
 }

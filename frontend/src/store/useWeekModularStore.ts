@@ -4,6 +4,8 @@ import {
   MODULAR_BOOTSTRAP_API_MESSAGE,
   MODULAR_BOOTSTRAP_DISPLAY,
 } from "@/lib/weekModularBootstrap";
+import { getProblemSetGlobalRules } from "@/lib/problemSetGlobalRules";
+import { getQuizGlobalRules } from "@/lib/quizGlobalRules";
 import {
   ensureWeekFormatHydrated,
   getGlobalFormatInstructions,
@@ -96,6 +98,8 @@ interface WeekModularStore {
   rehydrateModularForSelectedWeek: () => void;
   /** Clear all saved weekly data and regenerate the current week from scratch. */
   resetWeeklyPlanAndRegenerate: () => Promise<void>;
+  /** After Lecture Studio patches the week pack, refresh in-memory week if it matches. */
+  syncWeekFromPackIfActive: (week: number) => void;
 }
 
 function toPayload(
@@ -113,6 +117,8 @@ function toPayload(
     conversation_history,
     week_summaries: weekSummariesForApiPayload(),
     global_format_instructions: getGlobalFormatInstructions(),
+    problem_set_global_instructions: getProblemSetGlobalRules(),
+    quiz_global_instructions: getQuizGlobalRules(),
     ...(maxConv !== undefined ? { max_conversation_messages: maxConv } : {}),
   };
 }
@@ -197,6 +203,18 @@ export const useWeekModularStore = create<WeekModularStore>((set, get) => ({
     set({
       generated: pack.generated,
       messages: pack.messages,
+      agentStatus: "idle",
+      streamingContent: "",
+    });
+  },
+
+  syncWeekFromPackIfActive: (week: number) => {
+    if (typeof window === "undefined") return;
+    if (get().selectedWeek !== week) return;
+    const pack = loadModularWeekPack(week);
+    if (!pack) return;
+    set({
+      generated: pack.generated,
       agentStatus: "idle",
       streamingContent: "",
     });

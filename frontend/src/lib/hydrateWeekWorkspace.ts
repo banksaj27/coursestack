@@ -1,3 +1,5 @@
+import { hydrateProblemSetGlobalRules } from "./problemSetGlobalRules";
+import { hydrateQuizGlobalRules } from "./quizGlobalRules";
 import { hydrateWeekFormatInstructions } from "./weekFormatInstructions";
 import { hydrateWeekSummaryCache } from "./weekSummaryCache";
 
@@ -5,4 +7,6 @@ import { hydrateWeekSummaryCache } from "./weekSummaryCache";
 export function hydrateWeekWorkspace(): void {
   hydrateWeekSummaryCache();
   hydrateWeekFormatInstructions();
+  hydrateProblemSetGlobalRules();
+  hydrateQuizGlobalRules();
 }

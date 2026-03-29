@@ -3,7 +3,10 @@
 import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import rehypeKatex from "rehype-katex";
+import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
+import { normalizeLatexDelimiters } from "@/lib/normalizeLatexDelimiters";
+import type { PluggableList } from "unified";
 import "katex/dist/katex.min.css";
 
 const baseComponents: Components = {
@@ -140,6 +143,74 @@ const baseComponents: Components = {
   ),
 };
 
+const lightUniformComponents: Components = {
+  ...baseComponents,
+  h1: ({ children, ...props }) => (
+    <h1
+      className="mb-2 mt-4 text-base font-semibold text-neutral-900 first:mt-0"
+      {...props}
+    >
+      {children}
+    </h1>
+  ),
+  h2: ({ children, ...props }) => (
+    <h2
+      className="mb-1.5 mt-3 border-b border-neutral-200 pb-1 text-sm font-semibold text-neutral-900 first:mt-0"
+      {...props}
+    >
+      {children}
+    </h2>
+  ),
+  h3: ({ children, ...props }) => (
+    <h3
+      className="mb-1.5 mt-3 text-sm font-semibold text-neutral-900 first:mt-0"
+      {...props}
+    >
+      {children}
+    </h3>
+  ),
+  h4: ({ children, ...props }) => (
+    <h4 className="mb-1 mt-2 text-sm font-semibold text-neutral-900" {...props}>
+      {children}
+    </h4>
+  ),
+  p: ({ children, ...props }) => (
+    <p className="mb-2 text-sm leading-relaxed text-neutral-800 last:mb-0" {...props}>
+      {children}
+    </p>
+  ),
+  ul: ({ children, ...props }) => (
+    <ul
+      className="mb-2 list-inside list-disc space-y-1 text-sm text-neutral-800"
+      {...props}
+    >
+      {children}
+    </ul>
+  ),
+  ol: ({ children, ...props }) => (
+    <ol
+      className="mb-2 list-inside list-decimal space-y-1 text-sm text-neutral-800"
+      {...props}
+    >
+      {children}
+    </ol>
+  ),
+  blockquote: ({ children, ...props }) => (
+    <blockquote
+      className="mb-2 border-l-2 border-neutral-300 pl-3 text-sm italic text-neutral-600"
+      {...props}
+    >
+      {children}
+    </blockquote>
+  ),
+  hr: () => <hr className="my-4 border-neutral-200" />,
+  pre: ({ children, ...props }) => (
+    <pre className="mb-2 overflow-x-auto rounded-lg bg-neutral-100 p-3 text-sm" {...props}>
+      {children}
+    </pre>
+  ),
+};
+
 const darkComponents: Components = {
   ...baseComponents,
   h1: ({ children, ...props }) => (
@@ -193,30 +264,68 @@ const darkComponents: Components = {
   ),
 };
 
+const darkUniformComponents: Components = {
+  ...darkComponents,
+  h1: ({ children, ...props }) => (
+    <h1 className="mb-2 mt-3 text-sm font-semibold text-white first:mt-0" {...props}>
+      {children}
+    </h1>
+  ),
+  hr: () => <hr className="my-3 border-white/20" />,
+};
+
 type Props = {
   source: string;
   /** Dark chat bubbles vs light content panel */
   variant?: "light" | "dark";
+  /** Headings match body text-sm scale (timeline, lecture reader). */
+  uniformScale?: boolean;
   className?: string;
+  /**
+   * When false (user chat), single `$` is not math—avoids `$5` currency issues.
+   * Assistant replies use true so `$x$` renders; `\\(…\\)` is normalized to `$…$` when `latexDelimiterNormalize` is on.
+   */
+  singleDollarMath?: boolean;
+  /** Map `\\( \\)` / `\\[ \\]` to `$` / `$$` (default true). */
+  latexDelimiterNormalize?: boolean;
 };
 
 export function MarkdownMath({
   source,
   variant = "light",
+  uniformScale = false,
   className = "",
+  singleDollarMath = true,
+  latexDelimiterNormalize = true,
 }: Props) {
-  const merged = variant === "dark" ? darkComponents : baseComponents;
+  const merged =
+    variant === "dark"
+      ? uniformScale
+        ? darkUniformComponents
+        : darkComponents
+      : uniformScale
+        ? lightUniformComponents
+        : baseComponents;
   const katexColor =
     variant === "dark"
       ? "[&_.katex]:text-white [&_.katex-html]:text-white"
       : "";
+
+  const remarkPlugins: PluggableList = singleDollarMath
+    ? [remarkGfm, remarkMath]
+    : [remarkGfm, [remarkMath, { singleDollarTextMath: false }]];
+
+  let md = source;
+  if (latexDelimiterNormalize) {
+    md = normalizeLatexDelimiters(md);
+  }
 
   return (
     <div
       className={`week-md-math [&_.katex-display]:my-4 [&_.katex-display]:max-w-full [&_.katex-display]:overflow-x-auto [&_.katex]:text-[1em] ${katexColor} ${className}`}
     >
       <ReactMarkdown
-        remarkPlugins={[remarkMath]}
+        remarkPlugins={remarkPlugins}
         rehypePlugins={[
           [
             rehypeKatex,
@@ -228,9 +337,8 @@ export function MarkdownMath({
           ],
         ]}
         components={merged}
-      >
-        {source}
-      </ReactMarkdown>
+        children={md}
+      />
     </div>
   );
 }

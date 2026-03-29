@@ -9,15 +9,23 @@ interface ChatMessageProps {
   message: Message;
   /** When true, assistant messages render Markdown + KaTeX. */
   renderMarkdownMath?: boolean;
+  /** When true, user messages render Markdown + KaTeX (dark bubble). */
+  renderUserMarkdown?: boolean;
+  /** Smaller heading scale (Weekly Plan / Lecture workspace). */
+  markdownUniformScale?: boolean;
 }
 
 export default function ChatMessage({
   message,
   renderMarkdownMath = false,
+  renderUserMarkdown = true,
+  markdownUniformScale = false,
 }: ChatMessageProps) {
   const isUser = message.role === "user";
   const attachments = message.attachments;
   const useMd = renderMarkdownMath && !isUser && message.content.length > 0;
+  const useUserMd =
+    isUser && renderUserMarkdown && (message.content?.length ?? 0) > 0;
 
   return (
     <motion.div
@@ -54,14 +62,30 @@ export default function ChatMessage({
       <div
         className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
           isUser
-            ? "bg-neutral-800 text-white whitespace-pre-wrap text-sm leading-relaxed"
+            ? useUserMd
+              ? "bg-neutral-800 text-white text-sm leading-relaxed"
+              : "bg-neutral-800 text-white whitespace-pre-wrap text-sm leading-relaxed"
             : `bg-neutral-50 text-neutral-900 ${useMd ? "" : "text-sm leading-relaxed"}`
         }`}
       >
         {isUser ? (
-          message.content
+          useUserMd ? (
+            <MarkdownMath
+              source={message.content}
+              variant="dark"
+              uniformScale={markdownUniformScale}
+              singleDollarMath={false}
+            />
+          ) : (
+            message.content
+          )
         ) : useMd ? (
-          <MarkdownMath source={message.content} variant="light" />
+          <MarkdownMath
+            source={message.content}
+            variant="light"
+            uniformScale={markdownUniformScale}
+            singleDollarMath
+          />
         ) : (
           <MarkdownContent>{message.content}</MarkdownContent>
         )}

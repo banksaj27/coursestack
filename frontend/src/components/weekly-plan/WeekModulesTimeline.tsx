@@ -45,6 +45,7 @@ function EmptyModulesState({ busy }: { busy: boolean }) {
 
 export default function WeekModulesTimeline() {
   const syllabus = useWeekModularStore((s) => s.syllabus);
+  const selectedWeek = useWeekModularStore((s) => s.selectedWeek);
   const modules = useWeekModularStore((s) => s.generated.modules);
   const instructorNotes = useWeekModularStore(
     (s) => s.generated.instructor_notes_md,
@@ -86,6 +87,7 @@ export default function WeekModulesTimeline() {
               {modules.map((mod, idx) => (
                 <ModuleTimelineNode
                   key={mod.id || `mod-${idx}`}
+                  week={selectedWeek}
                   module={mod}
                   index={idx}
                   isFirst={idx === 0}

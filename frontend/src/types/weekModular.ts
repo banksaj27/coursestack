@@ -26,4 +26,8 @@ export interface WeekModularStatePayload {
   week_summaries: WeekContextSummaryEntry[];
   max_conversation_messages?: number;
   global_format_instructions: string;
+  /** House rules applied to every problem_set module when generating weeks. */
+  problem_set_global_instructions: string;
+  /** House rules applied to every quiz module when generating weeks. */
+  quiz_global_instructions: string;
 }

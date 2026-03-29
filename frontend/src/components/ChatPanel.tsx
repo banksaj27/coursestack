@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCourseStore } from "@/store/useCourseStore";
 import ChatMessage from "./ChatMessage";
-import MarkdownContent from "./MarkdownContent";
+import StreamingAssistantBubble from "./StreamingAssistantBubble";
 
 function PaperclipIcon() {
   return (
@@ -45,26 +45,6 @@ function ThinkingIndicator() {
           }}
         />
       ))}
-    </motion.div>
-  );
-}
-
-function StreamingBubble({ content }: { content: string }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.1 }}
-      className="flex justify-start"
-    >
-      <div className="max-w-[85%] rounded-2xl bg-neutral-50 px-4 py-3 text-neutral-900">
-        <MarkdownContent>{content}</MarkdownContent>
-        <motion.span
-          animate={{ opacity: [1, 0] }}
-          transition={{ duration: 0.6, repeat: Infinity }}
-          className="inline-block ml-0.5 w-px h-3.5 bg-neutral-400 align-middle"
-        />
-      </div>
     </motion.div>
   );
 }
@@ -230,7 +210,7 @@ export default function ChatPanel() {
         </AnimatePresence>
 
         {agentStatus === "streaming" && streamingContent && (
-          <StreamingBubble content={streamingContent} />
+          <StreamingAssistantBubble content={streamingContent} />
         )}
 
         <AnimatePresence>

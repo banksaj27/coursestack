@@ -1,5 +1,5 @@
 import type { Message } from "@/types/course";
-import type { WeekModularGenerated } from "@/types/weekModular";
+import type { WeekModularGenerated, WeekModule } from "@/types/weekModular";
 import { getGlobalFormatRulesSignature } from "@/lib/weekFormatInstructions";
 
 const STORAGE_KEY = "yhack-week-modular-snapshot-v1";
@@ -103,4 +103,28 @@ export function clearAllModularWeekPacks(): void {
   } catch {
     // ignore
   }
+}
+
+/** Replace one module in the saved week pack (e.g. after Lecture Studio edits). */
+export function patchModuleInWeekPack(
+  week: number,
+  moduleId: string,
+  updated: WeekModule,
+): boolean {
+  const pack = loadModularWeekPack(week);
+  if (!pack) return false;
+  const idx = pack.generated.modules.findIndex((m) => m.id === moduleId);
+  if (idx < 0) return false;
+  const nextMods = [...pack.generated.modules];
+  nextMods[idx] = {
+    ...updated,
+    id: moduleId,
+    is_new: false,
+  };
+  saveModularWeekPack(
+    week,
+    { ...pack.generated, modules: nextMods },
+    pack.messages,
+  );
+  return true;
 }
