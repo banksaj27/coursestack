@@ -89,6 +89,11 @@ function normalizeModule(
 
 type AgentStatus = "idle" | "thinking" | "streaming" | "updating";
 
+export type ModuleStudioSendOptions = {
+  /** When true, the user message is sent to the API but not shown or saved in chat. */
+  hideUserMessage?: boolean;
+};
+
 /** Shared AI + persistence for single-module workspaces (lecture, problem set, etc.). */
 export function useModuleStudio(week: number, moduleId: string) {
   const [module, setModule] = useState<WeekModule | null>(null);
@@ -120,11 +125,13 @@ export function useModuleStudio(week: number, moduleId: string) {
   }, [week, moduleId]);
 
   const sendMessage = useCallback(
-    async (text: string) => {
+    async (text: string, opts?: ModuleStudioSendOptions) => {
       const trimmed = text.trim();
       if (!trimmed || agentStatus !== "idle") return;
       const modSnap = module;
       if (!modSnap) return;
+
+      const hideUser = Boolean(opts?.hideUserMessage);
 
       const { drainPendingAttachmentContext } = await import("@/lib/attachmentContext");
       const extra = drainPendingAttachmentContext();
@@ -138,8 +145,10 @@ export function useModuleStudio(week: number, moduleId: string) {
         content: trimmed,
         timestamp: Date.now(),
       };
-      const withUser = [...snapshot, userMsg];
-      setMessages(withUser);
+      const withUser = hideUser ? snapshot : [...snapshot, userMsg];
+      if (!hideUser) {
+        setMessages(withUser);
+      }
       setAgentStatus("thinking");
       setStreamingContent("");
 
