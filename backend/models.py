@@ -146,3 +146,19 @@ class LectureNotesGenerateRequest(BaseModel):
     """Trigger multi-step lecture body generation (outline → per-section → concat)."""
 
     state: LectureStudioState
+
+
+class ProjectScaffoldRequest(BaseModel):
+    """Extract ``=== file ===`` blocks from body_md and write real files to disk."""
+
+    body_md: str
+    project_name: str = "project"
+
+
+class ProjectGradeRequest(BaseModel):
+    """Submit student work for AI grading against the project spec."""
+
+    body_md: str
+    submission: str
+    project_title: str = ""
+    course_topic: str = ""

@@ -17,10 +17,14 @@ from models import (
     PlanRequest,
     PlanResponse,
     PlanState,
+    ProjectGradeRequest,
+    ProjectScaffoldRequest,
     WeekModularRequest,
 )
 from lecture_notes_pipeline import run_lecture_notes_pipeline
 from lecture_studio_agent import run_lecture_studio_stream
+from project_grader import run_project_grading_stream
+from project_scaffold import parse_scaffold_blocks, write_scaffold
 from week_modular_agent import run_week_modular_stream
 
 load_dotenv()
@@ -107,6 +111,32 @@ async def lecture_studio_stream(request: LectureStudioRequest):
 @app.post("/lecture-studio/generate-notes")
 async def lecture_studio_generate_notes(request: LectureNotesGenerateRequest):
     return EventSourceResponse(_lecture_notes_generator(request))
+
+
+async def _project_grade_generator(
+    request: ProjectGradeRequest,
+) -> AsyncGenerator[dict, None]:
+    async for event in run_project_grading_stream(
+        request.body_md,
+        request.submission,
+        request.project_title,
+        request.course_topic,
+    ):
+        yield event
+
+
+@app.post("/project/grade")
+async def project_grade(request: ProjectGradeRequest):
+    return EventSourceResponse(_project_grade_generator(request))
+
+
+@app.post("/project/scaffold")
+async def project_scaffold(request: ProjectScaffoldRequest):
+    files = parse_scaffold_blocks(request.body_md)
+    if not files:
+        return {"root": None, "files": [], "message": "No === file === blocks found in body_md."}
+    root, created = write_scaffold(files, project_name=request.project_name)
+    return {"root": root, "files": created, "message": f"Created {len(created)} file(s) in {root}"}
 
 
 @app.get("/health")

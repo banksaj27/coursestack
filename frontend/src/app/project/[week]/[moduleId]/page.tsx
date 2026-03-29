@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useWeekModuleNeighbors } from "@/hooks/useWeekModuleNeighbors";
 import { motion } from "framer-motion";
 import AppNav from "@/components/AppNav";
@@ -13,9 +13,11 @@ import {
 } from "@/components/shared/EmptyWorkspacePlaceholder";
 import LectureChatPanel from "@/components/lecture-studio/LectureChatPanel";
 import LectureContentPanel from "@/components/lecture-studio/LectureContentPanel";
+import ProjectSubmissionPanel from "@/components/project/ProjectSubmissionPanel";
 import { useModuleStudio } from "@/hooks/useModuleStudio";
 import { setLastCourseworkVisit } from "@/lib/courseworkNavigation";
 import { hydrateWeekWorkspace } from "@/lib/hydrateWeekWorkspace";
+import { scaffoldProject, type ScaffoldResult } from "@/lib/projectScaffoldApi";
 
 export default function ProjectWorkspacePage() {
   const params = useParams();
@@ -42,6 +44,28 @@ export default function ProjectWorkspacePage() {
   } = useModuleStudio(week, moduleId);
 
   const moduleNeighbors = useWeekModuleNeighbors(week, moduleId, module);
+
+  const [scaffolding, setScaffolding] = useState(false);
+  const [scaffoldResult, setScaffoldResult] = useState<ScaffoldResult | null>(null);
+  const [scaffoldError, setScaffoldError] = useState<string | null>(null);
+
+  const hasDeliverables = !!(module?.body_md && /^={3,}\s+.+\s+={3,}/m.test(module.body_md));
+
+  const handleScaffold = useCallback(async () => {
+    if (!module?.body_md) return;
+    setScaffolding(true);
+    setScaffoldError(null);
+    setScaffoldResult(null);
+    try {
+      const name = (module.title || "project").replace(/[^a-zA-Z0-9_\-\s]/g, "").trim().replace(/\s+/g, "_");
+      const result = await scaffoldProject(module.body_md, name);
+      setScaffoldResult(result);
+    } catch (err) {
+      setScaffoldError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setScaffolding(false);
+    }
+  }, [module]);
 
   useEffect(() => {
     if (!Number.isFinite(week) || !moduleId || notFound) return;
@@ -104,12 +128,41 @@ export default function ProjectWorkspacePage() {
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-neutral-50/50">
+    <div className="app-shell-surface flex h-screen flex-col overflow-hidden">
       <AppNav />
-      <div className="flex shrink-0 items-center justify-center border-b border-neutral-100 bg-white px-4 py-1.5">
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-neutral-100 bg-white px-4 py-1.5 sm:px-6">
         <span className="text-[10px] font-medium tracking-wide text-neutral-400">
           Project workspace
         </span>
+
+        <div className="flex items-center gap-2">
+          {scaffoldResult && scaffoldResult.files.length > 0 ? (
+            <span className="text-[10px] font-medium text-emerald-700" title={scaffoldResult.root ?? undefined}>
+              {scaffoldResult.files.length} file{scaffoldResult.files.length !== 1 ? "s" : ""} created
+              {scaffoldResult.root ? ` → ${scaffoldResult.root}` : ""}
+            </span>
+          ) : null}
+          {scaffoldResult && scaffoldResult.files.length === 0 ? (
+            <span className="text-[10px] font-medium text-amber-600">
+              {scaffoldResult.message}
+            </span>
+          ) : null}
+          {scaffoldError ? (
+            <span className="text-[10px] font-medium text-red-600 max-w-[12rem] truncate" title={scaffoldError}>
+              {scaffoldError}
+            </span>
+          ) : null}
+          {hasDeliverables ? (
+            <button
+              type="button"
+              onClick={() => void handleScaffold()}
+              disabled={scaffolding || isBusy}
+              className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-neutral-800 shadow-sm transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {scaffolding ? "Creating…" : "Create project files"}
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <motion.div
@@ -131,14 +184,23 @@ export default function ProjectWorkspacePage() {
             agentStatus={agentStatus}
           />
         </div>
-        <div className="min-h-0 min-w-0 flex-1 overflow-hidden bg-white">
-          <LectureContentPanel
-            workspace="project"
-            week={week}
-            courseTopic={syllabusTopic}
-            module={module}
-            moduleNeighbors={moduleNeighbors}
-          />
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-white">
+          <div className="min-h-[200px] flex-1 overflow-hidden">
+            <LectureContentPanel
+              workspace="project"
+              week={week}
+              courseTopic={syllabusTopic}
+              module={module}
+              moduleNeighbors={moduleNeighbors}
+            />
+          </div>
+          {module?.body_md && module.body_md.trim().length > 0 ? (
+            <ProjectSubmissionPanel
+              bodyMd={module.body_md}
+              projectTitle={module.title}
+              courseTopic={syllabusTopic}
+            />
+          ) : null}
         </div>
       </motion.div>
     </div>

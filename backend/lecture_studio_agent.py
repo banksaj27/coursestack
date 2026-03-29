@@ -43,6 +43,118 @@ def _extract_json(raw: str) -> str | None:
     return raw[si + len(_START_TAG) : ei].strip()
 
 
+def _project_advisor_framework_block(state: LectureStudioState) -> str:
+    """Rich capstone-style guidance for project modules (humanities / social sciences friendly)."""
+    topic = (state.syllabus.topic or "this course").strip() or "this course"
+    prof = state.syllabus.user_profile
+    level_parts: list[str] = []
+    if prof.rigor_level:
+        level_parts.append(prof.rigor_level)
+    if prof.goals:
+        level_parts.append("; ".join(prof.goals[:4]))
+    if prof.background:
+        level_parts.append(f"Learner background: {prof.background[:200]}")
+    course_level = " — ".join(level_parts) if level_parts else "infer level and stakes from syllabus and week context"
+
+    weeks = state.syllabus.course_plan.weeks
+    week_obj = next((w for w in weeks if w.week == state.selected_week), None)
+    week_ctx = ""
+    if week_obj is not None:
+        week_ctx = f"Week {week_obj.week}: {week_obj.title}"
+        if week_obj.topics:
+            week_ctx += f" (topics: {', '.join(week_obj.topics[:6])})"
+
+    return f"""=== PROJECT — ACADEMIC ADVISOR FRAMEWORK ===
+Act as an **expert academic advisor** in **{topic}** (adjust subfield as needed: political science, history, philosophy, economics, CS capstone, etc., according to the real discipline of this course).
+
+You are helping design a **final / major project** for **{topic}** with course context: **{course_level}**.
+Timeline anchor: **{week_ctx or "this module week on the timeline"}**.
+
+**Constraints — take from the user message, existing `body_md`, and GLOBAL FORMAT when present; otherwise infer sensibly:**
+- Length / format (e.g. 10–15 page paper, presentation, mixed media, code + report, etc.)
+- Timeframe (e.g. 3–4 weeks or fit to this week’s milestones)
+- Requirements (e.g. primary sources, quantitative analysis, implementation + evaluation)
+
+**Workflow when the user wants new ideas, a redesign, or `body_md` is thin / placeholder:**
+
+1. Propose **4** project ideas that are **original**, **intellectually interesting**, **arguable** (not merely descriptive), and **feasible** in the stated timeframe.
+
+2. For **each** of the **4** ideas, in **chat** (discussion-only; no JSON block yet unless they ask to save), include:
+   - A clear **central question or thesis**
+   - **Why it’s interesting** (tension, debate, or gap in the literature / practice)
+   - **What evidence** would be used
+   - A **rough outline of the argument**
+   - **What would make it stand out** vs. a typical A-level project
+   - **Mandatory — “Starter Kit”** (so the instructor or student could **start within ~30 minutes**). Pick the **one** medium that best fits that idea and make the kit **concrete** (not generic). Use a `## Starter Kit` subheading under that idea.
+
+   **Coding / technical projects** — include:
+   - Minimal **starter code** (core structure, key functions, or tight **pseudocode** they can paste or follow)
+   - **Suggested libraries / tools** (named packages, versions if relevant)
+   - **Example input/output** (at least one realistic pair or small table)
+
+   **Writing / research projects** — include:
+   - A **sample thesis statement** (one or two sharpened sentences)
+   - A **paragraph-level outline** (each bullet must be a **short paragraph** of what that section does—not one-word bullets)
+   - **2–3 example sources** *or* precise **directions** for finding sources (databases, keywords, archive types, datasets)
+
+   **Art / creative projects** — include:
+   - **2–3 specific reference works** (named artists, styles, movements, or pieces)
+   - A **suggested composition or structure** (e.g. acts, panels, movements, layers)
+   - **Constraints**: color palette, medium, theme, duration, format dimensions—**specific enough** to remove blank-page paralysis
+
+   **Presentations / mixed media** — include:
+   - **Slide-by-slide** or **scene-by-scene** outline (titles + 1 line each)
+   - **Example narrative flow** (how the story or argument builds)
+   - **Visual or stylistic direction** (fonts, imagery metaphors, tone, analogous decks or films)
+
+   If an idea is **hybrid**, blend the two most relevant kits and say which medium is primary.
+
+3. **Then** identify the **strongest** idea and refine it in **chat** into:
+   - A **precise thesis statement**
+   - **Section-by-section outline**
+   - **Suggested sources or types of sources**
+   - **Potential counterarguments** (and how a strong submission would answer them)
+
+4. **After** that refinement, when the user confirms or asks to **put it in the handout / update the spec**, emit **one** `:::LECTURE_MODULE_UPDATE:::` block so **`body_md`** becomes the **complete student-facing project handout** embodying that chosen design: goals, deliverables, milestones, rubric, timeline, logistics, and **explicit expectations for argumentation and evidence** appropriate to **{topic}**.
+
+   The handout **must** include a dedicated **`## Starter Kit`** section for the **assigned** project (the one the handout specifies), **expanded** from your strongest idea: same medium-specific rules as above—**concrete enough to begin in under 30 minutes** (code/pseudocode + libs + I/O, *or* sample thesis + paragraph outline + 2–3 sources, *or* references + composition + constraints, *or* slide/scene outline + narrative + visual direction). This section belongs in **`body_md`**, not only in past chat.
+
+   **OUTPUT DELIVERABLES (IMPORTANT):** For the **chosen / best** project, `body_md` **must** also include a major section titled exactly **`## Output deliverables (copy-paste files)`** containing **concrete files** the instructor or student can **copy into separate files** on disk—**not** snippets that say “see chat.”
+
+   **Mandatory label format** (use this exact pattern for **every** file; one blank line after the label line, then the **full** file body):
+   ```
+   === path/to/filename.ext ===
+   <complete file contents>
+   ```
+
+   **By medium (include all that apply to the assigned project):**
+
+   - **Coding / technical:** (1) ASCII **file tree** at the start of the section (e.g. `project/`, `src/`, `data/`, `tests/`, `main.py`). (2) **Full** contents (not truncated “…” placeholders) of: the **main** entry script, **at least one** additional module, **`requirements.txt`** (or `package.json`, `go.mod`, `Cargo.toml`, etc. as appropriate), and **`README.md`** with setup, how to run, and how to test or verify. **The code must outline the full solution approach:** include real imports, class/function signatures with docstrings explaining each function's purpose, core algorithm logic as working code or clearly marked `# TODO: student implements ...` blocks with detailed comments explaining the expected approach (e.g. "use TF-IDF to score sentences, then pick top-k"), sample data loading, and a working `if __name__ == "__main__"` block that runs end-to-end. The student should be able to read the scaffold and understand the entire solution strategy before filling in the details.
+
+   - **Writing / research:** One structured document (**Markdown or LaTeX**) suitable to export as PDF: **Title**, **Abstract**, **section headings** each followed by **partial but real** drafted prose (not “TBD” one-liners). Put it in one or more labeled files (e.g. `paper.md`, `paper.tex`).
+
+   - **Art / creative:** A **project brief** document (Markdown or LaTeX): references, constraints, and a **step-by-step** creation plan—each in labeled files if multiple (e.g. `brief.md`).
+
+   - **Presentations / mixed media:** A **slide-by-slide** deck as **Markdown** (`## Slide N — Title` plus bullets per slide) **or** an explicit pseudo-**pptx** structure (for each slide: title line + body text). Use a clear filename (e.g. `slides.md` or `deck-outline.md`).
+
+   **Hybrids:** Include the file bundle for the **primary** medium first; add secondary files (e.g. `report.md` + `src/main.py`) when the assignment truly spans both.
+
+   **ABSOLUTE RULE — NO EMPTY OR STUB FILE BLOCKS:** Every `=== filename ===` block **must** be followed by the **complete file body** — real, runnable code (30–100+ lines for main scripts), real prose paragraphs (not headings-only), real config (not just comments). A block like:
+   ```
+   === main.py ===
+   # Python script implementing the POS tagger
+   ```
+   is **FORBIDDEN** — that is a one-line description, not a file. Instead, write the **actual working Python script** with imports, functions, main block, etc. If response length is tight, shorten **optional** handout prose first—never truncate the `=== ===` file bodies. Keep **README**, dependency manifest, and **main** script **complete** for code projects.
+
+   **Do not** paste the full handout into chat—only a short preface, per output rules.
+
+**Small edits** (typos, tweak one milestone, adjust a single bullet): skip the 4-idea workflow; patch `body_md` directly with a short chat note.
+
+Avoid **generic** topics. Prioritize **depth**, **originality**, and **strong argumentation** (or, for technical courses, non-trivial design choices and evaluation).
+
+"""
+
+
 def _build_system_prompt(state: LectureStudioState) -> str:
     weeks = state.syllabus.course_plan.weeks
     week_obj = next((w for w in weeks if w.week == state.selected_week), None)
@@ -138,7 +250,9 @@ def _build_system_prompt(state: LectureStudioState) -> str:
             "This module is a **project**: rewrite `body_md` as the **full project handout** students would receive—"
             "**clear goal**, **concrete deliverables**, **milestones** or checkpoints, **grading criteria** (rubric or weights), "
             "**timeline** within the week, collaboration/submission expectations, and constraints or starter materials as needed. "
-            "Target substantive length when appropriate (often **~1,000–5,000+ words** plus LaTeX/code when relevant). "
+            "Prefer **arguable**, **non-generic** assignments; when appropriate, make expectations for **thesis / question**, **evidence**, and **counterarguments** explicit in the handout (see **ACADEMIC ADVISOR FRAMEWORK**). "
+            "Include **`## Output deliverables (copy-paste files)`** with `=== path/file ===` markers, each followed by the **COMPLETE file body** (real runnable code of 30–100+ lines for scripts, full prose for docs — **NOT** one-line descriptions or placeholders). Code projects: tree + working main + module + requirements.txt + README.md. Writing: MD/LaTeX with drafted prose. "
+            "Target substantive length when appropriate (often **~1,000–5,000+ words** plus LaTeX/code when relevant; **much longer** when bundling full starter repos or papers). "
             "Use `##`/`###` for sections. **No** one-line stubs: every deliverable must be actionable. "
             "**one_line_summary**: one sentence, collapsed row—distinct from **summary**’s opening. **summary**: **~paragraph** on goal, milestones, main deliverables, and grading shape—**not** the full spec."
         )
@@ -258,6 +372,7 @@ Rules when the JSON block **is** present:
 - **one_line_summary**: **one** plain sentence for the **collapsed** timeline row—a distinct hook; **do not** repeat or paraphrase the **opening** of **summary** or duplicate **title**. **summary**: **~paragraph** for the **expanded** panel only.
 - **body_md** must be **non-empty** and the **complete** updated project spec unless the user explicitly asked to clear it (brief placeholder + explanation).
 - **body_md** must be the **full** handout—not a topic list or stub bullets replacing real deliverables.
+- For a **full** project handout (not a tiny patch), **body_md** must include **`## Starter Kit`** and **`## Output deliverables (copy-paste files)`** with **`=== relative/path/filename.ext ===`** labels and **complete** file bodies per the **ACADEMIC ADVISOR FRAMEWORK** (escape newlines as `\\n` inside JSON strings).
 - **Section removal** requests must change `body_md`: the removed section must be **absent** from the string you emit.
 - The visible chat **before** the marker must stay **brief**: no full reproduction of the spec. Put the full text **only** in `body_md`.
 
@@ -326,6 +441,10 @@ Rules:
 - For **lecture** modules, **body_md** in the JSON must be the **full chapter-length** material (5–10 pages, paragraph-heavy)—not an outline, not a shortened summary, not bullet-topic lists replacing prose. **summary** must be a **~paragraph** timeline preview that **lists major `##`/`###` section titles in order** matching `body_md`; in that list (e.g. **Sections include:**), **lowercase** names and **comma** separators—no semicolons, no Title Case in the list.
 """
 
+    project_advisor_injection = (
+        _project_advisor_framework_block(state) if kind == "project" else ""
+    )
+
     return f"""{intro}
 
 {global_fmt}{ps_global_fmt}{quiz_global_fmt}{exam_specific_fmt}Course context:
@@ -352,8 +471,8 @@ If this module is a **problem_set**, treat `body_md` as the **complete assignmen
 === QUIZ DEPTH (WHEN kind IS quiz) ===
 If this module is a **quiz**, treat `body_md` as the **complete quiz** students would receive: a **mix or sequence of real questions**, each in **multiple choice** (stem + labeled choices, exactly one intended correct answer unless the instructor specifies otherwise) **or short answer** (clear prompt + expected response shape). **No** blueprints, topic-only lines, or “sample question” framing—only **gradable** items. Add timing and policies when relevant; LaTeX where needed. **Strip** whole sections when the user asks to remove them (no leftover headings). Whenever you emit an update block, the JSON `body_md` must be the **full quiz text**, not an outline—**do not** mirror it in chat. For **tutoring-only** replies, rely on the existing `body_md` and do not emit a block.
 
-=== PROJECT DEPTH (WHEN kind IS project) ===
-If this module is a **project**, treat `body_md` as the **complete project handout**: goal, **actionable** deliverables, milestones, grading expectations, timeline, logistics, and constraints—written so a student could start work without guessing. Whenever you emit an update block, the JSON `body_md` must be the **full spec**, not an outline—**do not** mirror it in chat. For **discussion-only** replies, rely on the existing `body_md` and do not emit a block.
+{project_advisor_injection}=== PROJECT DEPTH (WHEN kind IS project) ===
+If this module is a **project**, treat `body_md` as the **complete project handout**: goal, **actionable** deliverables, milestones, grading expectations, timeline, logistics, and constraints—written so a student could start work without guessing. Follow the **PROJECT — ACADEMIC ADVISOR FRAMEWORK** above for brainstorming and for shaping **argumentative depth** (thesis, evidence, counterarguments) when the discipline calls for it. The handout **must** contain **`## Starter Kit`** and **`## Output deliverables (copy-paste files)`** with **`=== filename ===`** blocks (**full** key files for code; MD/LaTeX PDF-ready drafts for writing; brief + plan for creative; slide-by-slide for decks). Whenever you emit an update block, the JSON `body_md` must be the **full spec**, not an outline—**do not** mirror it in chat. For **discussion-only** replies, rely on the existing `body_md` and do not emit a block.
 
 === EXAM DEPTH (WHEN kind IS exam) ===
 If this module is an **exam**, treat `body_md` as the **complete exam** students would receive: cumulative coverage as appropriate for midterm/final; clear logistics; **only** real **multiple-choice** and/or **short-answer** questions. Whenever you emit an update block, the JSON `body_md` must be the **full exam**, not an outline—**do not** mirror it in chat. For **tutoring-only** replies, rely on the existing `body_md` and do not emit a block.
@@ -430,18 +549,41 @@ def _parse_module_update(
         return agent_message, fallback
 
 
+def _lecture_studio_model(state: LectureStudioState) -> str:
+    """Use OPENAI_MODEL_PROJECT for project modules when set; else OPENAI_MODEL (default gpt-4o)."""
+    default = os.getenv("OPENAI_MODEL", "gpt-4o")
+    if state.module.kind == "project":
+        return os.getenv("OPENAI_MODEL_PROJECT", default)
+    return default
+
+
+def _lecture_studio_max_tokens(state: LectureStudioState) -> int:
+    """Project modules can request a higher completion cap (multi-file deliverables)."""
+    if state.module.kind != "project":
+        return 16384
+    raw = os.getenv("OPENAI_MAX_OUTPUT_TOKENS_PROJECT", "16384")
+    try:
+        cap = int(raw.strip())
+    except ValueError:
+        cap = 16384
+    return max(4096, min(cap, 128_000))
+
+
 async def run_lecture_studio_stream(
     state: LectureStudioState, user_message: str
 ) -> AsyncGenerator[dict, None]:
-    model = os.getenv("OPENAI_MODEL", "gpt-4o")
+    model = _lecture_studio_model(state)
     client = _get_client()
     messages = _build_messages(state, user_message)
+
+    temperature = 0.55 if state.module.kind == "project" else 0.5
+    max_tokens = _lecture_studio_max_tokens(state)
 
     stream = await client.chat.completions.create(
         model=model,
         messages=messages,
-        temperature=0.5,
-        max_tokens=16384,
+        temperature=temperature,
+        max_tokens=max_tokens,
         stream=True,
     )
 
