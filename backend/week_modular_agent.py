@@ -11,6 +11,8 @@ from week_context_utils import (
     build_messages_with_trim,
     format_global_format_block,
     format_other_week_summaries,
+    format_problem_set_global_block,
+    format_quiz_global_block,
     strip_meta_part_labels,
 )
 
@@ -79,10 +81,14 @@ def _build_system_prompt(state: WeekModularState) -> str:
     )
 
     global_fmt = format_global_format_block(state.global_format_instructions)
+    ps_global_fmt = format_problem_set_global_block(
+        state.problem_set_global_instructions
+    )
+    quiz_global_fmt = format_quiz_global_block(state.quiz_global_instructions)
 
     return f"""You are an expert professor. The user is designing **one calendar week** of a course as a **sequence of modules** (like a vertical timeline), similar to how a full syllabus is broken into weeks — but here each step is a **lecture**, **project**, **problem_set**, or **quiz**.
 
-{global_fmt}Course context:
+{global_fmt}{ps_global_fmt}{quiz_global_fmt}Course context:
 {syllabus_snapshot}
 
 **Selected week:**
@@ -99,10 +105,29 @@ Short memories of what was generated for *other* weeks. Use for consistency; ful
 {json.dumps(current, indent=2)}
 
 === MODULE TYPES (use these exact `kind` strings) ===
-- **lecture** — Real teachable notes in `body_md` (Markdown + LaTeX $...$ / $$...$$). Definitions, theorems, proofs/sketches per rigor, worked examples, pitfalls. NOT a high-level agenda.
+- **lecture** — See **LECTURE MODULES — TEXTBOOK STYLE** below. Each lecture `body_md` is a **chapter-like** document, not an outline.
 - **project** — Spec in `body_md`: goal, deliverables, milestones, grading criteria, suggested timeline within the week.
-- **problem_set** — `body_md` lists concrete problems (numbered) with full statements; students could submit written solutions.
-- **quiz** — `body_md`: format, topics covered, sample question stems or blueprint (and duration if relevant).
+- **problem_set** — `body_md` lists concrete problems (numbered) with full statements; students could submit written solutions. If **GLOBAL PROBLEM SET HOUSE RULES** appear above, **every** `problem_set` module’s `body_md` must satisfy them (notation, length, sections, collaboration policy, etc.).
+- **quiz** — `body_md`: the **actual quiz** students would take—**only multiple-choice** (stems with labeled options) **and/or short-answer** questions (explicit prompts); plus instructions, timing, and policies as needed. **Not** a blueprint or list of topics—every item must be a complete, gradable question. If **GLOBAL QUIZ HOUSE RULES** appear above, **every** `quiz` module’s `body_md` must satisfy them (MC/SA mix, length, timing, difficulty, etc.).
+
+=== LECTURE MODULES — TEXTBOOK CHAPTER body_md (CRITICAL) ===
+For every **lecture** module, `body_md` must read like **one full textbook chapter** (or major chapter section)—not slides, not a topic list, not “we will cover…”, not a short handout.
+
+**Length (non-negotiable scale):** Aim for roughly **5–10 printed textbook pages** of reading per lecture module. That means **extensive, continuous prose**: paragraph after paragraph of explanation, motivation, and commentary between formal items—not sparse bullets. As a rough numeric guide, that is often on the order of **~2,500–8,000+ words** of instructional text (plus LaTeX and optional code), i.e. a **very long** single `body_md` string. Shorter only if the instructor explicitly asks for brevity or the syllabus slot is truly minimal.
+
+You MUST include:
+1. **Paragraph-driven exposition**: Multiple **full paragraphs** per major idea (intro, intuition, comparison to prior ideas, why definitions are shaped as they are). Use `##` and `###` headings to structure a chapter (e.g. Motivation → Core definitions → Main results → Extended examples → Connections → Pitfalls).
+2. **Mathematics**: Proper LaTeX in Markdown (`$...$`, `$$...$$`). **Definitions**, **propositions/lemmas/theorems** as appropriate, with **full proofs or careful proof sketches** matching `user_profile.rigor_level` / proof-based courses—written out in prose, not “proof omitted.”
+3. **Examples**: **At least three** fully worked examples (not one-liners). Each: setup → step-by-step reasoning → conclusion. Mix difficulty; at least one should combine ideas from more than one subtopic. Weave examples into the narrative, not only at the end.
+4. **Code (when relevant)**: If the subject is CS, data, algorithms, stats, or anything implementation-adjacent, include **fenced code blocks** (```python or appropriate language) with runnable or near-runnable snippets, plus **paragraphs** of commentary before/after. Use **inline code** for APIs, commands, or notation. If the course is purely theoretical math with no code culture, skip code but keep proofs and prose heavy.
+5. **Pitfalls / remarks**: A substantive subsection (multiple paragraphs) on common mistakes, edge cases, and misconceptions.
+
+You MUST NOT:
+- Replace long explanations with bullet lists of topic names only.
+- Leave “TBD”, “exercise for the reader” without content, or placeholder sections.
+- Produce a “summary chapter” of one or two screens when the spec calls for 5–10 pages of depth.
+
+**If multiple lecture modules share one week:** Each **individual** lecture module’s `body_md` should still approximate **one chapter’s worth** of material for the topics it covers (do not split one thin lecture into many tiny files—prefer fewer, longer lectures when the syllabus allows).
 
 === STRUCTURE RULES ===
 1. Produce **ordered** `modules` (top = earlier in the week, bottom = later). Typical week: mix of lectures + at least one **problem_set** and/or **quiz**; add a **project** when it fits the topic (e.g. implementation, extended investigation).
@@ -124,9 +149,10 @@ At the **very end**, exactly one block:
 
 Rules:
 - Valid JSON only inside the block. Use \\n inside strings for newlines in body_md.
+- Pack as much **chapter-length** lecture material as the response allows; if constrained, prioritize **complete** proofs and worked examples over filler—then the instructor can ask to continue in a follow-up turn.
 - **Every** reply must include the block. **modules** must be a non-empty array unless the user explicitly asked to clear it.
 - **kind** must be exactly one of: lecture, project, problem_set, quiz.
-- **week_context_summary** (REQUIRED): 4–10 sentences, plain text, max ~1200 characters. Summarize THIS week's module line-up and what students do in each type—stored for when other weeks are edited. If global format rules are in effect, note that modules follow that house style.
+- **week_context_summary** (REQUIRED): 4–10 sentences, plain text, max ~1200 characters. Summarize THIS week's module line-up and what students do in each type—stored for when other weeks are edited. If global format rules or global problem set house rules are in effect, note that modules follow those constraints.
 """
 
 

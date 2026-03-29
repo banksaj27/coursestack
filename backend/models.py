@@ -93,8 +93,41 @@ class WeekModularState(BaseModel):
         default="",
         description="Standing format rules for all weeks.",
     )
+    problem_set_global_instructions: str = Field(
+        default="",
+        description="House rules for all problem_set modules (timeline + studio).",
+    )
+    quiz_global_instructions: str = Field(
+        default="",
+        description="House rules for all quiz modules (timeline + studio).",
+    )
 
 
 class WeekModularRequest(BaseModel):
     message: str
     state: WeekModularState
+
+
+class LectureStudioState(BaseModel):
+    """Single-module focus: refine one timeline block (lecture, quiz, etc.)."""
+
+    syllabus: SyllabusSnapshot
+    selected_week: int = 1
+    module: WeekModule
+    conversation_history: list[dict] = Field(default_factory=list)
+    week_summaries: list[WeekContextSummary] = Field(default_factory=list)
+    max_conversation_messages: int | None = None
+    global_format_instructions: str = Field(default="")
+    problem_set_global_instructions: str = Field(
+        default="",
+        description="House rules for all problem sets (same field as week modular).",
+    )
+    quiz_global_instructions: str = Field(
+        default="",
+        description="House rules for all quizzes (same field as week modular).",
+    )
+
+
+class LectureStudioRequest(BaseModel):
+    message: str
+    state: LectureStudioState
