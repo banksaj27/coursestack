@@ -58,11 +58,11 @@ export default function ProjectSubmissionPanel({
 
   if (!showPanel) {
     return (
-      <div className="shrink-0 border-t border-neutral-100 bg-white px-8 py-3 dark:border-neutral-800 dark:bg-neutral-900">
+      <div className="shrink-0 border-t border-neutral-100 bg-background px-8 py-3 dark:border-neutral-700">
         <button
           type="button"
           onClick={() => setShowPanel(true)}
-          className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-800 shadow-sm transition-colors hover:bg-neutral-50 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700"
+          className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-800 shadow-sm transition-colors hover:bg-neutral-50 dark:border-neutral-600 dark:bg-transparent dark:text-neutral-100 dark:hover:bg-white/10"
         >
           Submit for grading
         </button>
@@ -74,7 +74,7 @@ export default function ProjectSubmissionPanel({
 
   return (
     <div
-      className={`flex flex-col border-t border-neutral-100 bg-white dark:border-neutral-800 dark:bg-neutral-900 ${hasFeedback ? "min-h-0 flex-1" : "shrink-0"}`}
+      className={`flex flex-col border-t border-neutral-100 bg-background dark:border-neutral-700 ${hasFeedback ? "min-h-0 flex-1" : "shrink-0"}`}
     >
       <div className="flex shrink-0 items-center justify-between border-b border-neutral-50 px-8 py-3 dark:border-neutral-800">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
@@ -104,7 +104,7 @@ export default function ProjectSubmissionPanel({
               onChange={(e) => setSubmission(e.target.value)}
               disabled={grading}
               placeholder={"Paste your full submission here...\n\nFor code: paste all your source files.\nFor writing: paste your paper/report.\nFor mixed: paste everything you want graded."}
-              className="w-full rounded-lg border border-neutral-200 bg-neutral-50/50 px-4 py-3 font-mono text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-400 disabled:opacity-50 dark:border-neutral-600 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+              className="w-full rounded-lg border border-neutral-200 bg-neutral-50/50 px-4 py-3 font-mono text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-400 disabled:opacity-50 dark:border-neutral-600 dark:bg-transparent dark:text-neutral-100 dark:placeholder:text-neutral-500"
               rows={8}
             />
           </div>
@@ -140,7 +140,7 @@ export default function ProjectSubmissionPanel({
         )}
 
         {hasFeedback && (
-          <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-700 dark:bg-neutral-800">
+          <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-700 dark:bg-transparent">
             <div className="mb-3 flex items-center gap-2">
               <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Feedback

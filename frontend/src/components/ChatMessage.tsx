@@ -39,7 +39,7 @@ export default function ChatMessage({
           {attachments.map((name, i) => (
             <span
               key={`${name}-${i}`}
-              className="inline-flex items-center gap-1 rounded border border-neutral-200 bg-white px-2 py-0.5 text-[10px] text-neutral-400"
+              className="inline-flex items-center gap-1 rounded border border-neutral-200 bg-white px-2 py-0.5 text-[10px] text-neutral-400 dark:border-neutral-600 dark:bg-transparent dark:text-neutral-400"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -63,8 +63,8 @@ export default function ChatMessage({
         className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
           isUser
             ? useUserMd
-              ? "bg-neutral-800 text-white text-sm leading-relaxed"
-              : "bg-neutral-800 text-white whitespace-pre-wrap text-sm leading-relaxed"
+              ? "bg-neutral-800 text-white text-sm leading-relaxed dark:bg-neutral-950 dark:text-neutral-100"
+              : "bg-neutral-800 text-white whitespace-pre-wrap text-sm leading-relaxed dark:bg-neutral-950 dark:text-neutral-100"
             : `bg-neutral-50 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100 ${useMd ? "" : "text-sm leading-relaxed"}`
         }`}
       >

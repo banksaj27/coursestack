@@ -1,10 +1,11 @@
 "use client";
 
+import { useElevenlabsApiKeyConfigured } from "@/hooks/useElevenlabsApiKeyConfigured";
 import { useLectureTts } from "@/hooks/useLectureTts";
 
-/** Height and padding aligned with “Begin testing” / primary workspace actions. */
+/** Stroke matches MarkdownMath `##` panels: `border` (1px) + `rounded-lg`. */
 const ttsPanelBtn =
-  "rounded-xl border-2 border-neutral-200 bg-neutral-50 px-5 py-2 text-sm font-semibold tracking-wide text-neutral-900 shadow-sm transition-colors hover:border-neutral-300 hover:bg-neutral-100/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-600";
+  "rounded-lg border border-emerald-200 bg-emerald-50 px-5 py-2 text-sm font-semibold tracking-wide text-emerald-900 shadow-sm transition-colors hover:border-emerald-300 hover:bg-emerald-100/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 dark:border-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-100 dark:hover:border-emerald-700 dark:hover:bg-emerald-900/50";
 
 type Props = {
   markdown: string;
@@ -15,6 +16,10 @@ export default function LectureNotesListenButton({
   markdown,
   disabled = false,
 }: Props) {
+  const hasElevenlabsKey = useElevenlabsApiKeyConfigured();
+  const ttsBlocked = !hasElevenlabsKey;
+  const readAloudDisabled = disabled || ttsBlocked;
+
   const {
     error,
     fallbackNotice,
@@ -63,7 +68,12 @@ export default function LectureNotesListenButton({
         {!sessionActive ? (
           <button
             type="button"
-            disabled={disabled}
+            disabled={readAloudDisabled}
+            title={
+              ttsBlocked
+                ? "Add an ElevenLabs API key in Home → API (API tab next to About), then Save keys."
+                : undefined
+            }
             onClick={() => void playMarkdown(markdown)}
             className={`${ttsPanelBtn} disabled:cursor-not-allowed disabled:opacity-50`}
           >

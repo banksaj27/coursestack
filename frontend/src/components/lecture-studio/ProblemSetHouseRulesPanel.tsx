@@ -29,29 +29,29 @@ export default function ProblemSetHouseRulesPanel({
   const description = (
     <p>
       Saved automatically. Applies to{" "}
-      <strong className="font-medium text-neutral-800">every problem set</strong>{" "}
+      <strong className="font-medium text-neutral-800 dark:text-neutral-200">every problem set</strong>{" "}
       (including when the weekly plan AI creates or edits assignments—rules are
       sent from here, not shown on Weekly Plan).{" "}
-      <strong className="font-medium text-neutral-800">Apply</strong> rewrites the
+      <strong className="font-medium text-neutral-800 dark:text-neutral-200">Apply</strong> rewrites the
       open assignment on the right to match.
     </p>
   );
 
   return (
-    <div className="overflow-hidden rounded-md border border-neutral-200 bg-neutral-50/40">
+    <div className="overflow-hidden rounded-md border border-neutral-200 bg-neutral-50/40 dark:border-neutral-600 dark:bg-neutral-800/40">
       <button
         type="button"
         id={toggleId}
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-neutral-100/80"
+        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-neutral-100/80 dark:hover:bg-neutral-800/80"
       >
         <motion.span
           aria-hidden
           animate={{ rotate: open ? 180 : 0 }}
           transition={{ duration: 0.2, ease: "easeOut" }}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-neutral-200 bg-white text-neutral-600"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-neutral-200 bg-background text-neutral-600 dark:border-neutral-600 dark:bg-transparent dark:text-neutral-300"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -70,7 +70,7 @@ export default function ProblemSetHouseRulesPanel({
           <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
             All problem sets
           </p>
-          <p className="text-sm font-semibold text-neutral-900">
+          <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
             Global Problem Set Format
           </p>
         </div>
@@ -90,7 +90,7 @@ export default function ProblemSetHouseRulesPanel({
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
-            className="overflow-hidden border-t border-neutral-200/80 bg-white"
+            className="overflow-hidden border-t border-neutral-200/80 bg-background dark:border-neutral-700"
           >
             <div className="px-3 pb-3 pt-2.5">
               <FormatRuleEditorBody

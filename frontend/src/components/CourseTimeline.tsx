@@ -51,7 +51,7 @@ export default function CourseTimeline() {
   };
 
   return (
-    <div className="relative flex h-full flex-col bg-white dark:bg-neutral-900">
+    <div className="relative flex h-full flex-col bg-background">
       <StatusBar />
 
       <div className="flex-1 overflow-y-auto px-8 py-5">
@@ -74,7 +74,7 @@ export default function CourseTimeline() {
       </div>
 
       {hasWeeks && (
-        <div className="border-t border-neutral-100 bg-white px-8 py-3 dark:border-neutral-800 dark:bg-neutral-950">
+        <div className="border-t border-neutral-100 bg-white px-8 py-3 dark:border-neutral-700 dark:bg-background">
           <button
             type="button"
             onClick={() =>
@@ -85,7 +85,7 @@ export default function CourseTimeline() {
                        transition-[opacity,background-color] duration-300 ease-out
                        hover:bg-neutral-800
                        disabled:opacity-30 disabled:cursor-not-allowed
-                       dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-white"
+                       dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700"
           >
             {isExporting
               ? "Generating Course..."

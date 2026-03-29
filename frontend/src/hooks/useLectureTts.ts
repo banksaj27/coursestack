@@ -7,6 +7,7 @@ import {
   speakPlainTextChunksBrowser,
 } from "@/lib/browserSpeechTts";
 import { fetchLectureTts } from "@/lib/lectureTtsApi";
+import { readElevenlabsApiKey } from "@/lib/apiKeysStorage";
 import {
   markdownToTtsPlainText,
   splitPlainTextForTtsWithFastStart,
@@ -135,6 +136,14 @@ export function useLectureTts() {
       abortedRef.current = false;
       pausedRef.current = false;
       usingBrowserRef.current = false;
+
+      if (!readElevenlabsApiKey().trim()) {
+        setError(
+          "Add an ElevenLabs API key in Home → API (API tab next to About), then Save keys.",
+        );
+        setPhase("error");
+        return;
+      }
 
       const plain = markdownToTtsPlainText(markdown);
       if (!plain.trim()) {

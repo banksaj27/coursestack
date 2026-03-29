@@ -102,7 +102,7 @@ export default function TopicInput() {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.25 }}
-      className="flex h-full min-h-0 items-center justify-center bg-white dark:bg-neutral-900"
+      className="flex h-full min-h-0 items-center justify-center bg-background"
     >
       <div className="w-full max-w-lg px-8">
         <motion.div
@@ -135,7 +135,7 @@ export default function TopicInput() {
             className="w-full rounded-lg border border-neutral-300 bg-white px-4 py-3 text-sm
                        text-neutral-900 placeholder-neutral-400 outline-none
                        transition-colors focus:border-neutral-500
-                       dark:border-neutral-600 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+                       dark:border-neutral-600 dark:bg-transparent dark:text-neutral-100 dark:placeholder:text-neutral-500"
           />
 
           <button

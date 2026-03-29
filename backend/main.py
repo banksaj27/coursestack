@@ -2,14 +2,17 @@ from __future__ import annotations
 
 import base64
 import io
+import os
 from pathlib import Path
 from typing import AsyncGenerator
 
 from dotenv import load_dotenv
+from pydantic import ValidationError
 
 # Load backend/.env regardless of shell cwd (e.g. `uvicorn` from repo root).
-load_dotenv(Path(__file__).resolve().parent / ".env")
-from fastapi import FastAPI, UploadFile, File, Form
+BACKEND_DOTENV = Path(__file__).resolve().parent / ".env"
+load_dotenv(BACKEND_DOTENV)
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from sse_starlette.sse import EventSourceResponse
@@ -27,6 +30,7 @@ from models import (
     ProblemSetGradePayload,
     ProjectGradeRequest,
     ProjectScaffoldRequest,
+    RuntimeApiKeysRequest,
     WeekModularRequest,
 )
 from elevenlabs_tts import synthesize_elevenlabs_mp3
@@ -37,7 +41,7 @@ from lecture_studio_agent import run_lecture_studio_stream
 from project_grader import run_project_grading_stream
 from project_scaffold import parse_scaffold_blocks, write_scaffold
 from week_modular_agent import run_week_modular_stream
-from gemini_client import is_gemini_api_key_configured
+from gemini_client import is_gemini_api_key_configured, reset_gemini_client
 
 app = FastAPI(title="AutoCourse API")
 
@@ -201,3 +205,32 @@ async def health():
         "status": "ok",
         "gemini_configured": is_gemini_api_key_configured(),
     }
+
+
+@app.post("/runtime-api-keys")
+async def runtime_api_keys(request: Request) -> dict:
+    """Refresh ``os.environ`` from ``backend/.env``, then overlay non-empty keys from the client.
+
+    JSON is parsed manually so we avoid FastAPI/Pydantic forward-ref issues with ``Body(...)``
+    and models whose fields all have defaults.
+    """
+    try:
+        raw = await request.json()
+    except Exception:
+        raise HTTPException(status_code=422, detail="JSON body required") from None
+    if not isinstance(raw, dict):
+        raise HTTPException(status_code=422, detail="JSON body must be an object")
+    try:
+        keys = RuntimeApiKeysRequest.model_validate(raw)
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=e.errors()) from e
+
+    load_dotenv(BACKEND_DOTENV, override=True)
+    g = keys.google_api_key.strip()
+    el = keys.elevenlabs_api_key.strip()
+    if g:
+        os.environ["GOOGLE_API_KEY"] = g
+    if el:
+        os.environ["ELEVENLABS_API_KEY"] = el
+    reset_gemini_client()
+    return {"ok": True, "gemini_configured": is_gemini_api_key_configured()}

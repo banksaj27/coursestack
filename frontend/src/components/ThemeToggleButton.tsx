@@ -51,17 +51,16 @@ function MoonStarsIcon({ className }: { className?: string }) {
 }
 
 const iconBtn =
-  "flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-neutral-600 transition-colors hover:bg-neutral-50 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100 sm:h-9 sm:w-9";
+  "flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-neutral-600 transition-colors duration-[350ms] ease hover:bg-neutral-50 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100 sm:h-9 sm:w-9";
 
 /**
- * Sun when the UI is dark (switch to light); moon & star when light (switch to dark).
+ * Sun while in light mode, moon while in dark — icons reflect the current theme; click toggles.
  */
 export default function ThemeToggleButton() {
   const [isDark, setIsDark] = useState(false);
 
   const syncFromDom = useCallback(() => {
-    if (typeof document === "undefined") return;
-    setIsDark(document.documentElement.classList.contains("dark"));
+    setIsDark(resolveTheme(readStoredTheme()) === "dark");
   }, []);
 
   useLayoutEffect(() => {
@@ -88,7 +87,7 @@ export default function ThemeToggleButton() {
     runWithThemeTransition(() => {
       persistTheme(next);
       applyThemeToDocument(next);
-      setIsDark(next === "dark");
+      setIsDark(resolveTheme(next) === "dark");
       window.dispatchEvent(new Event(THEME_CHANGE_EVENT));
     });
   }, []);
@@ -99,12 +98,12 @@ export default function ThemeToggleButton() {
       onClick={toggle}
       className={iconBtn}
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      title={isDark ? "Light mode" : "Dark mode"}
+      title={isDark ? "Dark mode" : "Light mode"}
     >
       {isDark ? (
-        <SunIcon className="h-[1.125rem] w-[1.125rem] sm:h-5 sm:w-5" />
+        <MoonStarsIcon className="h-[1.125rem] w-[1.125rem] transition-opacity duration-[350ms] ease sm:h-5 sm:w-5" />
       ) : (
-        <MoonStarsIcon className="h-[1.125rem] w-[1.125rem] sm:h-5 sm:w-5" />
+        <SunIcon className="h-[1.125rem] w-[1.125rem] transition-opacity duration-[350ms] ease sm:h-5 sm:w-5" />
       )}
     </button>
   );

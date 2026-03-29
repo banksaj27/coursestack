@@ -27,7 +27,7 @@ import {
 } from "@/lib/weekModularSyllabusPersistence";
 import { clearAllWeekSummaries } from "@/lib/weekSummaryCache";
 import { streamWeekModularRequest } from "@/lib/weekModularApi";
-import type { Message } from "@/types/course";
+import type { Message, PlanState } from "@/types/course";
 import type { Syllabus } from "@/types/syllabus";
 import type {
   WeekModularGenerated,
@@ -133,6 +133,8 @@ interface WeekModularStore {
   resetWeeklyPlanAndRegenerate: () => Promise<void>;
   /** After Lecture Studio patches the week pack, refresh in-memory week if it matches. */
   syncWeekFromPackIfActive: (week: number) => void;
+  /** Merge planner syllabus into weekly snapshot when week structure matches (keeps packs). */
+  mergePlanStateIntoSyllabus: (ps: PlanState) => void;
 }
 
 function toPayload(
@@ -293,6 +295,38 @@ export const useWeekModularStore = create<WeekModularStore>((set, get) => ({
       agentStatus: "idle",
       streamingContent: "",
     });
+  },
+
+  mergePlanStateIntoSyllabus: (ps: PlanState) => {
+    set((s) => ({
+      syllabus: {
+        ...s.syllabus,
+        topic: ps.topic,
+        user_profile: {
+          background: ps.user_profile.background,
+          goals: ps.user_profile.goals,
+          constraints: ps.user_profile.constraints as Record<string, unknown>,
+          learning_style: ps.user_profile.learning_style,
+          rigor_level: ps.user_profile.rigor_level,
+        },
+        course_plan: {
+          weeks: ps.course_plan.weeks.map((w) => ({
+            week: w.week,
+            title: w.title,
+            topics: w.topics,
+            has_homework: w.has_homework,
+            assessment: w.assessment,
+          })),
+        },
+      },
+    }));
+    const st = get();
+    if (typeof window !== "undefined") {
+      saveWeekModularSnapshot(st.syllabus, st.selectedWeek);
+      void import("@/lib/syncSyllabusWeekFlagsFromModularPacks").then((m) =>
+        m.syncWeekFlagsFromModularPacks(),
+      );
+    }
   },
 
   setSelectedWeek: (week: number) => {

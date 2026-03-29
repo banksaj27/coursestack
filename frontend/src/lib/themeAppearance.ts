@@ -25,35 +25,40 @@ export function readStoredTheme(): ThemePreference {
 }
 
 export function persistTheme(pref: ThemePreference): void {
-  localStorage.setItem(THEME_STORAGE_KEY, pref);
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, pref);
+  } catch {
+    /* private mode / quota; theme still applies for this session via applyThemeToDocument */
+  }
 }
 
 export function applyThemeToDocument(pref: ThemePreference): void {
+  if (typeof document === "undefined") return;
   const resolved = resolveTheme(pref);
-  document.documentElement.classList.toggle("dark", resolved === "dark");
+  const root = document.documentElement;
+  const isDark = resolved === "dark";
+  if (isDark) {
+    root.classList.add("dark");
+  } else {
+    root.classList.remove("dark");
+  }
+  root.style.colorScheme = isDark ? "dark" : "light";
 }
 
 /**
- * Runs a DOM update inside the View Transition API when available (smooth theme crossfade).
- * Falls back to immediate update. Respects reduced motion via CSS, not here.
+ * Runs DOM updates inside `document.startViewTransition` when available so theme changes
+ * crossfade smoothly. The update callback must apply theme synchronously.
  */
 export function runWithThemeTransition(updateDom: () => void): void {
   if (typeof document === "undefined") {
     updateDom();
     return;
   }
-  if (
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  ) {
-    updateDom();
-    return;
-  }
-  const doc = document as Document & {
-    startViewTransition?: (cb: () => void) => unknown;
+  const d = document as Document & {
+    startViewTransition?: (cb: () => void) => { finished: Promise<void> };
   };
-  if (typeof doc.startViewTransition === "function") {
-    doc.startViewTransition(() => {
+  if (typeof d.startViewTransition === "function") {
+    d.startViewTransition(() => {
       updateDom();
     });
   } else {
@@ -62,4 +67,4 @@ export function runWithThemeTransition(updateDom: () => void): void {
 }
 
 /** Inline script (layout) must stay in sync with {@link resolveTheme} / storage key. */
-export const THEME_BOOTSTRAP_SCRIPT = `(function(){try{var k=${JSON.stringify(THEME_STORAGE_KEY)};var t=localStorage.getItem(k);var d=false;if(t==="light")d=false;else if(t==="dark")d=true;else d=window.matchMedia("(prefers-color-scheme: dark)").matches;var r=document.documentElement;if(d)r.classList.add("dark");else r.classList.remove("dark");}catch(e){}})();`;
+export const THEME_BOOTSTRAP_SCRIPT = `(function(){try{var k=${JSON.stringify(THEME_STORAGE_KEY)};var t=localStorage.getItem(k);var d=false;if(t==="light")d=false;else if(t==="dark")d=true;else d=window.matchMedia("(prefers-color-scheme: dark)").matches;var r=document.documentElement;if(d){r.classList.add("dark");r.style.colorScheme="dark";}else{r.classList.remove("dark");r.style.colorScheme="light";}}catch(e){}})();`;

@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
         destination: "/weekly-plan",
         permanent: true,
       },
+      {
+        source: "/settings",
+        destination: "/api-keys",
+        permanent: true,
+      },
     ];
   },
 };

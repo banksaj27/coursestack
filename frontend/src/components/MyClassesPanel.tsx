@@ -132,7 +132,7 @@ export default function MyClassesPanel() {
         exit={{ x: "100%" }}
         transition={drawerTransition}
         style={{ willChange: "transform" }}
-        className="fixed -right-16 top-0 z-[61] flex h-full w-[calc(20rem+4rem)] flex-col border-l border-neutral-200 bg-white shadow-xl dark:border-neutral-700 dark:bg-neutral-900"
+        className="fixed -right-16 top-0 z-[61] flex h-full w-[calc(20rem+4rem)] flex-col border-l border-neutral-200 bg-background shadow-xl dark:border-neutral-700"
       >
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between border-b border-neutral-200 px-5 pr-[calc(1.25rem+4rem)] py-4 dark:border-neutral-700">

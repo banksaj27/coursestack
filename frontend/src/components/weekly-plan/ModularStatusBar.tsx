@@ -19,7 +19,7 @@ export default function ModularStatusBar() {
     agentStatus === "updating";
 
   return (
-    <div className="shrink-0 bg-white dark:bg-neutral-900">
+    <div className="shrink-0 bg-background">
       <div className="border-b border-neutral-100 px-8 py-3">
         <h2 className="text-sm font-semibold text-neutral-900">
           {topic || "Timeline"}
@@ -40,7 +40,7 @@ export default function ModularStatusBar() {
               value={selectedWeek}
               onChange={(e) => setSelectedWeek(Number(e.target.value))}
               disabled={isActive}
-              className="min-h-0 h-9 min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white py-0 pl-3 pr-8 text-sm font-medium text-neutral-900 outline-none transition-colors hover:border-neutral-300 focus:border-neutral-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-600 dark:bg-neutral-950 dark:text-neutral-100"
+              className="min-h-0 h-9 min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white py-0 pl-3 pr-8 text-sm font-medium text-neutral-900 outline-none transition-colors hover:border-neutral-300 focus:border-neutral-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-600 dark:bg-transparent dark:text-neutral-100"
             >
               {syllabus.course_plan.weeks.map((w) => (
                 <option key={w.week} value={w.week}>
@@ -55,7 +55,7 @@ export default function ModularStatusBar() {
               type="button"
               onClick={() => void resetWeeklyPlanAndRegenerate()}
               disabled={isActive}
-              className="h-9 shrink-0 rounded-lg border border-neutral-200 bg-white px-2.5 text-[11px] font-medium text-neutral-700 transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
+              className="-translate-x-1 h-9 shrink-0 rounded-lg border border-neutral-200 bg-white px-2.5 text-[11px] font-medium text-neutral-700 transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-neutral-600 dark:bg-transparent dark:text-neutral-200 dark:hover:bg-white/10"
             >
               Reset &amp; Regenerate
             </button>

@@ -59,7 +59,7 @@ export function EmptyWorkspaceScreen({
   children: ReactNode;
 }) {
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-neutral-50/50 dark:bg-neutral-950">
+    <div className="flex h-screen flex-col overflow-hidden bg-background">
       <AppNav />
       <EmptyWorkspacePlaceholder title={title}>{children}</EmptyWorkspacePlaceholder>
     </div>

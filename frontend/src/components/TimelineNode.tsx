@@ -63,11 +63,7 @@ export default function TimelineNode({ week, isLast, isFirst }: TimelineNodeProp
           )}
           <div
             className={`h-full w-full rounded-full border-2 border-white shadow-sm dark:border-neutral-800 ${
-              weekAllDone
-                ? "bg-neutral-400"
-                : isExamWeek
-                  ? "bg-rose-500"
-                  : "bg-emerald-500"
+              weekAllDone ? "bg-neutral-400" : "bg-emerald-500"
             }`}
           />
         </div>
@@ -80,12 +76,12 @@ export default function TimelineNode({ week, isLast, isFirst }: TimelineNodeProp
             ? "border-indigo-300 bg-indigo-50/50 dark:border-indigo-600 dark:bg-indigo-950/50"
             : weekAllDone
               ? "border-neutral-200 bg-neutral-100/70 dark:border-neutral-600 dark:bg-neutral-800/80"
-              : isExamWeek
-                ? "border-rose-200 bg-rose-50/40 dark:border-rose-800 dark:bg-rose-950/40"
-                : "border-neutral-200 bg-white dark:border-neutral-600 dark:bg-neutral-800"
+              : "border-neutral-200 bg-white dark:border-neutral-600 dark:bg-transparent"
         }`}
         style={{
-          transition: highlight ? "none" : "background-color 600ms ease, border-color 600ms ease",
+          transition: highlight
+            ? "none"
+            : "background-color var(--theme-transition-duration) ease, border-color var(--theme-transition-duration) ease",
         }}
         onClick={() => setExpanded(!expanded)}
       >

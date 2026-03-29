@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
+import BrandLogoCrossfade from "@/components/BrandLogoCrossfade";
 
 const PROJECT_BLURB =
   "CourseStack empowers anyone to learn by using AI to design personalized curricula through interactive conversation and real-time planning. CourseStack is designed to open doors to allow anyone to learn anything.";
@@ -73,7 +74,7 @@ export default function AboutClient() {
                   href={member.linkedinUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block cursor-pointer rounded-lg border border-neutral-200 bg-white p-4 shadow-sm transition-colors hover:border-neutral-300 hover:bg-neutral-50/90"
+                  className="block cursor-pointer rounded-lg border border-neutral-200 bg-background p-4 shadow-sm transition-colors hover:border-neutral-300 hover:bg-neutral-50/90 dark:bg-transparent dark:hover:bg-white/[0.04]"
                 >
                   <p className="font-medium text-neutral-900">{member.name}</p>
                   <p className="mt-0.5 text-sm text-neutral-500">{member.role}</p>
@@ -86,7 +87,7 @@ export default function AboutClient() {
               </li>
             ))}
           </ul>
-          <p className="mt-6 text-sm text-neutral-500">
+          <p className="mt-6 text-sm text-neutral-500 dark:text-neutral-400">
             Made with love for YHack 2026.
           </p>
         </motion.div>
@@ -97,14 +98,13 @@ export default function AboutClient() {
           transition={{ delay: 0.4, duration: 0.3, ease: "easeOut" }}
           className="mt-7 flex flex-wrap items-center justify-center gap-8 sm:gap-12 md:gap-16 pb-6 sm:pb-10"
         >
-          <Image
-            src="/logo.png"
-            alt="CourseStack"
-            width={440}
-            height={110}
-            className="h-28 w-auto max-w-[min(100%,20rem)] object-contain object-center sm:h-36 md:h-40"
-            sizes="(max-width: 768px) 100vw, 440px"
-          />
+          <span
+            className="inline-flex h-28 w-28 shrink-0 overflow-hidden rounded-md sm:h-36 sm:w-36 md:h-40 md:w-40"
+            role="img"
+            aria-label="CourseStack"
+          >
+            <BrandLogoCrossfade />
+          </span>
           <Image
             src="/yhack-2026.png"
             alt="YHack 2026"

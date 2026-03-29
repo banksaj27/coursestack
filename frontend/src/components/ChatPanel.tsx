@@ -187,13 +187,13 @@ export default function ChatPanel() {
       onDrop={handleDrop}
     >
       {dragging && (
-        <div className="absolute inset-0 z-50 m-2 flex items-center justify-center rounded-lg border-2 border-dashed border-indigo-300 bg-white/80 dark:border-indigo-500/50 dark:bg-neutral-900/90">
+        <div className="absolute inset-0 z-50 m-2 flex items-center justify-center rounded-lg border-2 border-dashed border-indigo-300 bg-white/80 dark:border-indigo-500/50 dark:bg-background/90">
           <p className="text-sm font-medium text-indigo-400 dark:text-indigo-300">
             Drop PDF or image here
           </p>
         </div>
       )}
-      <div className="flex shrink-0 items-center border-b border-neutral-100 bg-white px-8 py-3 dark:border-neutral-800 dark:bg-neutral-900">
+      <div className="flex shrink-0 items-center border-b border-neutral-100 bg-background px-8 py-3 dark:border-neutral-700">
         <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
           Conversation
         </h2>
@@ -221,13 +221,13 @@ export default function ChatPanel() {
       </div>
 
       {isDone ? (
-        <div className="border-t border-neutral-100 bg-white px-8 py-4 text-center dark:border-neutral-800 dark:bg-neutral-900">
+        <div className="border-t border-neutral-100 bg-background px-8 py-4 text-center dark:border-neutral-700">
           <p className="text-xs text-neutral-400">
             Course finalized.
           </p>
         </div>
       ) : (
-        <div className="border-t border-neutral-100 bg-white px-8 py-3 dark:border-neutral-800 dark:bg-neutral-900">
+        <div className="border-t border-neutral-100 bg-background px-8 py-3 dark:border-neutral-700">
           <input
             ref={fileInputRef}
             type="file"
@@ -285,11 +285,11 @@ export default function ChatPanel() {
               placeholder={isBusy ? "Thinking..." : "Type your response..."}
               disabled={isBusy}
               rows={1}
-              className="flex-1 resize-none rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm
+              className="flex-1 resize-none rounded-lg border border-neutral-200 bg-background px-3 py-2 text-sm
                          text-neutral-900 outline-none placeholder:text-neutral-400
                          transition-colors focus:border-neutral-400
                          disabled:cursor-not-allowed disabled:opacity-50
-                         dark:border-neutral-600 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+                         dark:border-neutral-600 dark:bg-transparent dark:text-neutral-100 dark:placeholder:text-neutral-500"
               style={{ minHeight: "36px", maxHeight: "120px" }}
             />
             <button

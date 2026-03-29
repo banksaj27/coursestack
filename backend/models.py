@@ -187,3 +187,10 @@ class LectureTtsRequest(BaseModel):
     """Plain text for ElevenLabs (client should strip markdown). Chunks stay under API limits."""
 
     text: str = Field(..., min_length=1, max_length=10_000)
+
+
+class RuntimeApiKeysRequest(BaseModel):
+    """Apply keys to the running backend process (local dev). Empty strings leave values from backend/.env."""
+
+    google_api_key: str = ""
+    elevenlabs_api_key: str = ""

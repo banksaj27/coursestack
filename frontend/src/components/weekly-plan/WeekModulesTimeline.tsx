@@ -52,7 +52,7 @@ export default function WeekModulesTimeline() {
   const busy = agentStatus !== "idle";
   const hasModules = modules.length > 0;
   return (
-    <div className="relative flex h-full flex-col bg-white dark:bg-neutral-900">
+    <div className="relative flex h-full flex-col bg-background">
       <ModularStatusBar />
 
       <div className="flex-1 overflow-y-auto px-8 py-5">

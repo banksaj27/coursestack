@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-neutral-50/50 dark:bg-neutral-950">
+    <div className="flex h-screen flex-col overflow-hidden bg-background">
       <AppNav />
       <AboutClient />
     </div>

@@ -143,12 +143,12 @@ export default function ModuleTimelineNode({
             ? "border-indigo-300 bg-indigo-50/50 dark:border-indigo-600 dark:bg-indigo-950/50"
             : isDone
               ? "border-neutral-200 bg-neutral-100/70 dark:border-neutral-600 dark:bg-neutral-800/80"
-              : "border-neutral-200 bg-white dark:border-neutral-600 dark:bg-neutral-800"
+              : "border-neutral-200 bg-white dark:border-neutral-600 dark:bg-transparent"
         }`}
         style={{
           transition: highlight
             ? "none"
-            : "background-color 600ms ease, border-color 600ms ease",
+            : "background-color var(--theme-transition-duration) ease, border-color var(--theme-transition-duration) ease",
         }}
         onClick={() => setExpanded(!expanded)}
       >

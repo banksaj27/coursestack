@@ -11,6 +11,7 @@ import type { ImageAttachment } from "@/types/course";
 import { clearCoursePlannerSnapshot } from "@/lib/coursePlannerPersistence";
 import { useWeekModularStore } from "@/store/useWeekModularStore";
 import type { Syllabus } from "@/types/syllabus";
+import { structuralWeeksMatch } from "@/lib/weekStructuralMatch";
 
 const TITLE_LOWER = new Set([
   "a","an","the","and","but","or","nor","for","yet","so",
@@ -252,20 +253,32 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 
         set((s) => {
           const invalidateWeekly = s.hasExportedToWeekly;
+          let weeklyPlanWiped = false;
+
           if (invalidateWeekly) {
-            useWeekModularStore.getState().clearWeeklyWorkspace();
+            const oldSyllabusWeeks =
+              useWeekModularStore.getState().syllabus.course_plan.weeks;
+            if (structuralWeeksMatch(oldSyllabusWeeks, newWeeks)) {
+              useWeekModularStore
+                .getState()
+                .mergePlanStateIntoSyllabus(updatedState);
+            } else {
+              useWeekModularStore.getState().clearWeeklyWorkspace();
+              weeklyPlanWiped = true;
+            }
           }
+
           return {
             planState: updatedState,
             messages: [...s.messages, { ...assistantMsg }],
             agentStatus: "updating_plan",
-            isComplete: invalidateWeekly ? false : data.is_complete,
-            phase: invalidateWeekly
+            isComplete: weeklyPlanWiped ? false : data.is_complete,
+            phase: weeklyPlanWiped
               ? "planning"
               : data.is_complete
                 ? "complete"
                 : s.phase,
-            hasExportedToWeekly: invalidateWeekly ? false : s.hasExportedToWeekly,
+            hasExportedToWeekly: weeklyPlanWiped ? false : s.hasExportedToWeekly,
           };
         });
 

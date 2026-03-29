@@ -7,6 +7,7 @@ import { hydrateProblemSetGlobalRules } from "./problemSetGlobalRules";
 import { hydrateQuizGlobalRules } from "./quizGlobalRules";
 import { hydrateWeekFormatInstructions } from "./weekFormatInstructions";
 import { hydrateWeekSummaryCache } from "./weekSummaryCache";
+import { initWeekPackFlagSyncListener } from "./syncSyllabusWeekFlagsFromModularPacks";
 
 let didHydrateCoursePlanner = false;
 let didHydrateModularSyllabus = false;
@@ -21,6 +22,7 @@ export function hydrateWeekWorkspace(): void {
   hydrateWeekFormatInstructions();
   hydrateProblemSetGlobalRules();
   hydrateQuizGlobalRules();
+  initWeekPackFlagSyncListener();
 
   if (typeof window === "undefined") return;
 
@@ -34,5 +36,8 @@ export function hydrateWeekWorkspace(): void {
   const snap = loadWeekModularSnapshot();
   if (snap) {
     useWeekModularStore.getState().applyPersistedSnapshot(snap.syllabus, snap.selectedWeek);
+    void import("./syncSyllabusWeekFlagsFromModularPacks").then((m) =>
+      m.syncWeekFlagsFromModularPacks(),
+    );
   }
 }

@@ -23,29 +23,29 @@ export default function ExamHouseRulesPanel({
 
   const description = (
     <p>
-      Saved with <strong className="font-medium text-neutral-800">this exam</strong>{" "}
+      Saved with <strong className="font-medium text-neutral-800 dark:text-neutral-200">this exam</strong>{" "}
       only (stored on the module). They apply when you chat here—not to other exams
       or weekly-plan generation.{" "}
-      <strong className="font-medium text-neutral-800">Apply</strong> rewrites the
+      <strong className="font-medium text-neutral-800 dark:text-neutral-200">Apply</strong> rewrites the
       exam on the right to match these notes.
     </p>
   );
 
   return (
-    <div className="overflow-hidden rounded-md border border-rose-200/90 bg-rose-50/25">
+    <div className="overflow-hidden rounded-md border border-rose-200/90 bg-rose-50/25 dark:border-rose-900/50 dark:bg-rose-950/20">
       <button
         type="button"
         id={toggleId}
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-rose-50/60"
+        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-rose-50/60 dark:hover:bg-rose-950/40"
       >
         <motion.span
           aria-hidden
           animate={{ rotate: open ? 180 : 0 }}
           transition={{ duration: 0.2, ease: "easeOut" }}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-rose-200 bg-white text-rose-700"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-rose-200 bg-background text-rose-700 dark:border-rose-800 dark:bg-transparent dark:text-rose-300"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -64,7 +64,7 @@ export default function ExamHouseRulesPanel({
           <p className="text-[10px] font-semibold uppercase tracking-wide text-rose-900/70">
             This exam
           </p>
-          <p className="text-sm font-semibold text-neutral-900">
+          <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
             Notes &amp; format
           </p>
         </div>
@@ -84,7 +84,7 @@ export default function ExamHouseRulesPanel({
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
-            className="overflow-hidden border-t border-rose-200/80 bg-white"
+            className="overflow-hidden border-t border-rose-200/80 bg-background dark:border-rose-900/50"
           >
             <div className="px-3 pb-3 pt-2.5">
               <FormatRuleEditorBody

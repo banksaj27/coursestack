@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
+import BrandLogoCrossfade from "@/components/BrandLogoCrossfade";
 import { getCourseworkDestinationHref } from "@/lib/courseworkNavigation";
 import { useClassesStore } from "@/store/useClassesStore";
 import MyClassesPanel from "./MyClassesPanel";
@@ -15,11 +15,13 @@ const active =
 const idle =
   "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100";
 
+const navLinkSpring = { type: "spring" as const, stiffness: 450, damping: 30 };
+
 function isModuleWorkspacePath(path: string): boolean {
   return /^\/(lecture|problem-set|quiz|project|exam)\//.test(path);
 }
 
-/** Primary navigation: About (home + about page), course tabs, CourseStack, My Classes. */
+/** Primary navigation: About + API (home / about / api-keys), course tabs, CourseStack, My Classes. */
 export default function AppNav() {
   const pathname = usePathname();
   const router = useRouter();
@@ -49,11 +51,15 @@ export default function AppNav() {
     router.push("/about");
   };
 
+  const goApiKeys = () => {
+    router.push("/api-keys");
+  };
+
   const isHome = pathname === "/";
   const onAboutPage = pathname.startsWith("/about");
-  const onSettingsPage = pathname.startsWith("/settings");
-  /** Course tabs only on syllabus / weekly / coursework routes — not home or About. */
-  const showCourseNav = !isHome && !onAboutPage;
+  const onApiKeysPage = pathname.startsWith("/api-keys");
+  /** Course tabs only on syllabus / weekly / coursework — not home, About, or API keys. */
+  const showCourseNav = !isHome && !onAboutPage && !onApiKeysPage;
   const onCoursework = isModuleWorkspacePath(pathname);
   const onSyllabus = !onCoursework && pathname.startsWith("/syllabus");
   const onWeekly = !onCoursework && !onSyllabus && pathname.startsWith("/weekly-plan");
@@ -61,35 +67,44 @@ export default function AppNav() {
   return (
     <>
       <header
-        className="sticky top-0 z-50 flex shrink-0 items-center border-b border-neutral-200 bg-white px-2 py-1.5 dark:border-neutral-800 dark:bg-neutral-950 sm:px-4 sm:py-1"
+        className="relative sticky top-0 z-50 flex w-full shrink-0 items-center border-b border-neutral-200 bg-background px-2 py-1.5 dark:border-neutral-800 sm:px-4 sm:py-1"
         role="navigation"
         aria-label="Main"
       >
-        <div className="flex min-w-0 flex-1 items-center gap-1.5 pl-0.5 sm:pl-1 sm:gap-2">
+        {/* Left: logo is 1080×1080 PNGs — object-contain in row height → square; button matches that square (not a wide strip). */}
+        <div className="relative z-10 flex min-w-0 flex-1 items-center gap-1.5 pl-0.5 sm:pl-1 sm:gap-2">
           <button
             type="button"
             onClick={goHome}
-            className="flex shrink-0 items-center rounded-md p-0 outline-none ring-neutral-400 transition-opacity hover:opacity-90 focus-visible:ring-2"
+            className="box-border flex h-8 w-8 flex-none cursor-pointer overflow-hidden rounded-md p-0 outline-none ring-neutral-400 transition-opacity hover:opacity-90 focus-visible:ring-2 min-w-0 sm:h-9 sm:w-9"
             aria-label="Home"
           >
-            <Image
-              src="/logo.png"
-              alt=""
-              width={112}
-              height={28}
-              className="h-8 w-auto max-w-[7.5rem] object-contain object-left sm:h-9 sm:max-w-[9rem]"
-              priority
-            />
+            <BrandLogoCrossfade priority />
           </button>
           <div className="flex min-w-0 flex-wrap items-center gap-1 sm:gap-2">
-            {(isHome || onAboutPage || onSettingsPage) && (
-              <button
-                type="button"
-                onClick={goAbout}
-                className={`${btn} ${onAboutPage ? active : idle}`}
-              >
-                About
-              </button>
+            {(isHome || onAboutPage || onApiKeysPage) && (
+              <>
+                <motion.button
+                  type="button"
+                  onClick={goAbout}
+                  className={`${btn} ${onAboutPage ? active : idle}`}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={navLinkSpring}
+                >
+                  About
+                </motion.button>
+                <motion.button
+                  type="button"
+                  onClick={goApiKeys}
+                  className={`${btn} ${onApiKeysPage ? active : idle}`}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={navLinkSpring}
+                >
+                  API
+                </motion.button>
+              </>
             )}
             {showCourseNav && (
               <>
@@ -121,18 +136,17 @@ export default function AppNav() {
           </div>
         </div>
 
-        <div className="flex shrink-0 justify-center px-1">
+        <div className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
           <button
             type="button"
             onClick={goHome}
-            className="cursor-pointer whitespace-nowrap text-sm font-semibold text-neutral-900 dark:text-neutral-100"
+            className="cursor-pointer whitespace-nowrap px-2 text-sm font-semibold text-neutral-900 dark:text-neutral-100"
           >
             CourseStack
           </button>
         </div>
 
-        <div className="flex min-w-0 flex-1 items-center justify-end gap-1 sm:gap-2">
-          <ThemeToggleButton />
+        <div className="relative z-10 flex min-w-0 flex-1 items-center justify-end gap-1 sm:gap-2">
           <button
             type="button"
             onClick={toggleDrawer}
@@ -140,6 +154,7 @@ export default function AppNav() {
           >
             My Classes
           </button>
+          <ThemeToggleButton />
         </div>
       </header>
 

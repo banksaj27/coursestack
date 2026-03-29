@@ -11,7 +11,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-neutral-50/50 dark:bg-neutral-950">
+    <div className="flex h-screen flex-col overflow-hidden bg-background">
       <AppNav />
       <div className="min-h-0 flex-1">
         <TopicInput />

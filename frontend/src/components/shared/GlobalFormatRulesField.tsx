@@ -10,10 +10,10 @@ import {
 } from "@/lib/weekFormatInstructions";
 
 const textareaClassName =
-  "w-full resize-y rounded-lg border border-neutral-300 bg-white py-2 pl-3 text-sm leading-relaxed text-neutral-800 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] outline-none placeholder:text-neutral-400 focus:border-neutral-500 focus:ring-1 focus:ring-neutral-300 disabled:opacity-50";
+  "w-full resize-y rounded-lg border border-neutral-300 bg-white py-2 pl-3 text-sm leading-relaxed text-neutral-800 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] outline-none placeholder:text-neutral-400 focus:border-neutral-500 focus:ring-1 focus:ring-neutral-300 disabled:opacity-50 dark:border-neutral-600 dark:bg-[#1a1a1a] dark:text-neutral-200 dark:shadow-none dark:placeholder:text-neutral-500 dark:focus:border-neutral-500 dark:focus:ring-neutral-600";
 
 const applyButtonClassName =
-  "shrink-0 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-30";
+  "shrink-0 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-30 dark:bg-neutral-700 dark:hover:bg-neutral-600";
 
 type FormatRuleEditorBodyProps = {
   disabled?: boolean;
@@ -40,7 +40,9 @@ export function FormatRuleEditorBody({
 }: FormatRuleEditorBodyProps) {
   return (
     <>
-      <div className="text-[11px] leading-snug text-neutral-600">{description}</div>
+      <div className="text-[11px] leading-snug text-neutral-600 dark:text-neutral-400">
+        {description}
+      </div>
       <div className="relative mt-2">
         <textarea
           value={value}
@@ -101,12 +103,12 @@ export default function GlobalFormatRulesField({
     <p
       className={
         headerMode === "full"
-          ? "mt-1 text-[11px] leading-snug text-neutral-600"
-          : "text-[11px] leading-snug text-neutral-600"
+          ? "mt-1 text-[11px] leading-snug text-neutral-600 dark:text-neutral-400"
+          : "text-[11px] leading-snug text-neutral-600 dark:text-neutral-400"
       }
     >
       Saved automatically and sent on every request.{" "}
-      <strong className="font-medium text-neutral-800">APPLY</strong>{" "}updates the
+      <strong className="font-medium text-neutral-800 dark:text-neutral-200">APPLY</strong>{" "}updates the
       selected week&apos;s modules to match.
     </p>
   );
@@ -122,7 +124,7 @@ export default function GlobalFormatRulesField({
         setValue("");
         onAfterResetFormat?.();
       }}
-      className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
+      className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-800 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -168,10 +170,10 @@ export default function GlobalFormatRulesField({
           aria-hidden
         />
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
             All weeks
           </p>
-          <label className="mt-0.5 block text-sm font-semibold text-neutral-900">
+          <label className="mt-0.5 block text-sm font-semibold text-neutral-900 dark:text-neutral-100">
             Format &amp; structure
           </label>
           {body}

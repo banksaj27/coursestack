@@ -32,6 +32,9 @@ function previewKey(moduleId: string, bodyMd: string): string {
 const PROBLEM_SET_SECTION_TITLE_CLASS =
   "mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-base font-semibold tracking-tight text-emerald-900 shadow-sm dark:border-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-100";
 
+/** Same distance from the chat divider (left) as from the viewport edge (right). */
+const PANEL_PAD_X = "px-8";
+
 const EMPTY_BODY: Record<WorkspaceKind, string> = {
   lecture:
     "No body yet—use the professor on the left to generate content.",
@@ -110,10 +113,9 @@ function NeighborCard({
   emptyLabel: string;
 }) {
   const align = side === "next" ? "text-right" : "text-left";
+  /** Equal width via parent `flex` + `flex-1`; `w-full` on mobile stack. */
   const layout =
-    side === "prev"
-      ? "min-w-0 flex-1 flex-col sm:max-w-[48%]"
-      : "ml-auto min-w-0 flex-col sm:max-w-[48%]";
+    "flex min-w-0 w-full flex-1 flex-col basis-0 sm:w-auto";
   if (link) {
     return (
       <Link
@@ -172,7 +174,7 @@ export default function LectureContentPanel({
 
   if (!module) {
     return (
-      <div className="flex h-full items-center justify-center bg-white px-8 dark:bg-neutral-900">
+      <div className={`flex h-full items-center justify-center bg-background ${PANEL_PAD_X}`}>
         <p className="text-center text-sm text-neutral-500">
           No module loaded.
         </p>
@@ -193,14 +195,14 @@ export default function LectureContentPanel({
       : "";
 
   return (
-    <div className="flex h-full min-w-0 flex-col bg-white dark:bg-neutral-900">
-      <div className="shrink-0 border-b border-neutral-100 px-8 py-3 dark:border-neutral-800">
+    <div className="flex h-full min-w-0 flex-col bg-background">
+      <div className={`shrink-0 border-b border-neutral-100 py-3 dark:border-neutral-800 ${PANEL_PAD_X}`}>
         <h2 className="text-sm font-semibold text-neutral-900 truncate dark:text-neutral-100">
           {module.title}
         </h2>
       </div>
 
-      <div className="shrink-0 border-b border-neutral-100 px-8 py-3 dark:border-neutral-800">
+      <div className={`shrink-0 border-b border-neutral-100 py-3 dark:border-neutral-800 ${PANEL_PAD_X}`}>
         <div className="flex flex-col gap-2">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
@@ -221,7 +223,7 @@ export default function LectureContentPanel({
             </div>
             <div className="flex shrink-0 flex-col items-end gap-2">
               {graded && gradedWorkspaceBar?.completedScore ? (
-                <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-900">
+                <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-100">
                   Score: {gradedWorkspaceBar.completedScore.score}/
                   {gradedWorkspaceBar.completedScore.maxScore}
                 </span>
@@ -240,14 +242,10 @@ export default function LectureContentPanel({
                       type="button"
                       aria-pressed={lectureWorkspaceBar.isComplete}
                       onClick={lectureWorkspaceBar.onToggleComplete}
-                      className={
-                        lectureWorkspaceBar.isComplete
-                          ? "rounded-xl border-2 border-emerald-200 bg-emerald-50 px-5 py-2 text-sm font-semibold tracking-wide text-emerald-900 shadow-sm transition-colors hover:border-emerald-300 hover:bg-emerald-100/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
-                          : "rounded-xl border-2 border-emerald-700 bg-emerald-700 px-5 py-2 text-sm font-semibold tracking-wide text-white shadow-sm transition-colors hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
-                      }
+                      className="rounded-lg border border-emerald-200 bg-emerald-50 px-5 py-2 text-sm font-semibold tracking-wide text-emerald-900 shadow-sm transition-colors hover:border-emerald-300 hover:bg-emerald-100/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 dark:border-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-100 dark:hover:border-emerald-700 dark:hover:bg-emerald-900/50"
                     >
                       {lectureWorkspaceBar.isComplete
-                        ? "✓ Marked Complete"
+                        ? "✓ Marked complete"
                         : "Mark complete"}
                     </button>
                   ) : null}
@@ -271,7 +269,7 @@ export default function LectureContentPanel({
                       <button
                         type="button"
                         onClick={problemSetBar.onToggleAnswerKey}
-                        className="rounded-xl border-2 border-neutral-300 bg-white px-5 py-2 text-sm font-semibold text-neutral-900 shadow-sm transition-colors hover:bg-neutral-50 dark:border-neutral-500 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700"
+                        className="rounded-xl border-2 border-neutral-300 bg-white px-5 py-2 text-sm font-semibold text-neutral-900 shadow-sm transition-colors hover:bg-neutral-50 dark:border-neutral-500 dark:bg-transparent dark:text-neutral-100 dark:hover:bg-white/10"
                       >
                         {problemSetBar.showAnswerKey ? "Hide answer key" : "Show answer key"}
                       </button>
@@ -304,7 +302,7 @@ export default function LectureContentPanel({
                         <button
                           type="button"
                           onClick={gradedWorkspaceBar.onViewAnswers}
-                          className="rounded-xl border-2 border-neutral-300 bg-white px-5 py-2 text-sm font-semibold text-neutral-900 shadow-sm transition-colors hover:bg-neutral-50 dark:border-neutral-500 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700"
+                          className="rounded-xl border-2 border-neutral-300 bg-white px-5 py-2 text-sm font-semibold text-neutral-900 shadow-sm transition-colors hover:bg-neutral-50 dark:border-neutral-500 dark:bg-transparent dark:text-neutral-100 dark:hover:bg-white/10"
                         >
                           View answers
                         </button>
@@ -313,7 +311,7 @@ export default function LectureContentPanel({
                         <button
                           type="button"
                           onClick={gradedWorkspaceBar.onReattempt}
-                          className="rounded-xl border-2 border-rose-200 bg-rose-50 px-5 py-2 text-sm font-semibold text-rose-900 shadow-sm transition-colors hover:bg-rose-100/90"
+                          className="rounded-xl border-2 border-rose-200 bg-rose-50 px-5 py-2 text-sm font-semibold text-rose-900 shadow-sm transition-colors hover:bg-rose-100/90 dark:border-rose-800 dark:bg-rose-950/70 dark:text-rose-100 dark:hover:bg-rose-900/50"
                         >
                           Reattempt
                         </button>
@@ -340,16 +338,16 @@ export default function LectureContentPanel({
         </div>
       </div>
 
-      <div className="relative min-h-0 flex-1 overflow-y-auto px-8 py-6">
+      <div className={`relative min-h-0 flex-1 overflow-y-auto py-6 ${PANEL_PAD_X}`}>
         {notesError && workspace === "lecture" ? (
-          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50/90 px-3 py-2 text-sm text-amber-950">
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50/90 px-3 py-2 text-sm text-amber-950 dark:border-amber-800/80 dark:bg-amber-950/80 dark:text-amber-50">
             <p className="font-medium">Couldn&apos;t finish auto-generated notes</p>
-            <p className="mt-1 text-amber-900/90">{notesError}</p>
+            <p className="mt-1 text-amber-900/90 dark:text-amber-100/90">{notesError}</p>
             {onRetryLectureNotes ? (
               <button
                 type="button"
                 onClick={onRetryLectureNotes}
-                className="mt-2 text-sm font-medium text-amber-900 underline decoration-amber-400 underline-offset-2 hover:text-amber-950"
+                className="mt-2 text-sm font-medium text-amber-900 underline decoration-amber-400 underline-offset-2 hover:text-amber-950 dark:text-amber-200 dark:decoration-amber-600 dark:hover:text-amber-50"
               >
                 Try again
               </button>
@@ -358,14 +356,14 @@ export default function LectureContentPanel({
         ) : null}
 
         {problemSetError && workspace === "problem_set" ? (
-          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50/90 px-3 py-2 text-sm text-amber-950">
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50/90 px-3 py-2 text-sm text-amber-950 dark:border-amber-800/80 dark:bg-amber-950/80 dark:text-amber-50">
             <p className="font-medium">Couldn&apos;t finish auto-generated problem set</p>
-            <p className="mt-1 text-amber-900/90">{problemSetError}</p>
+            <p className="mt-1 text-amber-900/90 dark:text-amber-100/90">{problemSetError}</p>
             {onRetryProblemSet ? (
               <button
                 type="button"
                 onClick={onRetryProblemSet}
-                className="mt-2 text-sm font-medium text-amber-900 underline decoration-amber-400 underline-offset-2 hover:text-amber-950"
+                className="mt-2 text-sm font-medium text-amber-900 underline decoration-amber-400 underline-offset-2 hover:text-amber-950 dark:text-amber-200 dark:decoration-amber-600 dark:hover:text-amber-50"
               >
                 Try again
               </button>
@@ -376,27 +374,27 @@ export default function LectureContentPanel({
         {workspace === "problem_set" &&
         problemSetBar?.feedbackMd &&
         problemSetBar.feedbackMd.trim().length > 0 ? (
-          <div className="mb-6 max-w-3xl border-b border-neutral-100 pb-6 dark:border-neutral-800">
+          <div className="mb-6 w-full min-w-0 border-b border-neutral-100 pb-6 dark:border-neutral-800">
             <h2 className={PROBLEM_SET_SECTION_TITLE_CLASS}>Grading Feedback</h2>
             <MarkdownMath
               key={`${module.id}-feedback`}
               source={problemSetBar.feedbackMd}
               variant="light"
               uniformScale
-              className="max-w-3xl text-sm"
+              className="w-full min-w-0 text-sm"
             />
           </div>
         ) : null}
 
         {workspace === "problem_set" && displayBodyMd.trim().length > 0 ? (
-          <div className="mb-6 max-w-3xl">
+          <div className="mb-6 w-full min-w-0">
             <h2 className={PROBLEM_SET_SECTION_TITLE_CLASS}>Problems</h2>
             <MarkdownMath
               key={previewKey(module.id, displayBodyMd)}
               source={displayBodyMd}
               variant="light"
               uniformScale
-              className="max-w-3xl"
+              className="w-full min-w-0"
             />
           </div>
         ) : displayBodyMd.trim().length > 0 ? (
@@ -406,7 +404,7 @@ export default function LectureContentPanel({
             variant="light"
             uniformScale
             boxedSectionHeadings={workspace === "lecture"}
-            className="max-w-3xl"
+            className="w-full min-w-0"
           />
         ) : (
           <p className="text-sm text-neutral-400">{EMPTY_BODY[workspace]}</p>
@@ -415,36 +413,36 @@ export default function LectureContentPanel({
         {workspace === "problem_set" &&
         problemSetBar?.showAnswerKey &&
         displaySolutionMd.trim().length > 0 ? (
-          <div className="mt-8 max-w-3xl border-t border-neutral-100 pt-6 dark:border-neutral-800">
+          <div className="mt-8 w-full min-w-0 border-t border-neutral-100 pt-6 dark:border-neutral-800">
             <h2 className={PROBLEM_SET_SECTION_TITLE_CLASS}>Answer Key</h2>
             <MarkdownMath
               key={previewKey(`${module.id}-sol`, displaySolutionMd)}
               source={displaySolutionMd}
               variant="light"
               uniformScale
-              className="max-w-3xl"
+              className="w-full min-w-0"
             />
           </div>
         ) : null}
 
         {notesGenerating && workspace === "lecture" ? (
           <div
-            className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center bg-white/75 px-6 backdrop-blur-[1px]"
+            className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center bg-white/75 px-6 backdrop-blur-[1px] dark:bg-black/50"
             aria-live="polite"
           >
-            <div className="max-w-md rounded-xl border border-neutral-200 bg-white px-5 py-4 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            <div className="max-w-md rounded-xl border border-neutral-200 bg-background px-5 py-4 shadow-sm dark:border-neutral-600">
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
                 Building lecture notes
               </p>
-              <p className="mt-2 text-sm font-medium text-neutral-900">
+              <p className="mt-2 text-sm font-medium text-neutral-900 dark:text-neutral-100">
                 {notesProgress?.label ?? "Working…"}
               </p>
               {notesProgress && notesProgress.total > 0 && notesProgress.step === "section" ? (
-                <p className="mt-1 text-xs text-neutral-500">
+                <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
                   Section {notesProgress.index} of {notesProgress.total}
                 </p>
               ) : null}
-              <p className="mt-2 text-xs leading-relaxed text-neutral-500">
+              <p className="mt-2 text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
                 Outlining sections, then writing each part—this can take a minute.
               </p>
             </div>
@@ -453,10 +451,10 @@ export default function LectureContentPanel({
 
         {problemSetGenerating && workspace === "problem_set" ? (
           <div
-            className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center bg-white/75 px-6 backdrop-blur-[1px] dark:bg-neutral-950/85"
+            className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center bg-white/75 px-6 backdrop-blur-[1px] dark:bg-black/50"
             aria-live="polite"
           >
-            <div className="max-w-md rounded-xl border border-neutral-200 bg-white px-5 py-4 shadow-sm dark:border-neutral-600 dark:bg-neutral-800">
+            <div className="max-w-md rounded-xl border border-neutral-200 bg-background px-5 py-4 shadow-sm dark:border-neutral-600">
               <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
                 Building problem set
               </p>
@@ -486,10 +484,10 @@ export default function LectureContentPanel({
 
         {workspace === "problem_set" && problemSetBar?.grading ? (
           <div
-            className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center bg-white/75 px-6 backdrop-blur-[1px] dark:bg-neutral-950/85"
+            className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center bg-white/75 px-6 backdrop-blur-[1px] dark:bg-black/50"
             aria-live="polite"
           >
-            <div className="max-w-md rounded-xl border border-neutral-200 bg-white px-5 py-4 shadow-sm dark:border-neutral-600 dark:bg-neutral-800">
+            <div className="max-w-md rounded-xl border border-neutral-200 bg-background px-5 py-4 shadow-sm dark:border-neutral-600">
               <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
                 Grading your PDF
               </p>
@@ -502,8 +500,8 @@ export default function LectureContentPanel({
       </div>
 
       {moduleNeighbors ? (
-        <div className="shrink-0 border-t border-neutral-100 bg-white px-8 py-3 dark:border-neutral-800 dark:bg-neutral-950">
-          <div className="flex w-full max-w-3xl flex-wrap items-stretch justify-between gap-3">
+        <div className={`shrink-0 border-t border-neutral-100 bg-background py-3 dark:border-neutral-700 ${PANEL_PAD_X}`}>
+          <div className="flex w-full flex-col gap-5 sm:flex-row sm:items-stretch sm:gap-12">
             <NeighborCard
               side="prev"
               link={moduleNeighbors.prev}

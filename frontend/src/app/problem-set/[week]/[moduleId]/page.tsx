@@ -182,7 +182,7 @@ export default function ProblemSetWorkspacePage() {
     !problemSetGenerating;
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-neutral-50/50 dark:bg-neutral-950">
+    <div className="flex h-screen flex-col overflow-hidden bg-background">
       <AppNav />
 
       <motion.div
@@ -193,7 +193,7 @@ export default function ProblemSetWorkspacePage() {
       >
         {module ? (
           <>
-            <div className="w-[42%] border-r border-neutral-100 bg-white dark:bg-neutral-900">
+            <div className="w-[42%] border-r border-neutral-100 bg-background dark:border-neutral-700">
               <LectureChatPanel
                 workspace="problem_set"
                 week={week}
@@ -214,7 +214,7 @@ export default function ProblemSetWorkspacePage() {
                 }
               />
             </div>
-            <div className="min-h-0 min-w-0 flex-1 overflow-hidden bg-white">
+            <div className="min-h-0 min-w-0 flex-1 overflow-hidden bg-background">
               <LectureContentPanel
                 workspace="problem_set"
                 week={week}

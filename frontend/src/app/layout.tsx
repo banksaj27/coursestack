@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
-import ThemeSync from "@/components/ThemeSync";
+import ThemeRoot from "@/components/ThemeRoot";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/themeAppearance";
 import "./globals.css";
 
@@ -27,20 +27,17 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const fontClassName = `${geistSans.variable} ${geistMono.variable} font-sans antialiased`;
+
   return (
-    <html
-      lang="en"
-      suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="h-full font-sans">
+    <html lang="en" suppressHydrationWarning>
+      <body className="h-full">
         <Script
           id="coursesstack-theme-bootstrap"
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }}
         />
-        <ThemeSync />
-        {children}
+        <ThemeRoot fontClassName={fontClassName}>{children}</ThemeRoot>
       </body>
     </html>
   );

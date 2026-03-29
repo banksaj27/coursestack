@@ -30,7 +30,7 @@ function latexAwarePre(
     if (codeClass.includes("language-latex")) {
       return (
         <div
-          className={`${defaultMb} overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50 dark:border-neutral-600 dark:bg-neutral-900`}
+          className={`${defaultMb} overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50 dark:border-neutral-600 dark:bg-white/[0.04]`}
         >
           <p className="border-b border-neutral-100 bg-neutral-100/80 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-500 dark:border-neutral-700 dark:bg-neutral-800/80 dark:text-neutral-400">
             Commutative diagram (LaTeX source)
@@ -55,7 +55,7 @@ function latexAwarePre(
 const baseComponents: Components = {
   h1: ({ children, ...props }) => (
     <h1
-      className="mb-3 mt-6 text-xl font-bold text-neutral-900 first:mt-0"
+      className="mb-3 mt-6 text-xl font-bold text-neutral-900 first:mt-0 dark:text-neutral-100"
       {...props}
     >
       {children}
@@ -63,7 +63,7 @@ const baseComponents: Components = {
   ),
   h2: ({ children, ...props }) => (
     <h2
-      className="mb-2 mt-5 border-b border-neutral-200 pb-1 text-lg font-semibold text-neutral-900 first:mt-0"
+      className="mb-2 mt-5 border-b border-neutral-200 pb-1 text-lg font-semibold text-neutral-900 first:mt-0 dark:border-neutral-600 dark:text-neutral-100"
       {...props}
     >
       {children}
@@ -71,25 +71,25 @@ const baseComponents: Components = {
   ),
   h3: ({ children, ...props }) => (
     <h3
-      className="mb-2 mt-4 text-base font-semibold text-neutral-900 first:mt-0"
+      className="mb-2 mt-4 text-base font-semibold text-neutral-900 first:mt-0 dark:text-neutral-100"
       {...props}
     >
       {children}
     </h3>
   ),
   h4: ({ children, ...props }) => (
-    <h4 className="mb-1.5 mt-3 text-sm font-semibold text-neutral-900" {...props}>
+    <h4 className="mb-1.5 mt-3 text-sm font-semibold text-neutral-900 dark:text-neutral-100" {...props}>
       {children}
     </h4>
   ),
   p: ({ children, ...props }) => (
-    <p className="mb-3 text-sm leading-relaxed text-neutral-800 last:mb-0" {...props}>
+    <p className="mb-3 text-sm leading-relaxed text-neutral-800 last:mb-0 dark:text-neutral-200" {...props}>
       {children}
     </p>
   ),
   ul: ({ children, ...props }) => (
     <ul
-      className="mb-3 list-inside list-disc space-y-1 text-sm text-neutral-800"
+      className="mb-3 list-inside list-disc space-y-1 text-sm text-neutral-800 dark:text-neutral-200"
       {...props}
     >
       {children}
@@ -97,7 +97,7 @@ const baseComponents: Components = {
   ),
   ol: ({ children, ...props }) => (
     <ol
-      className="mb-3 list-inside list-decimal space-y-1 text-sm text-neutral-800"
+      className="mb-3 list-inside list-decimal space-y-1 text-sm text-neutral-800 dark:text-neutral-200"
       {...props}
     >
       {children}
@@ -109,12 +109,12 @@ const baseComponents: Components = {
     </li>
   ),
   strong: ({ children, ...props }) => (
-    <strong className="font-semibold text-neutral-900" {...props}>
+    <strong className="font-semibold text-neutral-900 dark:text-neutral-100" {...props}>
       {children}
     </strong>
   ),
   em: ({ children, ...props }) => (
-    <em className="italic text-neutral-800" {...props}>
+    <em className="italic text-neutral-800 dark:text-neutral-300" {...props}>
       {children}
     </em>
   ),
@@ -126,7 +126,7 @@ const baseComponents: Components = {
     if (isBlock) {
       return (
         <code
-          className={`block overflow-x-auto rounded-lg border border-neutral-200/80 bg-neutral-100 p-3 font-mono text-xs text-neutral-900 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 ${className ?? ""}`}
+          className={`block overflow-x-auto rounded-lg border border-neutral-200/80 bg-neutral-100 p-3 font-mono text-xs text-neutral-900 dark:border-neutral-600 dark:bg-[#1a1a1a] dark:text-neutral-100 ${className ?? ""}`}
           {...props}
         >
           {children}
@@ -144,7 +144,7 @@ const baseComponents: Components = {
   },
   pre: latexAwarePre(
     "mb-3",
-    "overflow-x-auto rounded-lg border border-neutral-200/80 bg-neutral-100 p-3 text-sm text-neutral-900 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-200",
+    "overflow-x-auto rounded-lg border border-neutral-200/80 bg-neutral-100 p-3 text-sm text-neutral-900 dark:border-neutral-600 dark:bg-[#1a1a1a] dark:text-neutral-200",
   ),
   blockquote: ({ children, ...props }) => (
     <blockquote
@@ -203,7 +203,7 @@ const lightUniformComponents: Components = {
   ...baseComponents,
   h1: ({ children, ...props }) => (
     <h1
-      className="mb-2 mt-4 text-base font-semibold text-neutral-900 first:mt-0"
+      className="mb-2 mt-4 text-base font-semibold text-neutral-900 first:mt-0 dark:text-neutral-100"
       {...props}
     >
       {children}
@@ -211,7 +211,7 @@ const lightUniformComponents: Components = {
   ),
   h2: ({ children, ...props }) => (
     <h2
-      className="mb-1.5 mt-3 border-b border-neutral-200 pb-1 text-sm font-semibold text-neutral-900 first:mt-0"
+      className="mb-1.5 mt-3 border-b border-neutral-200 pb-1 text-sm font-semibold text-neutral-900 first:mt-0 dark:border-neutral-600 dark:text-neutral-100"
       {...props}
     >
       {children}
@@ -219,25 +219,25 @@ const lightUniformComponents: Components = {
   ),
   h3: ({ children, ...props }) => (
     <h3
-      className="mb-1.5 mt-3 text-sm font-semibold text-neutral-900 first:mt-0"
+      className="mb-1.5 mt-3 text-sm font-semibold text-neutral-900 first:mt-0 dark:text-neutral-100"
       {...props}
     >
       {children}
     </h3>
   ),
   h4: ({ children, ...props }) => (
-    <h4 className="mb-1 mt-2 text-sm font-semibold text-neutral-900" {...props}>
+    <h4 className="mb-1 mt-2 text-sm font-semibold text-neutral-900 dark:text-neutral-100" {...props}>
       {children}
     </h4>
   ),
   p: ({ children, ...props }) => (
-    <p className="mb-2 text-sm leading-relaxed text-neutral-800 last:mb-0" {...props}>
+    <p className="mb-2 text-sm leading-relaxed text-neutral-800 last:mb-0 dark:text-neutral-200" {...props}>
       {children}
     </p>
   ),
   ul: ({ children, ...props }) => (
     <ul
-      className="mb-2 list-inside list-disc space-y-1 text-sm text-neutral-800"
+      className="mb-2 list-inside list-disc space-y-1 text-sm text-neutral-800 dark:text-neutral-200"
       {...props}
     >
       {children}
@@ -245,7 +245,7 @@ const lightUniformComponents: Components = {
   ),
   ol: ({ children, ...props }) => (
     <ol
-      className="mb-2 list-inside list-decimal space-y-1 text-sm text-neutral-800"
+      className="mb-2 list-inside list-decimal space-y-1 text-sm text-neutral-800 dark:text-neutral-200"
       {...props}
     >
       {children}
@@ -262,7 +262,7 @@ const lightUniformComponents: Components = {
   hr: () => <hr className="my-4 border-neutral-200 dark:border-neutral-600" />,
   pre: latexAwarePre(
     "mb-2",
-    "overflow-x-auto rounded-lg border border-neutral-200/80 bg-neutral-100 p-3 text-sm text-neutral-900 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-200",
+    "overflow-x-auto rounded-lg border border-neutral-200/80 bg-neutral-100 p-3 text-sm text-neutral-900 dark:border-neutral-600 dark:bg-[#1a1a1a] dark:text-neutral-200",
   ),
 };
 
@@ -419,7 +419,7 @@ export function MarkdownMath({
   const katexColor =
     variant === "dark"
       ? "[&_.katex]:text-white [&_.katex-html]:text-white"
-      : "";
+      : "[&_.katex]:text-neutral-900 [&_.katex-html]:text-neutral-900 dark:[&_.katex]:text-neutral-200 dark:[&_.katex-html]:text-neutral-200";
 
   const remarkPlugins: PluggableList = singleDollarMath
     ? [remarkGfm, remarkMath]

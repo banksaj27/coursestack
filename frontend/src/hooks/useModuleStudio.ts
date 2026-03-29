@@ -15,6 +15,7 @@ import {
 import { defaultMaxHistoryMessages } from "@/lib/weekSummaryStorage";
 import { getProblemSetGlobalRules } from "@/lib/problemSetGlobalRules";
 import { getQuizGlobalRules } from "@/lib/quizGlobalRules";
+import { maybeAppendGoogleApiKeyNavHint } from "@/lib/googleApiKeyNavHint";
 import { weekSummariesForApiPayload } from "@/lib/weekSummaryCache";
 import { useWeekModularStore } from "@/store/useWeekModularStore";
 import type { Message } from "@/types/course";
@@ -38,7 +39,9 @@ function moduleStudioErrorHint(error: Error): string {
     m.includes("network error") ||
     m.includes("load failed");
   if (unreachable) {
-    return `${error.message} — Usually the FastAPI server is not running or NEXT_PUBLIC_API_URL is wrong (default http://localhost:8000).`;
+    return maybeAppendGoogleApiKeyNavHint(
+      `${error.message} — Usually the FastAPI server is not running or NEXT_PUBLIC_API_URL is wrong (default http://localhost:8000).`,
+    );
   }
   if (
     m.includes("http 401") ||
