@@ -23,7 +23,6 @@ export default function MyClassesPanel() {
   const activeCourseId = useClassesStore((s) => s.activeCourseId);
   const closeDrawer = useClassesStore((s) => s.closeDrawer);
   const switchCourse = useClassesStore((s) => s.switchCourse);
-  const createCourse = useClassesStore((s) => s.createCourse);
   const deleteCourse = useClassesStore((s) => s.deleteCourse);
   const renameCourse = useClassesStore((s) => s.renameCourse);
   const moveCourse = useClassesStore((s) => s.moveCourse);
@@ -40,8 +39,7 @@ export default function MyClassesPanel() {
     router.push("/syllabus");
   };
 
-  const handleCreate = () => {
-    createCourse();
+  const handleNewCourseClick = () => {
     closeDrawer();
     router.push("/");
   };
@@ -263,10 +261,10 @@ export default function MyClassesPanel() {
           ))}
         </div>
 
-        {/* New course button */}
         <div className="shrink-0 border-t border-neutral-200 p-3 pr-[calc(0.75rem+4rem)]">
           <button
-            onClick={handleCreate}
+            type="button"
+            onClick={handleNewCourseClick}
             className="w-full rounded-lg border border-dashed border-neutral-300 py-2.5 text-sm font-medium text-neutral-600 transition-colors hover:border-neutral-400 hover:bg-neutral-50 hover:text-neutral-900"
           >
             + New Course

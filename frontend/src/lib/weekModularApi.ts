@@ -1,10 +1,9 @@
 import type { WeekModularStatePayload } from "@/types/weekModular";
+import { API_URL, apiUnreachableError } from "@/lib/apiBase";
 import {
   extractNextSseMessage,
   parseSseMessageBlock,
 } from "@/lib/sseStreamParse";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export interface WeekModularSSECallbacks {
   onToken: (token: string) => void;
@@ -23,11 +22,18 @@ export async function streamWeekModularRequest(
   state: WeekModularStatePayload,
   callbacks: WeekModularSSECallbacks,
 ): Promise<void> {
-  const response = await fetch(`${API_URL}/week-modular/stream`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, state }),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/week-modular/stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, state }),
+    });
+  } catch (e) {
+    callbacks.onError(apiUnreachableError(e));
+    callbacks.onDone();
+    return;
+  }
 
   if (!response.ok) {
     callbacks.onError(

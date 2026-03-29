@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import base64
 import json
-import os
 import re
+import traceback
 from typing import AsyncGenerator
 
-from openai import AsyncOpenAI
+from google.genai import types
 
+from gemini_client import get_gemini_client, get_gemini_model
 from models import (
     CoursePlan,
     PlanRequest,
@@ -18,37 +20,39 @@ from models import (
 from prompts import build_system_prompt
 from week_context_utils import strip_meta_part_labels
 
-_client: AsyncOpenAI | None = None
 
-
-def _get_client() -> AsyncOpenAI:
-    global _client
-    if _client is None:
-        _client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    return _client
-
-
-def _build_messages(state: PlanState, user_message: str) -> list[dict]:
+def _build_plan_contents(state: PlanState, user_message: str) -> tuple[str, list[types.Content]]:
+    """System instruction + Gemini contents (roles user|model; images on last user turn)."""
     system = build_system_prompt(state)
-    messages: list[dict] = [{"role": "system", "content": system}]
-
+    contents: list[types.Content] = []
     for entry in state.conversation_history:
-        messages.append({"role": entry["role"], "content": entry["content"]})
-
+        role = "model" if entry["role"] == "assistant" else "user"
+        contents.append(
+            types.Content(role=role, parts=[types.Part.from_text(text=entry["content"])])
+        )
     if state.image_attachments:
-        content: list[dict] = [{"type": "text", "text": user_message}]
+        parts: list[types.Part] = [types.Part.from_text(text=user_message)]
         for img in state.image_attachments:
-            content.append({
-                "type": "image_url",
-                "image_url": {
-                    "url": f"data:{img.media_type};base64,{img.base64}",
-                },
-            })
-        messages.append({"role": "user", "content": content})
+            raw = base64.b64decode(img.base64)
+            parts.append(
+                types.Part.from_bytes(data=raw, mime_type=img.media_type or "image/png")
+            )
+        contents.append(types.Content(role="user", parts=parts))
     else:
-        messages.append({"role": "user", "content": user_message})
+        contents.append(
+            types.Content(role="user", parts=[types.Part.from_text(text=user_message)])
+        )
+    return system, contents
 
-    return messages
+
+def _stream_chunk_text(chunk) -> str:
+    try:
+        t = getattr(chunk, "text", None)
+        if t:
+            return t
+    except (ValueError, AttributeError):
+        pass
+    return ""
 
 
 _PLAN_RE = re.compile(
@@ -193,18 +197,21 @@ def _parse_response(raw: str, current_state: PlanState) -> tuple[str, PlanState,
 
 
 async def run_agent(request: PlanRequest) -> PlanResponse:
-    model = os.getenv("OPENAI_MODEL", "gpt-4o")
-    client = _get_client()
-    messages = _build_messages(request.state, request.message)
+    model = get_gemini_model()
+    client = get_gemini_client()
+    system, contents = _build_plan_contents(request.state, request.message)
 
-    response = await client.chat.completions.create(
+    response = await client.aio.models.generate_content(
         model=model,
-        messages=messages,
-        temperature=0.7,
-        max_tokens=16384,
+        contents=contents,
+        config=types.GenerateContentConfig(
+            system_instruction=system,
+            temperature=0.7,
+            max_output_tokens=32768,
+        ),
     )
 
-    raw = response.choices[0].message.content or ""
+    raw = (response.text or "").strip()
     agent_message, new_state, is_complete = _parse_response(raw, request.state)
 
     new_state.conversation_history.append({"role": "user", "content": request.message})
@@ -218,41 +225,41 @@ async def run_agent(request: PlanRequest) -> PlanResponse:
 
 
 async def run_agent_stream(request: PlanRequest) -> AsyncGenerator[dict, None]:
-    model = os.getenv("OPENAI_MODEL", "gpt-4o")
-    client = _get_client()
-    messages = _build_messages(request.state, request.message)
+    model = get_gemini_model()
+    client = get_gemini_client()
+    system, contents = _build_plan_contents(request.state, request.message)
 
-    total_chars = sum(len(m.get("content", "")) for m in messages)
-    print(f"[stream] sending {len(messages)} messages, ~{total_chars} chars to {model}", flush=True)
+    print(f"[stream] sending {len(contents)} Gemini content turn(s) to {model}", flush=True)
 
     full_response = ""
     plan_marker_seen = False
 
     try:
-        stream = await client.chat.completions.create(
+        stream = await client.aio.models.generate_content_stream(
             model=model,
-            messages=messages,
-            temperature=0.7,
-            max_tokens=16384,
-            stream=True,
+            contents=contents,
+            config=types.GenerateContentConfig(
+                system_instruction=system,
+                temperature=0.7,
+                max_output_tokens=32768,
+            ),
         )
 
         async for chunk in stream:
-            delta = chunk.choices[0].delta
-            if delta.content:
-                token = delta.content
-                full_response += token
+            token = _stream_chunk_text(chunk)
+            if not token:
+                continue
+            full_response += token
 
-                if not plan_marker_seen:
-                    if ":::PLAN_UPDATE:::" in full_response:
-                        plan_marker_seen = True
-                        pre = token.split(":::PLAN_UPDATE:::", 1)[0]
-                        if pre:
-                            yield {"event": "token", "data": json.dumps({"token": pre})}
-                    else:
-                        yield {"event": "token", "data": json.dumps({"token": token})}
+            if not plan_marker_seen:
+                if ":::PLAN_UPDATE:::" in full_response:
+                    plan_marker_seen = True
+                    pre = token.split(":::PLAN_UPDATE:::", 1)[0]
+                    if pre:
+                        yield {"event": "token", "data": json.dumps({"token": pre})}
+                else:
+                    yield {"event": "token", "data": json.dumps({"token": token})}
     except Exception as exc:
-        import traceback
         traceback.print_exc()
         error_msg = f"Error calling model: {exc}"
         print(f"[stream] ERROR: {error_msg}", flush=True)
@@ -275,17 +282,24 @@ async def run_agent_stream(request: PlanRequest) -> AsyncGenerator[dict, None]:
         retry_state.conversation_history.append({"role": "user", "content": request.message})
         retry_state.conversation_history.append({"role": "assistant", "content": agent_message})
 
-        retry_messages = _build_messages(retry_state, "Generate the complete course outline now.")
+        retry_system, retry_contents = _build_plan_contents(
+            retry_state, "Generate the complete course outline now."
+        )
         retry_response = ""
         try:
-            retry_stream = await client.chat.completions.create(
-                model=model, messages=retry_messages,
-                temperature=0.7, max_tokens=16384, stream=True,
+            retry_stream = await client.aio.models.generate_content_stream(
+                model=model,
+                contents=retry_contents,
+                config=types.GenerateContentConfig(
+                    system_instruction=retry_system,
+                    temperature=0.7,
+                    max_output_tokens=32768,
+                ),
             )
             async for chunk in retry_stream:
-                delta = chunk.choices[0].delta
-                if delta.content:
-                    retry_response += delta.content
+                t = _stream_chunk_text(chunk)
+                if t:
+                    retry_response += t
         except Exception:
             pass
 
@@ -316,8 +330,8 @@ async def run_agent_stream(request: PlanRequest) -> AsyncGenerator[dict, None]:
 
 async def generate_export(state: PlanState) -> dict:
     """Generate a descriptive syllabus export using the LLM."""
-    model = os.getenv("OPENAI_MODEL", "gpt-4o")
-    client = _get_client()
+    model = get_gemini_model()
+    client = get_gemini_client()
 
     weeks_json = json.dumps(
         [{"week": w.week, "title": w.title, "topics": w.topics,
@@ -377,14 +391,21 @@ RULES:
 {weeks_json}
 """
 
-    response = await client.chat.completions.create(
+    response = await client.aio.models.generate_content(
         model=model,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.4,
-        max_tokens=16384,
+        contents=[
+            types.Content(
+                role="user",
+                parts=[types.Part.from_text(text=prompt)],
+            )
+        ],
+        config=types.GenerateContentConfig(
+            temperature=0.4,
+            max_output_tokens=32768,
+        ),
     )
 
-    raw = (response.choices[0].message.content or "").strip()
+    raw = (response.text or "").strip()
     if raw.startswith("```"):
         raw = re.sub(r"^```(?:json)?\s*", "", raw)
         raw = re.sub(r"\s*```$", "", raw)

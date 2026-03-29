@@ -143,16 +143,20 @@ The instructor wrote the notes below for **this exam module only** (the one in t
 """
 
 
-def build_messages_with_trim(
-    system: str,
+def build_gemini_turns_with_trim(
+    system_instruction: str,
     history: list[dict],
     user_message: str,
     max_conversation_messages: int | None,
-) -> list[dict]:
+) -> tuple[str, list[dict[str, str]]]:
+    """Build (system_instruction, turns) for Gemini: each turn is {role, content}.
+    Roles are **user** or **model** (assistant history → model)."""
     limit = effective_history_limit(max_conversation_messages)
     trimmed = trim_conversation_history(history, limit)
-    messages: list[dict] = [{"role": "system", "content": system}]
+    turns: list[dict[str, str]] = []
     for entry in trimmed:
-        messages.append({"role": entry["role"], "content": entry["content"]})
-    messages.append({"role": "user", "content": user_message})
-    return messages
+        r = entry["role"]
+        gemini_role = "model" if r == "assistant" else "user"
+        turns.append({"role": gemini_role, "content": entry["content"]})
+    turns.append({"role": "user", "content": user_message})
+    return system_instruction, turns

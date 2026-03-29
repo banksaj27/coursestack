@@ -1,11 +1,10 @@
 import type { LectureStudioStatePayload } from "@/types/lectureStudio";
 import type { WeekModule } from "@/types/weekModular";
+import { API_URL, apiUnreachableError } from "@/lib/apiBase";
 import {
   extractNextSseMessage,
   parseSseMessageBlock,
 } from "@/lib/sseStreamParse";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export interface LectureStudioSSECallbacks {
   onToken: (token: string) => void;
@@ -61,11 +60,18 @@ export async function streamLectureStudioRequest(
   state: LectureStudioStatePayload,
   callbacks: LectureStudioSSECallbacks,
 ): Promise<void> {
-  const response = await fetch(`${API_URL}/lecture-studio/stream`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, state }),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/lecture-studio/stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, state }),
+    });
+  } catch (e) {
+    callbacks.onError(apiUnreachableError(e));
+    callbacks.onDone();
+    return;
+  }
 
   if (!response.ok) {
     callbacks.onError(

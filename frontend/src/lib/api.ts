@@ -1,14 +1,18 @@
 import type { PlanState } from "@/types/course";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { API_URL, apiUnreachableError } from "@/lib/apiBase";
 
 export async function uploadSyllabusFile(file: File): Promise<string> {
   const form = new FormData();
   form.append("file", file);
-  const res = await fetch(`${API_URL}/upload-syllabus`, {
-    method: "POST",
-    body: form,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/upload-syllabus`, {
+      method: "POST",
+      body: form,
+    });
+  } catch (e) {
+    throw apiUnreachableError(e);
+  }
   if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
   const data = await res.json();
   return data.text;
@@ -19,20 +23,30 @@ export async function uploadImageFile(
 ): Promise<{ base64: string; media_type: string }> {
   const form = new FormData();
   form.append("file", file);
-  const res = await fetch(`${API_URL}/upload-image`, {
-    method: "POST",
-    body: form,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/upload-image`, {
+      method: "POST",
+      body: form,
+    });
+  } catch (e) {
+    throw apiUnreachableError(e);
+  }
   if (!res.ok) throw new Error(`Image upload failed: ${res.status}`);
   return res.json();
 }
 
 export async function exportSyllabus(state: PlanState): Promise<Record<string, unknown>> {
-  const res = await fetch(`${API_URL}/export`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(state),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/export`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(state),
+    });
+  } catch (e) {
+    throw apiUnreachableError(e);
+  }
   if (!res.ok) throw new Error(`Export failed: ${res.status}`);
   return res.json();
 }
@@ -53,11 +67,18 @@ export async function streamPlanRequest(
   state: PlanState,
   callbacks: SSECallbacks,
 ): Promise<void> {
-  const response = await fetch(`${API_URL}/plan/stream`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, state }),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/plan/stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, state }),
+    });
+  } catch (e) {
+    callbacks.onError(apiUnreachableError(e));
+    callbacks.onDone();
+    return;
+  }
 
   if (!response.ok) {
     callbacks.onError(new Error(`HTTP ${response.status}: ${response.statusText}`));

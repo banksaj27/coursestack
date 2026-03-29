@@ -184,7 +184,7 @@ export function useModuleStudio(week: number, moduleId: string) {
           const errMsg: Message = {
             id: makeId(),
             role: "assistant",
-            content: `Request failed (${error.message}). Check the backend and OPENAI_API_KEY.`,
+            content: `Request failed (${error.message}). Check the backend and GOOGLE_API_KEY.`,
             timestamp: Date.now(),
           };
           const finalMsgs = [...withUser, errMsg];

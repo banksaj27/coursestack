@@ -279,7 +279,10 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
         const errorMsg: Message = {
           id: makeId(),
           role: "assistant",
-          content: "Something went wrong. Please try again.",
+          content:
+            error instanceof Error && error.message.trim()
+              ? error.message
+              : "Something went wrong. If the message mentions the API, start the backend (port 8000) or check NEXT_PUBLIC_API_URL.",
           timestamp: Date.now(),
         };
         set((s) => ({

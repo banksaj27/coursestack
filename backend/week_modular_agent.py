@@ -1,29 +1,20 @@
 from __future__ import annotations
 
 import json
-import os
 from typing import AsyncGenerator
 
-from openai import AsyncOpenAI
+from google.genai import types
 
+from gemini_client import get_gemini_client, get_gemini_model
 from models import WeekModularGenerated, WeekModularState, WeekModule
 from week_context_utils import (
-    build_messages_with_trim,
+    build_gemini_turns_with_trim,
     format_global_format_block,
     format_other_week_summaries,
     format_problem_set_global_block,
     format_quiz_global_block,
     strip_meta_part_labels,
 )
-
-_client: AsyncOpenAI | None = None
-
-
-def _get_client() -> AsyncOpenAI:
-    global _client
-    if _client is None:
-        _client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    return _client
 
 
 _START_TAG = ":::WEEK_MODULES_UPDATE:::"
@@ -173,14 +164,21 @@ Rules:
 """
 
 
-def _build_messages(state: WeekModularState, user_message: str) -> list[dict]:
+def _build_gemini_turns(state: WeekModularState, user_message: str) -> tuple[str, list[dict[str, str]]]:
     system = _build_system_prompt(state)
-    return build_messages_with_trim(
+    return build_gemini_turns_with_trim(
         system,
         state.conversation_history,
         user_message,
         state.max_conversation_messages,
     )
+
+
+def _turns_to_contents(turns: list[dict[str, str]]) -> list[types.Content]:
+    return [
+        types.Content(role=t["role"], parts=[types.Part.from_text(text=t["content"])])
+        for t in turns
+    ]
 
 
 def _parse_modules(
@@ -227,38 +225,51 @@ def _parse_modules(
         return agent_message, fallback, None
 
 
+def _stream_chunk_text(chunk) -> str:
+    try:
+        t = getattr(chunk, "text", None)
+        if t:
+            return t
+    except (ValueError, AttributeError):
+        pass
+    return ""
+
+
 async def run_week_modular_stream(
     state: WeekModularState, user_message: str
 ) -> AsyncGenerator[dict, None]:
-    model = os.getenv("OPENAI_MODEL", "gpt-4o")
-    client = _get_client()
-    messages = _build_messages(state, user_message)
+    model = get_gemini_model()
+    client = get_gemini_client()
+    system, turns = _build_gemini_turns(state, user_message)
+    contents = _turns_to_contents(turns)
 
-    stream = await client.chat.completions.create(
+    stream = await client.aio.models.generate_content_stream(
         model=model,
-        messages=messages,
-        temperature=0.5,
-        max_tokens=16384,
-        stream=True,
+        contents=contents,
+        config=types.GenerateContentConfig(
+            system_instruction=system,
+            temperature=0.5,
+            max_output_tokens=65536,
+        ),
     )
 
     full_response = ""
     marker_seen = False
 
     async for chunk in stream:
-        delta = chunk.choices[0].delta
-        if delta.content:
-            token = delta.content
-            full_response += token
+        token = _stream_chunk_text(chunk)
+        if not token:
+            continue
+        full_response += token
 
-            if not marker_seen:
-                if ":::WEEK_MODULES_UPDATE:::" in full_response:
-                    marker_seen = True
-                    pre = token.split(":::WEEK_MODULES_UPDATE:::", 1)[0]
-                    if pre:
-                        yield {"event": "token", "data": json.dumps({"token": pre})}
-                else:
-                    yield {"event": "token", "data": json.dumps({"token": token})}
+        if not marker_seen:
+            if ":::WEEK_MODULES_UPDATE:::" in full_response:
+                marker_seen = True
+                pre = token.split(":::WEEK_MODULES_UPDATE:::", 1)[0]
+                if pre:
+                    yield {"event": "token", "data": json.dumps({"token": pre})}
+            else:
+                yield {"event": "token", "data": json.dumps({"token": token})}
 
     agent_message, new_gen, week_summary = _parse_modules(
         full_response, state.generated

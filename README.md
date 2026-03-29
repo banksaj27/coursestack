@@ -4,7 +4,7 @@ An AI-powered curriculum planning agent that designs personalized course plans t
 
 ## Architecture
 
-- **Backend**: Python FastAPI with SSE streaming, OpenAI integration
+- **Backend**: Python FastAPI with SSE streaming, Google Gemini API
 - **Frontend**: Next.js, Tailwind CSS, Framer Motion, Zustand
 
 ## Quick Start
@@ -16,7 +16,7 @@ cd backend
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
-# Edit .env and add your OpenAI API key
+# Edit .env and add your GOOGLE_API_KEY (Gemini)
 uvicorn main:app --reload --port 8000
 ```
 
@@ -37,8 +37,8 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 | Variable | Description | Default |
 |---|---|---|
-| `OPENAI_API_KEY` | Your OpenAI API key | (required) |
-| `OPENAI_MODEL` | Model to use | `gpt-4o` |
+| `GOOGLE_API_KEY` | Google AI Studio / Gemini API key | (required) |
+| `GEMINI_MODEL` | Gemini model id | `gemini-2.5-flash` |
 
 ### Frontend (`frontend/.env.local`)
 
