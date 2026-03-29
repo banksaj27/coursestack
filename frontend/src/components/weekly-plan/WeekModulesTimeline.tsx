@@ -101,7 +101,7 @@ export default function WeekModulesTimeline() {
                 className="mt-6 rounded-xl border border-neutral-200 bg-neutral-50/80 px-4 py-3"
               >
                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
-                  Instructor notes
+                  Summary
                 </p>
                 <MarkdownMath source={instructorNotes} variant="light" />
               </motion.div>

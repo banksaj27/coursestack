@@ -44,7 +44,6 @@ interface Props {
 
 export default function ModuleTimelineNode({
   module: mod,
-  index,
   isLast,
   isFirst,
 }: Props) {
@@ -74,6 +73,7 @@ export default function ModuleTimelineNode({
       <div className="relative flex w-3.5 shrink-0 flex-col items-center">
         <div
           className={`relative z-10 mt-[13px] h-3.5 w-3.5 shrink-0 rounded-full border-2 border-white shadow-sm ${meta.dot}`}
+          style={{ marginLeft: "0.5px" }}
         />
       </div>
 
@@ -90,9 +90,6 @@ export default function ModuleTimelineNode({
                 className={`shrink-0 rounded border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wider ${meta.badge}`}
               >
                 {meta.label}
-              </span>
-              <span className="text-[11px] font-semibold text-neutral-400">
-                Step {index + 1}
               </span>
               {mod.estimated_minutes != null && mod.estimated_minutes > 0 ? (
                 <span className="text-[10px] text-neutral-400">

@@ -113,6 +113,7 @@ interface CourseStore {
   uploadSyllabus: (file: File) => Promise<void>;
   uploadImage: (file: File) => Promise<void>;
   removePendingAttachment: (index: number) => void;
+  clearIsNewFlags: () => void;
   finalize: () => Promise<void>;
   reset: () => void;
 }
@@ -157,6 +158,17 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
   removePendingAttachment: (index: number) => {
     set((s) => ({
       pendingAttachments: s.pendingAttachments.filter((_, i) => i !== index),
+    }));
+  },
+
+  clearIsNewFlags: () => {
+    set((s) => ({
+      planState: {
+        ...s.planState,
+        course_plan: {
+          weeks: s.planState.course_plan.weeks.map((w) => ({ ...w, is_new: false })),
+        },
+      },
     }));
   },
 
@@ -225,7 +237,8 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
           course_plan: { weeks: newWeeks },
         };
 
-        assistantMsg.content = data.agent_message;
+        assistantMsg.content =
+          data.agent_message || get().streamingContent || "";
 
         set((s) => {
           const invalidateWeekly = s.hasExportedToWeekly;
@@ -246,6 +259,8 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
             hasExportedToWeekly: invalidateWeekly ? false : s.hasExportedToWeekly,
           };
         });
+
+        setTimeout(() => get().clearIsNewFlags(), 2500);
       },
       onDone: () => {
         set({ agentStatus: "idle", streamingContent: "" });
