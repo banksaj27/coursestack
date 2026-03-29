@@ -186,27 +186,32 @@ export default function LectureContentPanel({
                   {gradedWorkspaceBar.completedScore.maxScore}
                 </span>
               ) : null}
-              {workspace === "lecture" && module.body_md.trim().length > 0 ? (
-                <LectureNotesListenButton
-                  markdown={module.body_md}
-                  disabled={notesGenerating}
-                />
-              ) : null}
-              {workspace === "lecture" && lectureWorkspaceBar ? (
-                <button
-                  type="button"
-                  aria-pressed={lectureWorkspaceBar.isComplete}
-                  onClick={lectureWorkspaceBar.onToggleComplete}
-                  className={
-                    lectureWorkspaceBar.isComplete
-                      ? "rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900 shadow-sm transition-colors hover:border-emerald-300 hover:bg-emerald-100/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
-                      : "rounded-xl border-2 border-emerald-700 bg-emerald-700 px-6 py-3 text-sm font-semibold tracking-wide text-white shadow-sm transition-colors hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
-                  }
-                >
-                  {lectureWorkspaceBar.isComplete
-                    ? "✓ Marked Complete"
-                    : "Mark complete"}
-                </button>
+              {workspace === "lecture" &&
+              (lectureWorkspaceBar || module.body_md.trim().length > 0) ? (
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  {module.body_md.trim().length > 0 ? (
+                    <LectureNotesListenButton
+                      markdown={module.body_md}
+                      disabled={notesGenerating}
+                    />
+                  ) : null}
+                  {lectureWorkspaceBar ? (
+                    <button
+                      type="button"
+                      aria-pressed={lectureWorkspaceBar.isComplete}
+                      onClick={lectureWorkspaceBar.onToggleComplete}
+                      className={
+                        lectureWorkspaceBar.isComplete
+                          ? "rounded-xl border-2 border-emerald-200 bg-emerald-50 px-5 py-2 text-sm font-semibold tracking-wide text-emerald-900 shadow-sm transition-colors hover:border-emerald-300 hover:bg-emerald-100/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+                          : "rounded-xl border-2 border-emerald-700 bg-emerald-700 px-5 py-2 text-sm font-semibold tracking-wide text-white shadow-sm transition-colors hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+                      }
+                    >
+                      {lectureWorkspaceBar.isComplete
+                        ? "✓ Marked Complete"
+                        : "Mark complete"}
+                    </button>
+                  ) : null}
+                </div>
               ) : null}
               {graded && gradedWorkspaceBar ? (
                 <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">

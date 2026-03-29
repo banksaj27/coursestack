@@ -2,9 +2,9 @@
 
 import { useLectureTts } from "@/hooks/useLectureTts";
 
-/** Same panel shape as lecture section / “marked complete” boxes, neutral palette. */
+/** Height and padding aligned with “Begin testing” / primary workspace actions. */
 const ttsPanelBtn =
-  "rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm font-semibold text-neutral-900 shadow-sm transition-colors hover:border-neutral-300 hover:bg-neutral-100/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-600";
+  "rounded-xl border-2 border-neutral-200 bg-neutral-50 px-5 py-2 text-sm font-semibold tracking-wide text-neutral-900 shadow-sm transition-colors hover:border-neutral-300 hover:bg-neutral-100/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-600";
 
 type Props = {
   markdown: string;
@@ -30,7 +30,7 @@ export default function LectureNotesListenButton({
   } = useLectureTts();
 
   return (
-    <div className="flex w-full flex-col items-stretch gap-1 sm:items-end">
+    <div className="flex w-auto max-w-full flex-col items-end gap-1">
       {error ? (
         <p className="text-right text-xs text-rose-600">{error}</p>
       ) : null}
