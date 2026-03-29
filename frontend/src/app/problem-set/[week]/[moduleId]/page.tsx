@@ -130,6 +130,8 @@ export default function ProblemSetWorkspacePage() {
             week={week}
             moduleId={moduleId}
             module={module}
+            moduleKind="problem_set"
+            courseTopic={syllabusTopic}
             mode="review"
             initialAnswers={progress.graded.answers}
             savedScore={{
@@ -143,6 +145,8 @@ export default function ProblemSetWorkspacePage() {
             week={week}
             moduleId={moduleId}
             module={module}
+            moduleKind="problem_set"
+            courseTopic={syllabusTopic}
             onExit={() => setTestingMode(false)}
           />
         ) : !testingMode && !reviewMode && module ? (

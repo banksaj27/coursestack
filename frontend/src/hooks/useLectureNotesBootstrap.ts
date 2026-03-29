@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import syllabusData from "@/data/syllabus.json";
 import { getGlobalFormatInstructions } from "@/lib/weekFormatInstructions";
 import { streamLectureNotesPipeline } from "@/lib/lectureNotesPipelineApi";
 import {
@@ -12,10 +11,7 @@ import { defaultMaxHistoryMessages } from "@/lib/weekSummaryStorage";
 import { weekSummariesForApiPayload } from "@/lib/weekSummaryCache";
 import { useWeekModularStore } from "@/store/useWeekModularStore";
 import type { LectureStudioStatePayload } from "@/types/lectureStudio";
-import type { Syllabus } from "@/types/syllabus";
 import type { WeekModule } from "@/types/weekModular";
-
-const syllabus = syllabusData as Syllabus;
 
 /** Weekly Plan uses a one-line placeholder in `body_md`; full notes run in Lecture workspace. */
 function needsFullLectureGeneration(body: string): boolean {
@@ -64,8 +60,9 @@ export function useLectureNotesBootstrap(
     });
 
     const maxConv = defaultMaxHistoryMessages();
+    const syllabusForApi = useWeekModularStore.getState().syllabus;
     const payload: LectureStudioStatePayload = {
-      syllabus,
+      syllabus: syllabusForApi,
       selected_week: week,
       module: m,
       conversation_history: [],

@@ -8,6 +8,26 @@ export type WeekModuleKind =
   | "quiz"
   | "exam";
 
+export type AssessmentQuizItemKind =
+  | "multiple_choice"
+  | "true_false"
+  | "short_answer";
+
+export interface AssessmentQuizChoice {
+  id: string;
+  text_md: string;
+}
+
+/** Quiz/exam question stored structurally (studio JSON); avoids parsing body_md. */
+export interface AssessmentQuizItem {
+  id: string;
+  kind: AssessmentQuizItemKind;
+  question_md: string;
+  choices: AssessmentQuizChoice[];
+  correct_answer: string;
+  points?: number | null;
+}
+
 export interface WeekModule {
   id: string;
   kind: WeekModuleKind;
@@ -22,8 +42,10 @@ export interface WeekModule {
   exam_specific_rules?: string;
   /** Total points for graded modules (defaults: problem set 10, quiz 20, exam 100). */
   assessment_total_points?: number | null;
-  /** Points per graded item, same order as `##` sections in body_md. */
+  /** Points per graded item: markdown path = order of `##` sections; structured path = order of `assessment_items`. */
   graded_item_points?: number[];
+  /** When non-empty for quiz/exam, testing UI and grading use these instead of parsing body_md. */
+  assessment_items?: AssessmentQuizItem[];
 }
 
 export interface WeekModularGenerated {

@@ -1,10 +1,12 @@
+import { normalizeAdjacentMarkdownHeadings } from "@/lib/normalizeAssessmentMarkdown";
+
 /**
  * Split markdown into sections for testing mode (one section per “page”).
  * Prefers `## …` (problem set / quiz style). Falls back to top-level `# …` when
  * there are no `##` headings — common in exam drafts (`# Question 1`, `# Question 2`).
  */
 export function splitMarkdownIntoH2Pages(md: string): string[] {
-  const t = md.trim();
+  const t = normalizeAdjacentMarkdownHeadings(md).trim();
   if (!t) return [];
 
   const byH2 = t.split(/(?=^##\s+)/m);

@@ -5,6 +5,8 @@ import type { WeekModule } from "@/types/weekModular";
 import { MarkdownMath } from "@/components/shared/MarkdownMath";
 import { effectiveAssessmentTotalPoints } from "@/lib/gradedAssessmentDefaults";
 import { isGradedAssessmentKind } from "@/lib/moduleAssessmentCompletion";
+import { stripChoiceOptionsFromAssessmentMarkdown } from "@/lib/parseAssessmentQuestions";
+import { stripAnswerSpoilersForTesting } from "@/lib/stripAnswerSpoilersForTesting";
 import type { ModuleNavLink } from "@/lib/moduleWorkspaceNavigation";
 import LectureNotesListenButton from "@/components/lecture-studio/LectureNotesListenButton";
 
@@ -269,10 +271,43 @@ export default function LectureContentPanel({
           </div>
         ) : null}
 
-        {module.body_md.trim().length > 0 ? (
+        {(module.assessment_items?.length ?? 0) > 0 &&
+        (workspace === "quiz" || workspace === "exam") ? (
+          <div key={previewKey(module.id, module.body_md)} className="max-w-3xl space-y-8">
+            {stripAnswerSpoilersForTesting(module.body_md).trim().length > 0 ? (
+              <MarkdownMath
+                source={stripAnswerSpoilersForTesting(module.body_md)}
+                variant="light"
+                uniformScale
+                className="prose-neutral max-w-none"
+              />
+            ) : null}
+            {(module.assessment_items ?? []).map((it, i) => (
+              <div key={it.id?.trim() || `q-${i}`} className="border-b border-neutral-100 pb-8 last:border-b-0">
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
+                  Question {i + 1}
+                </p>
+                <MarkdownMath
+                  source={it.question_md}
+                  variant="light"
+                  uniformScale
+                  className="prose-neutral max-w-none"
+                />
+              </div>
+            ))}
+          </div>
+        ) : module.body_md.trim().length > 0 ? (
           <MarkdownMath
             key={previewKey(module.id, module.body_md)}
-            source={module.body_md}
+            source={
+              workspace === "problem_set" ||
+              workspace === "quiz" ||
+              workspace === "exam"
+                ? stripChoiceOptionsFromAssessmentMarkdown(
+                    stripAnswerSpoilersForTesting(module.body_md),
+                  )
+                : module.body_md
+            }
             variant="light"
             uniformScale
             boxedSectionHeadings={workspace === "lecture"}

@@ -131,12 +131,15 @@ export default function ExamWorkspacePage() {
             week={week}
             moduleId={moduleId}
             module={module}
+            moduleKind="exam"
+            courseTopic={syllabusTopic}
             mode="review"
             initialAnswers={progress.graded.answers}
             savedScore={{
               score: progress.graded.score,
               maxScore: progress.graded.maxScore,
             }}
+            gradeItems={progress.graded.items}
             onExit={() => setReviewMode(false)}
           />
         ) : testingMode && module ? (
@@ -144,6 +147,8 @@ export default function ExamWorkspacePage() {
             week={week}
             moduleId={moduleId}
             module={module}
+            moduleKind="exam"
+            courseTopic={syllabusTopic}
             onExit={() => setTestingMode(false)}
           />
         ) : !testingMode && !reviewMode && module ? (

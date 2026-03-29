@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import syllabusData from "@/data/syllabus.json";
 import { getGlobalFormatInstructions } from "@/lib/weekFormatInstructions";
 import { streamLectureStudioRequest } from "@/lib/lectureStudioApi";
 import {
@@ -19,10 +18,7 @@ import { weekSummariesForApiPayload } from "@/lib/weekSummaryCache";
 import { useWeekModularStore } from "@/store/useWeekModularStore";
 import type { Message } from "@/types/course";
 import type { LectureStudioStatePayload } from "@/types/lectureStudio";
-import type { Syllabus } from "@/types/syllabus";
 import type { WeekModule } from "@/types/weekModular";
-
-const syllabus = syllabusData as Syllabus;
 
 let counter = 0;
 function makeId() {
@@ -62,7 +58,9 @@ function moduleContentChanged(before: WeekModule, after: WeekModule): boolean {
     (before.exam_specific_rules ?? "") !== (after.exam_specific_rules ?? "") ||
     before.assessment_total_points !== after.assessment_total_points ||
     JSON.stringify(before.graded_item_points ?? []) !==
-      JSON.stringify(after.graded_item_points ?? [])
+      JSON.stringify(after.graded_item_points ?? []) ||
+    JSON.stringify(before.assessment_items ?? []) !==
+      JSON.stringify(after.assessment_items ?? [])
   );
 }
 
@@ -96,6 +94,7 @@ export type ModuleStudioSendOptions = {
 
 /** Shared AI + persistence for single-module workspaces (lecture, problem set, etc.). */
 export function useModuleStudio(week: number, moduleId: string) {
+  const syllabusTopic = useWeekModularStore((s) => s.syllabus.topic);
   const [module, setModule] = useState<WeekModule | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [notFound, setNotFound] = useState(false);
@@ -160,8 +159,9 @@ export function useModuleStudio(week: number, moduleId: string) {
       };
 
       const maxConv = defaultMaxHistoryMessages();
+      const syllabusForApi = useWeekModularStore.getState().syllabus;
       const payload: LectureStudioStatePayload = {
-        syllabus,
+        syllabus: syllabusForApi,
         selected_week: week,
         module: modSnap,
         conversation_history: hist,
@@ -274,7 +274,7 @@ export function useModuleStudio(week: number, moduleId: string) {
   );
 
   return {
-    syllabusTopic: syllabus.topic,
+    syllabusTopic,
     module,
     messages,
     notFound,
