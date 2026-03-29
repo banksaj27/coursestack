@@ -1,0 +1,237 @@
+from __future__ import annotations
+
+import json
+import os
+from typing import AsyncGenerator
+
+from openai import AsyncOpenAI
+
+from models import WeekModularGenerated, WeekModularState, WeekModule
+from week_context_utils import (
+    build_messages_with_trim,
+    format_global_format_block,
+    format_other_week_summaries,
+    strip_meta_part_labels,
+)
+
+_client: AsyncOpenAI | None = None
+
+
+def _get_client() -> AsyncOpenAI:
+    global _client
+    if _client is None:
+        _client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    return _client
+
+
+_START_TAG = ":::WEEK_MODULES_UPDATE:::"
+_END_TAG = ":::END_WEEK_MODULES_UPDATE:::"
+
+
+def _extract_modules_json(raw: str) -> str | None:
+    si = raw.find(_START_TAG)
+    if si < 0:
+        return None
+    ei = raw.find(_END_TAG, si)
+    if ei < 0:
+        return None
+    return raw[si + len(_START_TAG) : ei].strip()
+
+
+def _build_system_prompt(state: WeekModularState) -> str:
+    weeks = state.syllabus.course_plan.weeks
+    week_obj = next((w for w in weeks if w.week == state.selected_week), None)
+    if week_obj is None:
+        week_json = "{}"
+    else:
+        week_json = json.dumps(
+            {
+                "week": week_obj.week,
+                "title": week_obj.title,
+                "topics": week_obj.topics,
+                "has_homework": week_obj.has_homework,
+                "assessment": week_obj.assessment,
+            },
+            indent=2,
+        )
+
+    syllabus_snapshot = json.dumps(
+        {
+            "topic": state.syllabus.topic,
+            "user_profile": state.syllabus.user_profile.model_dump(),
+            "all_weeks": [
+                {
+                    "week": w.week,
+                    "title": w.title,
+                    "topics": w.topics,
+                    "has_homework": w.has_homework,
+                    "assessment": w.assessment,
+                }
+                for w in weeks
+            ],
+        },
+        indent=2,
+    )
+
+    current = state.generated.model_dump()
+    other_summaries = format_other_week_summaries(
+        state.week_summaries, state.selected_week
+    )
+
+    global_fmt = format_global_format_block(state.global_format_instructions)
+
+    return f"""You are an expert professor. The user is designing **one calendar week** of a course as a **sequence of modules** (like a vertical timeline), similar to how a full syllabus is broken into weeks — but here each step is a **lecture**, **project**, **problem_set**, or **quiz**.
+
+{global_fmt}Course context:
+{syllabus_snapshot}
+
+**Selected week:**
+{week_json}
+
+=== OTHER WEEKS — COMPACT SUMMARIES ONLY ===
+Short memories of what was generated for *other* weeks. Use for consistency; full structure is the syllabus JSON above.
+
+{other_summaries}
+
+**Current week index:** {state.selected_week}
+
+**Current modular plan + content for THIS week:**
+{json.dumps(current, indent=2)}
+
+=== MODULE TYPES (use these exact `kind` strings) ===
+- **lecture** — Real teachable notes in `body_md` (Markdown + LaTeX $...$ / $$...$$). Definitions, theorems, proofs/sketches per rigor, worked examples, pitfalls. NOT a high-level agenda.
+- **project** — Spec in `body_md`: goal, deliverables, milestones, grading criteria, suggested timeline within the week.
+- **problem_set** — `body_md` lists concrete problems (numbered) with full statements; students could submit written solutions.
+- **quiz** — `body_md`: format, topics covered, sample question stems or blueprint (and duration if relevant).
+
+=== STRUCTURE RULES ===
+1. Produce **ordered** `modules` (top = earlier in the week, bottom = later). Typical week: mix of lectures + at least one **problem_set** and/or **quiz**; add a **project** when it fits the topic (e.g. implementation, extended investigation).
+2. Cover the week's **topics** across the **lecture** modules; do not leave syllabus topics only in titles.
+3. Each module needs: **id** (unique snake_case, e.g. `w3_lecture_axioms`), **kind**, **title**, **summary** (one line for the timeline card), **body_md** (substantive), optional **estimated_minutes**.
+4. **instructor_notes_md**: pacing for the whole week, how modules connect, what to do in class vs async.
+
+=== RESPOND TO THE INSTRUCTOR ===
+The **last user message** in the thread is their current request. The text you show **above** the `:::WEEK_MODULES_UPDATE:::` block must **directly answer** that message: questions get answers; edit requests get a short confirmation of what you changed and why; vague asks get one focused clarifying question. Do **not** reply with only a generic recap of the week or boilerplate that ignores their wording.
+
+=== OUTPUT FORMAT (STRICT) ===
+Write a **natural** message first (plain text or light Markdown, no JSON). Do **not** use headings like "Part 1", "Part 2", or any similar labels—just talk to the instructor, then append the block.
+
+At the **very end**, exactly one block:
+
+:::WEEK_MODULES_UPDATE:::
+{{ "modules": [ ... ], "instructor_notes_md": "...", "week_context_summary": "..." }}
+:::END_WEEK_MODULES_UPDATE:::
+
+Rules:
+- Valid JSON only inside the block. Use \\n inside strings for newlines in body_md.
+- **Every** reply must include the block. **modules** must be a non-empty array unless the user explicitly asked to clear it.
+- **kind** must be exactly one of: lecture, project, problem_set, quiz.
+- **week_context_summary** (REQUIRED): 4–10 sentences, plain text, max ~1200 characters. Summarize THIS week's module line-up and what students do in each type—stored for when other weeks are edited. If global format rules are in effect, note that modules follow that house style.
+"""
+
+
+def _build_messages(state: WeekModularState, user_message: str) -> list[dict]:
+    system = _build_system_prompt(state)
+    return build_messages_with_trim(
+        system,
+        state.conversation_history,
+        user_message,
+        state.max_conversation_messages,
+    )
+
+
+def _parse_modules(
+    raw: str, fallback: WeekModularGenerated
+) -> tuple[str, WeekModularGenerated, str | None]:
+    blob = _extract_modules_json(raw)
+    si = raw.find(_START_TAG)
+    agent_message = strip_meta_part_labels(
+        raw[:si].strip() if si >= 0 else raw.strip()
+    )
+    if not blob:
+        return agent_message, fallback, None
+    try:
+        data = json.loads(blob)
+        mods_raw = data.get("modules", [])
+        modules = []
+        for m in mods_raw:
+            if not isinstance(m, dict):
+                continue
+            kind = str(m.get("kind", "lecture")).lower().strip()
+            if kind not in ("lecture", "project", "problem_set", "quiz"):
+                kind = "lecture"
+            est = m.get("estimated_minutes")
+            modules.append(
+                WeekModule(
+                    id=str(m.get("id", "")),
+                    kind=kind,
+                    title=str(m.get("title", "Untitled")),
+                    summary=str(m.get("summary", "")),
+                    body_md=str(m.get("body_md", "")),
+                    estimated_minutes=int(est) if est is not None else None,
+                )
+            )
+        notes = str(data.get("instructor_notes_md", ""))
+        summary_raw = data.get("week_context_summary")
+        summary = str(summary_raw).strip() if summary_raw is not None else None
+        if summary == "":
+            summary = None
+        return agent_message, WeekModularGenerated(
+            modules=modules, instructor_notes_md=notes
+        ), summary
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return agent_message, fallback, None
+
+
+async def run_week_modular_stream(
+    state: WeekModularState, user_message: str
+) -> AsyncGenerator[dict, None]:
+    model = os.getenv("OPENAI_MODEL", "gpt-4o")
+    client = _get_client()
+    messages = _build_messages(state, user_message)
+
+    stream = await client.chat.completions.create(
+        model=model,
+        messages=messages,
+        temperature=0.5,
+        max_tokens=16384,
+        stream=True,
+    )
+
+    full_response = ""
+    marker_seen = False
+
+    async for chunk in stream:
+        delta = chunk.choices[0].delta
+        if delta.content:
+            token = delta.content
+            full_response += token
+
+            if not marker_seen:
+                if ":::WEEK_MODULES_UPDATE:::" in full_response:
+                    marker_seen = True
+                    pre = token.split(":::WEEK_MODULES_UPDATE:::", 1)[0]
+                    if pre:
+                        yield {"event": "token", "data": json.dumps({"token": pre})}
+                else:
+                    yield {"event": "token", "data": json.dumps({"token": token})}
+
+    agent_message, new_gen, week_summary = _parse_modules(
+        full_response, state.generated
+    )
+
+    new_hist = list(state.conversation_history)
+    new_hist.append({"role": "user", "content": user_message})
+    new_hist.append({"role": "assistant", "content": agent_message})
+
+    yield {
+        "event": "week_modules_update",
+        "data": json.dumps({
+            "agent_message": agent_message,
+            "generated": new_gen.model_dump(),
+            "conversation_history": new_hist,
+            "week_context_summary": week_summary,
+        }),
+    }
+
+    yield {"event": "done", "data": "{}"}

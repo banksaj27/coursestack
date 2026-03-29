@@ -1,0 +1,294 @@
+import { create } from "zustand";
+import syllabusData from "@/data/syllabus.json";
+import { buildInitialModularWeek } from "@/lib/buildInitialModularWeek";
+import {
+  MODULAR_BOOTSTRAP_API_MESSAGE,
+  MODULAR_BOOTSTRAP_DISPLAY,
+} from "@/lib/weekModularBootstrap";
+import { getGlobalFormatInstructions } from "@/lib/weekFormatInstructions";
+import { defaultMaxHistoryMessages } from "@/lib/weekSummaryStorage";
+import {
+  setWeekSummaryForWeek,
+  weekSummariesForApiPayload,
+} from "@/lib/weekSummaryCache";
+import {
+  loadModularWeekPack,
+  saveModularWeekPack,
+} from "@/lib/weekModularPersistence";
+import { streamWeekModularRequest } from "@/lib/weekModularApi";
+import type { Message } from "@/types/course";
+import type { Syllabus } from "@/types/syllabus";
+import type {
+  WeekModularGenerated,
+  WeekModularStatePayload,
+  WeekModule,
+} from "@/types/weekModular";
+
+const syllabus = syllabusData as Syllabus;
+
+type AgentStatus = "idle" | "thinking" | "streaming" | "updating";
+
+let msgCounter = 0;
+function makeId() {
+  return `wm-${Date.now()}-${++msgCounter}`;
+}
+
+function moduleSig(m: WeekModule): string {
+  return JSON.stringify({
+    id: m.id,
+    kind: m.kind,
+    title: m.title,
+    summary: m.summary,
+    body: m.body_md.slice(0, 400),
+  });
+}
+
+function diffModules(old: WeekModule[], next: WeekModule[]): WeekModule[] {
+  const oldMap = new Map(old.map((m) => [m.id, moduleSig(m)]));
+  return next.map((m) => ({
+    ...m,
+    is_new: !oldMap.has(m.id) || oldMap.get(m.id) !== moduleSig(m),
+  }));
+}
+
+function normalizeModule(m: WeekModule): WeekModule {
+  const k = m.kind;
+  const kind: WeekModule["kind"] =
+    k === "project" || k === "problem_set" || k === "quiz" || k === "lecture"
+      ? k
+      : "lecture";
+  return { ...m, kind };
+}
+
+const bootstrapCooldown = new Map<number, number>();
+const BOOTSTRAP_COOLDOWN_MS = 4500;
+
+interface WeekModularStore {
+  syllabus: Syllabus;
+  selectedWeek: number;
+  generated: WeekModularGenerated;
+  messages: Message[];
+  agentStatus: AgentStatus;
+  streamingContent: string;
+
+  setSelectedWeek: (week: number) => void;
+  sendMessage: (text: string, options?: { displayText?: string }) => Promise<void>;
+  bootstrapModularWeek: () => Promise<void>;
+  /** Reload current week from localStorage (call once on client mount). */
+  rehydrateModularForSelectedWeek: () => void;
+}
+
+function toPayload(
+  syllabus: Syllabus,
+  selectedWeek: number,
+  generated: WeekModularGenerated,
+  conversation_history: { role: string; content: string }[],
+): WeekModularStatePayload {
+  const maxConv = defaultMaxHistoryMessages();
+  return {
+    syllabus,
+    selected_week: selectedWeek,
+    generated,
+    conversation_history,
+    week_summaries: weekSummariesForApiPayload(),
+    global_format_instructions: getGlobalFormatInstructions(),
+    ...(maxConv !== undefined ? { max_conversation_messages: maxConv } : {}),
+  };
+}
+
+const firstWeek = syllabus.course_plan.weeks[0]?.week ?? 1;
+
+function loadStateForWeek(week: number): {
+  generated: WeekModularGenerated;
+  messages: Message[];
+} {
+  if (typeof window === "undefined") {
+    return {
+      generated: buildInitialModularWeek(syllabus, week),
+      messages: [],
+    };
+  }
+  const pack = loadModularWeekPack(week);
+  if (pack) {
+    return {
+      generated: pack.generated,
+      messages: pack.messages,
+    };
+  }
+  return {
+    generated: buildInitialModularWeek(syllabus, week),
+    messages: [],
+  };
+}
+
+export const useWeekModularStore = create<WeekModularStore>((set, get) => ({
+  syllabus,
+  selectedWeek: firstWeek,
+  generated: buildInitialModularWeek(syllabus, firstWeek),
+  messages: [],
+  agentStatus: "idle",
+  streamingContent: "",
+
+  rehydrateModularForSelectedWeek: () => {
+    if (typeof window === "undefined") return;
+    const week = get().selectedWeek;
+    const pack = loadModularWeekPack(week);
+    if (!pack) return;
+    set({
+      generated: pack.generated,
+      messages: pack.messages,
+      agentStatus: "idle",
+      streamingContent: "",
+    });
+  },
+
+  setSelectedWeek: (week: number) => {
+    const next = loadStateForWeek(week);
+    set({
+      selectedWeek: week,
+      generated: next.generated,
+      messages: next.messages,
+      agentStatus: "idle",
+      streamingContent: "",
+    });
+  },
+
+  bootstrapModularWeek: async () => {
+    const { agentStatus, messages, selectedWeek, generated } = get();
+    if (agentStatus !== "idle") return;
+    if (messages.length > 0) return;
+    if (generated.modules.length > 0) return;
+
+    const now = Date.now();
+    const last = bootstrapCooldown.get(selectedWeek) ?? 0;
+    if (now - last < BOOTSTRAP_COOLDOWN_MS) return;
+    bootstrapCooldown.set(selectedWeek, now);
+
+    await get().sendMessage(MODULAR_BOOTSTRAP_API_MESSAGE, {
+      displayText: MODULAR_BOOTSTRAP_DISPLAY,
+    });
+  },
+
+  sendMessage: async (text: string, options?: { displayText?: string }) => {
+    const displayText = options?.displayText ?? text;
+    const useAgentStatusBubble =
+      options?.displayText != null && options.displayText !== text;
+    const {
+      agentStatus,
+      syllabus,
+      selectedWeek,
+      generated,
+      messages,
+    } = get();
+    if (agentStatus !== "idle") return;
+
+    const weekAtStart = selectedWeek;
+
+    const history = messages.map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
+
+    let statusStubId: string | null = null;
+    const openingMessage: Message = useAgentStatusBubble
+      ? {
+          id: (statusStubId = makeId()),
+          role: "assistant",
+          content: displayText,
+          timestamp: Date.now(),
+        }
+      : {
+          id: makeId(),
+          role: "user",
+          content: displayText,
+          timestamp: Date.now(),
+        };
+
+    const stripStatusStub = (list: Message[]) =>
+      statusStubId
+        ? list.filter((m) => m.id !== statusStubId)
+        : list;
+
+    set({
+      messages: [...messages, openingMessage],
+      agentStatus: "thinking",
+      streamingContent: "",
+    });
+
+    const assistantMsg: Message = {
+      id: makeId(),
+      role: "assistant",
+      content: "",
+      timestamp: Date.now(),
+    };
+
+    const statePayload = toPayload(
+      syllabus,
+      selectedWeek,
+      generated,
+      history,
+    );
+
+    await streamWeekModularRequest(text, statePayload, {
+      onToken: (token) => {
+        if (get().selectedWeek !== weekAtStart) return;
+        set((s) => ({
+          messages: stripStatusStub(s.messages),
+          streamingContent: s.streamingContent + token,
+          agentStatus: "streaming",
+        }));
+        statusStubId = null;
+      },
+      onModulesUpdate: (data) => {
+        if (get().selectedWeek !== weekAtStart) return;
+        assistantMsg.content = data.agent_message;
+        if (data.week_context_summary) {
+          setWeekSummaryForWeek(weekAtStart, data.week_context_summary);
+        }
+        const rawMods = data.generated.modules.map(normalizeModule);
+        const withNew = diffModules(get().generated.modules, rawMods);
+        set((s) => ({
+          generated: {
+            modules: withNew,
+            instructor_notes_md: data.generated.instructor_notes_md,
+          },
+          messages: [...stripStatusStub(s.messages), { ...assistantMsg }],
+          agentStatus: "updating",
+          streamingContent: "",
+        }));
+        statusStubId = null;
+        const st = get();
+        if (st.selectedWeek === weekAtStart) {
+          saveModularWeekPack(weekAtStart, st.generated, st.messages);
+        }
+      },
+      onDone: () => {
+        set((s) => {
+          if (s.selectedWeek !== weekAtStart) return {};
+          return { agentStatus: "idle", streamingContent: "" };
+        });
+      },
+      onError: (error) => {
+        console.error("Week modular stream error:", error);
+        if (get().selectedWeek !== weekAtStart) return;
+        const errMsg: Message = {
+          id: makeId(),
+          role: "assistant",
+          content:
+            "Something went wrong. Try restarting the backend server.",
+          timestamp: Date.now(),
+        };
+        set((s) => ({
+          messages: [...stripStatusStub(s.messages), errMsg],
+          agentStatus: "idle",
+          streamingContent: "",
+        }));
+        statusStubId = null;
+        const st2 = get();
+        if (st2.selectedWeek === weekAtStart) {
+          saveModularWeekPack(weekAtStart, st2.generated, st2.messages);
+        }
+      },
+    });
+  },
+}));

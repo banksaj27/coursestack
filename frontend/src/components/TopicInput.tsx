@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { useCourseStore } from "@/store/useCourseStore";
 
@@ -145,6 +146,16 @@ export default function TopicInput() {
           ))}
         </motion.div>
 
+        <p className="mt-8 text-center text-[11px] leading-relaxed text-neutral-400">
+          <Link
+            href="/weekly-plan"
+            className="text-neutral-600 underline decoration-neutral-300 underline-offset-2 hover:text-neutral-900"
+          >
+            Weekly Plan
+          </Link>
+          {" — "}
+          <code className="rounded bg-neutral-100 px-1 text-[10px]">syllabus.json</code>
+        </p>
       </div>
     </motion.div>
   );

@@ -10,7 +10,8 @@ from sse_starlette.sse import EventSourceResponse
 from PyPDF2 import PdfReader
 
 from agent import run_agent, run_agent_stream, generate_export
-from models import PlanRequest, PlanResponse, PlanState
+from models import PlanRequest, PlanResponse, PlanState, WeekModularRequest
+from week_modular_agent import run_week_modular_stream
 
 load_dotenv()
 
@@ -35,6 +36,13 @@ async def _event_generator(request: PlanRequest) -> AsyncGenerator[dict, None]:
         yield event
 
 
+async def _week_modular_generator(
+    request: WeekModularRequest,
+) -> AsyncGenerator[dict, None]:
+    async for event in run_week_modular_stream(request.state, request.message):
+        yield event
+
+
 @app.post("/plan/stream")
 async def plan_stream(request: PlanRequest):
     return EventSourceResponse(_event_generator(request))
@@ -52,6 +60,11 @@ async def upload_syllabus(file: UploadFile = File(...)):
 async def export_syllabus(state: PlanState):
     result = await generate_export(state)
     return result
+
+
+@app.post("/week-modular/stream")
+async def week_modular_stream(request: WeekModularRequest):
+    return EventSourceResponse(_week_modular_generator(request))
 
 
 @app.get("/health")
