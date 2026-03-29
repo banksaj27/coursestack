@@ -10,6 +10,24 @@ import {
 import ChatMessage from "@/components/ChatMessage";
 import GlobalFormatRulesField from "@/components/shared/GlobalFormatRulesField";
 
+function PaperclipIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+    </svg>
+  );
+}
+
 function ThinkingIndicator() {
   return (
     <motion.div
@@ -199,7 +217,7 @@ export default function WeekModularChatPanel() {
                     headerMode="none"
                     className="mt-0 border-0 p-0"
                     disabled={isBusy}
-                    applyButtonLabel="APPLY"
+                    applyButtonLabel="Apply"
                     showCompactReset
                     onAfterResetFormat={handleAfterResetGlobalFormat}
                     onApply={() =>
@@ -247,27 +265,33 @@ export default function WeekModularChatPanel() {
         </AnimatePresence>
       </div>
 
-      <footer
-        aria-label="Message for the selected week"
-        className="shrink-0 border-t border-neutral-100 bg-white px-6 py-3"
-      >
+      <div className="shrink-0 border-t border-neutral-100 px-6 py-2.5">
         <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
-          WEEK {selectedWeek}
+          Week {selectedWeek}
         </p>
-        <p className="mb-2.5 mt-0.5 text-sm font-semibold text-neutral-900">
+        <p className="text-sm font-semibold text-neutral-900">
           Refine This Week&apos;s Modules
         </p>
+      </div>
+
+      <div className="shrink-0 border-t border-neutral-100 px-6 py-3">
         <div className="flex items-end gap-2">
+          <button
+            type="button"
+            disabled={isBusy}
+            title="Upload file (PDF or image)"
+            className="shrink-0 rounded-lg border border-neutral-200 p-2 text-neutral-400
+                       transition-colors hover:text-neutral-600 hover:border-neutral-300
+                       disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <PaperclipIcon />
+          </button>
           <textarea
             ref={textareaRef}
             value={input}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
-            placeholder={
-              isBusy
-                ? "Working…"
-                : "Ask for edits to modules, pacing, or difficulty…"
-            }
+            placeholder={isBusy ? "Thinking..." : "Type your response..."}
             disabled={isBusy}
             rows={1}
             className="flex-1 resize-none rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm
@@ -290,7 +314,7 @@ export default function WeekModularChatPanel() {
         <p className="mt-1.5 text-[10px] text-neutral-300">
           Enter to send, Shift+Enter for new line
         </p>
-      </footer>
+      </div>
     </div>
   );
 }

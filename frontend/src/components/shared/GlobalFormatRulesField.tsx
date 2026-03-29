@@ -98,7 +98,7 @@ export default function GlobalFormatRulesField({
             type="button"
             onClick={() => void onApply()}
             disabled={disabled}
-            className="rounded-lg border-2 border-neutral-800 bg-white px-3.5 py-2 text-xs font-semibold text-neutral-900 shadow-sm transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40"
+            className="shrink-0 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-30"
           >
             {applyButtonLabel}
           </button>
