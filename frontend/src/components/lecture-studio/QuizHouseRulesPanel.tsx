@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { FormatRuleEditorBody } from "@/components/shared/GlobalFormatRulesField";
 import { getQuizGlobalRules, setQuizGlobalRules } from "@/lib/quizGlobalRules";
 
 type Props = {
@@ -19,21 +20,32 @@ export default function QuizHouseRulesPanel({ disabled, onApplyRules }: Props) {
     setValue(getQuizGlobalRules());
   }, []);
 
+  const description = (
+    <p>
+      Saved automatically. Applies to{" "}
+      <strong className="font-medium text-neutral-800">every quiz</strong>{" "}
+      (including when the weekly plan AI creates or edits quizzes—rules are sent
+      from here, not shown on Weekly Plan).{" "}
+      <strong className="font-medium text-neutral-800">Apply</strong> rewrites the
+      open quiz on the right to match.
+    </p>
+  );
+
   return (
-    <div className="overflow-hidden rounded-md border border-sky-200/80 bg-sky-50/30">
+    <div className="overflow-hidden rounded-md border border-neutral-200 bg-neutral-50/40">
       <button
         type="button"
         id={toggleId}
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-sky-50/80"
+        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-neutral-100/80"
       >
         <motion.span
           aria-hidden
           animate={{ rotate: open ? 180 : 0 }}
           transition={{ duration: 0.2, ease: "easeOut" }}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-sky-200 bg-white text-sky-700"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-neutral-200 bg-white text-neutral-600"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -49,14 +61,14 @@ export default function QuizHouseRulesPanel({ disabled, onApplyRules }: Props) {
           </svg>
         </motion.span>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-sky-800/80">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
             All quizzes
           </p>
           <p className="text-sm font-semibold text-neutral-900">
             House rules &amp; format
           </p>
         </div>
-        <span className="hidden shrink-0 text-[11px] font-medium text-sky-800/70 sm:inline">
+        <span className="hidden shrink-0 text-[11px] font-medium text-neutral-500 sm:inline">
           {open ? "Hide" : "Show"}
         </span>
       </button>
@@ -72,41 +84,21 @@ export default function QuizHouseRulesPanel({ disabled, onApplyRules }: Props) {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
-            className="overflow-hidden border-t border-sky-200/80 bg-white"
+            className="overflow-hidden border-t border-neutral-200/80 bg-white"
           >
             <div className="px-3 pb-3 pt-2.5">
-              <p className="text-[11px] leading-snug text-neutral-600">
-                Saved automatically. Applies to{" "}
-                <strong className="font-medium text-neutral-800">
-                  every quiz
-                </strong>{" "}
-                (including when the weekly plan AI creates or edits
-                quizzes—rules are sent from here, not shown on Weekly Plan).{" "}
-                <strong className="font-medium text-neutral-800">Apply</strong>{" "}
-                rewrites the open quiz on the right to match.
-              </p>
-              <textarea
+              <FormatRuleEditorBody
+                disabled={disabled}
                 value={value}
-                onChange={(e) => {
-                  const v = e.target.value;
+                onChange={(v) => {
                   setValue(v);
                   setQuizGlobalRules(v);
                 }}
-                disabled={disabled}
-                rows={3}
                 placeholder="Optional: MC vs short-answer mix, number of questions, time limit, difficulty, show work, no partial credit, notation…"
-                className="mt-2 w-full resize-y rounded-lg border border-sky-200/90 bg-white px-3 py-2 text-sm leading-relaxed text-neutral-800 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] outline-none placeholder:text-neutral-400 focus:border-sky-500 focus:ring-1 focus:ring-sky-200 disabled:opacity-50"
+                description={description}
+                onApply={() => void onApplyRules()}
+                applyButtonLabel="Apply"
               />
-              <div className="mt-3 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => void onApplyRules()}
-                  disabled={disabled}
-                  className="rounded-lg border-2 border-sky-800 bg-white px-3.5 py-2 text-xs font-semibold text-sky-950 shadow-sm transition-colors hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  APPLY
-                </button>
-              </div>
             </div>
           </motion.div>
         ) : null}

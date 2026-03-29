@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
+import { getCourseworkDestinationHref } from "@/lib/courseworkNavigation";
 import { useCourseStore } from "@/store/useCourseStore";
 
 const btn =
@@ -9,8 +10,11 @@ const active = "bg-neutral-100 text-neutral-900";
 const idle =
   "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900";
 
-/** Primary navigation: Home, Syllabus builder, Weekly Plan. */
-/** Primary navigation: Home, Syllabus builder, Weekly plan, About. */
+function isModuleWorkspacePath(path: string): boolean {
+  return /^\/(lecture|problem-set|quiz|project)\//.test(path);
+}
+
+/** Primary navigation: Syllabus, Weekly Plan, Coursework (module workspaces), About. */
 export default function AppNav() {
   const pathname = usePathname();
   const router = useRouter();
@@ -29,7 +33,11 @@ export default function AppNav() {
   };
 
   const goPlan = () => {
-    router.push("/weekly-plan")
+    router.push("/weekly-plan");
+  };
+
+  const goCoursework = () => {
+    router.push(getCourseworkDestinationHref());
   };
 
   const goAbout = () => {
@@ -38,7 +46,10 @@ export default function AppNav() {
 
   const onHome = pathname === "/";
   const onSyllabus = pathname.startsWith("/syllabus");
-  const onWeekly = pathname.startsWith("/weekly-plan") || phase === "weekly_plan";
+  const onWeekly =
+    pathname.startsWith("/weekly-plan") ||
+    (phase === "weekly_plan" && !isModuleWorkspacePath(pathname));
+  const onCoursework = isModuleWorkspacePath(pathname);
   const onAbout = pathname.startsWith("/about");
 
   return (
@@ -62,6 +73,14 @@ export default function AppNav() {
           className={`${btn} ${onWeekly ? active : idle}`}
         >
           Weekly Plan
+        </button>
+
+        <button
+          type="button"
+          onClick={goCoursework}
+          className={`${btn} ${onCoursework ? active : idle}`}
+        >
+          Coursework
         </button>
       </div>
 

@@ -4,9 +4,16 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
+import AppNav from "@/components/AppNav";
+import {
+  EmptyWorkspaceScreen,
+  WorkspacePlaceholderLink,
+  inlineLinkClass,
+} from "@/components/shared/EmptyWorkspacePlaceholder";
 import LectureChatPanel from "@/components/lecture-studio/LectureChatPanel";
 import LectureContentPanel from "@/components/lecture-studio/LectureContentPanel";
 import { useLectureStudio } from "@/hooks/useLectureStudio";
+import { setLastOpenedLectureStudio } from "@/lib/courseworkNavigation";
 import { hydrateWeekWorkspace } from "@/lib/hydrateWeekWorkspace";
 
 export default function LectureStudioPage() {
@@ -33,69 +40,74 @@ export default function LectureStudioPage() {
     isBusy,
   } = useLectureStudio(week, moduleId);
 
+  useEffect(() => {
+    if (!Number.isFinite(week) || !moduleId || notFound) return;
+    if (module?.kind === "lecture") {
+      setLastOpenedLectureStudio(week, moduleId);
+    }
+  }, [week, moduleId, notFound, module]);
+
   if (!Number.isFinite(week) || !moduleId) {
     return (
-      <div className="flex h-screen items-center justify-center bg-white px-6">
-        <p className="text-sm text-neutral-600">
-          Invalid lecture link.{" "}
-          <Link href="/weekly-plan" className="text-neutral-900 underline">
+      <EmptyWorkspaceScreen title="Invalid link">
+        <p>
+          This URL is missing a valid week or module id.{" "}
+          <WorkspacePlaceholderLink href="/weekly-plan">
             Back to Weekly Plan
-          </Link>
+          </WorkspacePlaceholderLink>
         </p>
-      </div>
+      </EmptyWorkspaceScreen>
     );
   }
 
   if (!notFound && module && module.kind !== "lecture") {
     return (
-      <div className="flex h-screen flex-col items-center justify-center gap-3 bg-white px-6 text-center">
-        <p className="max-w-md text-sm text-neutral-600">
-          This link is for <strong>lecture</strong> modules only. This item is a{" "}
-          <strong>{module.kind.replace("_", " ")}</strong>.
+      <EmptyWorkspaceScreen title="Not a lecture module">
+        <p>
+          This workspace is for{" "}
+          <strong className="font-medium text-neutral-700">lecture</strong>{" "}
+          modules only. This item is a{" "}
+          <strong className="font-medium text-neutral-700">
+            {module.kind.replace("_", " ")}
+          </strong>
+          .
         </p>
-        <Link
-          href="/weekly-plan"
-          className="text-sm text-neutral-500 underline underline-offset-2 hover:text-neutral-800"
-        >
-          ← Weekly Plan
-        </Link>
-      </div>
+        <p>
+          <WorkspacePlaceholderLink href="/weekly-plan">
+            Go to Weekly Plan
+          </WorkspacePlaceholderLink>
+        </p>
+      </EmptyWorkspaceScreen>
     );
   }
 
   if (notFound) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center gap-3 bg-white px-6 text-center">
-        <p className="max-w-md text-sm text-neutral-600">
+      <EmptyWorkspaceScreen title="No saved module">
+        <p>
           This module isn&apos;t in your saved week data. Generate the week on{" "}
-          <Link href="/weekly-plan" className="font-medium text-neutral-900 underline">
+          <Link href="/weekly-plan" className={inlineLinkClass}>
             Weekly Plan
           </Link>{" "}
           first, then open a lecture from the timeline.
         </p>
-        <Link
-          href="/weekly-plan"
-          className="text-sm text-neutral-500 underline underline-offset-2 hover:text-neutral-800"
-        >
-          ← Weekly Plan
-        </Link>
-      </div>
+        <p>
+          <WorkspacePlaceholderLink href="/weekly-plan">
+            Go to Weekly Plan
+          </WorkspacePlaceholderLink>
+        </p>
+      </EmptyWorkspaceScreen>
     );
   }
 
   return (
-    <div className="flex h-screen flex-col">
-      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-neutral-100 bg-white px-4 py-2">
-        <Link
-          href="/weekly-plan"
-          className="shrink-0 text-xs text-neutral-500 transition-colors hover:text-neutral-800"
-        >
-          ← Weekly Plan
-        </Link>
-        <span className="shrink-0 text-[10px] font-medium tracking-wide text-neutral-400">
+    <div className="flex h-screen flex-col overflow-hidden bg-neutral-50/50">
+      <AppNav />
+      <div className="flex shrink-0 items-center justify-center border-b border-neutral-100 bg-white px-4 py-1.5">
+        <span className="text-[10px] font-medium tracking-wide text-neutral-400">
           Lecture workspace
         </span>
-      </header>
+      </div>
 
       <motion.div
         initial={{ opacity: 0 }}

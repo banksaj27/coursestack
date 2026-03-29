@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { FormatRuleEditorBody } from "@/components/shared/GlobalFormatRulesField";
 import {
   getProblemSetGlobalRules,
   setProblemSetGlobalRules,
@@ -24,6 +25,17 @@ export default function ProblemSetHouseRulesPanel({
   useEffect(() => {
     setValue(getProblemSetGlobalRules());
   }, []);
+
+  const description = (
+    <p>
+      Saved automatically. Applies to{" "}
+      <strong className="font-medium text-neutral-800">every problem set</strong>{" "}
+      (including when the weekly plan AI creates or edits assignments—rules are
+      sent from here, not shown on Weekly Plan).{" "}
+      <strong className="font-medium text-neutral-800">Apply</strong> rewrites the
+      open assignment on the right to match.
+    </p>
+  );
 
   return (
     <div className="overflow-hidden rounded-md border border-neutral-200 bg-neutral-50/40">
@@ -81,38 +93,18 @@ export default function ProblemSetHouseRulesPanel({
             className="overflow-hidden border-t border-neutral-200/80 bg-white"
           >
             <div className="px-3 pb-3 pt-2.5">
-              <p className="text-[11px] leading-snug text-neutral-600">
-                Saved automatically. Applies to{" "}
-                <strong className="font-medium text-neutral-800">
-                  every problem set
-                </strong>{" "}
-                (including when the weekly plan AI creates or edits
-                assignments—rules are sent from here, not shown on Weekly Plan).{" "}
-                <strong className="font-medium text-neutral-800">Apply</strong>{" "}
-                rewrites the open assignment on the right to match.
-              </p>
-              <textarea
+              <FormatRuleEditorBody
+                disabled={disabled}
                 value={value}
-                onChange={(e) => {
-                  const v = e.target.value;
+                onChange={(v) => {
                   setValue(v);
                   setProblemSetGlobalRules(v);
                 }}
-                disabled={disabled}
-                rows={3}
                 placeholder="Optional: notation, number of problems, difficulty, collaboration policy, required sections, coding vs theory…"
-                className="mt-2 w-full resize-y rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm leading-relaxed text-neutral-800 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] outline-none placeholder:text-neutral-400 focus:border-neutral-500 focus:ring-1 focus:ring-neutral-300 disabled:opacity-50"
+                description={description}
+                onApply={() => void onApplyRules()}
+                applyButtonLabel="Apply"
               />
-              <div className="mt-3 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => void onApplyRules()}
-                  disabled={disabled}
-                  className="rounded-lg border-2 border-neutral-800 bg-white px-3.5 py-2 text-xs font-semibold text-neutral-900 shadow-sm transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  APPLY
-                </button>
-              </div>
             </div>
           </motion.div>
         ) : null}
