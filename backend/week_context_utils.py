@@ -70,7 +70,7 @@ def format_global_format_block(raw: str | None) -> str:
     if len(t) > GLOBAL_FORMAT_MAX_CHARS:
         t = t[: GLOBAL_FORMAT_MAX_CHARS - 3] + "..."
     return f"""=== GLOBAL FORMAT & STRUCTURE RULES (ALL WEEKS) ===
-The instructor authored the rules below. They apply to **every week** of this course, including the current week. Follow them in **all** outputs: lecture markdown, problem_set prompts, quiz question write-ups, module body_md, instructor notes—unless the user's **latest** chat message explicitly overrides them.
+The instructor authored the rules below. They apply to **every week** of this course, including the current week. Follow them in **all** outputs: lecture markdown, problem_set prompts, quiz and exam write-ups, module body_md, instructor notes—unless the user's **latest** chat message explicitly overrides them.
 
 {t}
 
@@ -118,6 +118,27 @@ The instructor authored the rules below. They apply to **every** module with `ki
 {t}
 
 === END GLOBAL QUIZ HOUSE RULES ===
+
+"""
+
+EXAM_SPECIFIC_RULES_MAX_CHARS = 4000
+
+
+def format_exam_specific_rules_block(raw: str | None) -> str:
+    """Per-exam instructor rules for the single exam module open in lecture studio (not course-wide)."""
+    if raw is None:
+        return ""
+    t = str(raw).strip()
+    if not t:
+        return ""
+    if len(t) > EXAM_SPECIFIC_RULES_MAX_CHARS:
+        t = t[: EXAM_SPECIFIC_RULES_MAX_CHARS - 3] + "..."
+    return f"""=== THIS EXAM — INSTRUCTOR RULES (THIS MODULE ONLY) ===
+The instructor wrote the notes below for **this exam module only** (the one in the JSON). Apply them when editing `body_md` for this exam, **in addition to** the global format rules above. They do **not** apply to other exams or quizzes. When they conflict with the user's **latest** chat message, follow the chat.
+
+{t}
+
+=== END THIS EXAM — INSTRUCTOR RULES ===
 
 """
 

@@ -9,6 +9,7 @@ Requirements:
 4. Add a **project** module if it fits the course (otherwise you may omit project or use a short "mini-lab" project).
 5. Order modules as they would run across the week (earlier first). Unique snake_case **id** per module.
 6. Fill **instructor_notes_md** for whole-week pacing and links between modules.
+7. **Exam weeks:** If the selected week's syllabus JSON has \`"assessment": "midterm"\` or \`"assessment": "final"\`, the **last** module in \`modules\` **must** be **kind** \`exam\`—a full **midterm** or **final** handout (instructions, coverage, timing, integrity; **only** multiple-choice with options and/or short-answer items, all complete and gradable—like a longer quiz). No module may appear after it. When \`assessment\` is null, do **not** add an \`exam\` module.
 
 Do not use placeholders—every body_md must be substantive.`;
 
@@ -18,7 +19,7 @@ export const MODULAR_BOOTSTRAP_DISPLAY =
 /** User clicked Apply on global format rules — refresh modules for current week. */
 export const APPLY_GLOBAL_FORMAT_MODULAR_API_MESSAGE = `Global format rules were just applied. Rebuild **all modules** for this week to match that house style (headings, tone, notation, section order). Keep syllabus topics and pedagogical intent; rewrite titles, summaries, body_md, and instructor_notes_md as needed.
 
-For every **lecture**, keep **full chapter length (~5–10 pages, paragraph-dense)** plus proofs/sketches, **3+** worked examples, pitfalls, LaTeX, and code when relevant—do not collapse to summaries or thin outlines. Output a full :::WEEK_MODULES_UPDATE::: block.`;
+For every **lecture**, keep **full chapter length (~5–10 pages, paragraph-dense)** plus proofs/sketches, **3+** worked examples, pitfalls, LaTeX, and code when relevant—do not collapse to summaries or thin outlines. If this week's syllabus has \`assessment\` **midterm** or **final**, keep **one** \`exam\` module as the **final** item in the list. Output a full :::WEEK_MODULES_UPDATE::: block.`;
 
 export const APPLY_GLOBAL_FORMAT_MODULAR_DISPLAY =
   "Applying current rules to this week…";

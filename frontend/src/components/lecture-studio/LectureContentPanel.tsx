@@ -8,9 +8,10 @@ const KIND_LABEL: Record<WeekModule["kind"], string> = {
   project: "Project",
   problem_set: "Problem set",
   quiz: "Quiz",
+  exam: "Exam",
 };
 
-type WorkspaceKind = "lecture" | "problem_set" | "quiz" | "project";
+type WorkspaceKind = "lecture" | "problem_set" | "quiz" | "project" | "exam";
 
 function previewKey(moduleId: string, bodyMd: string): string {
   let h = 0;
@@ -29,6 +30,8 @@ const EMPTY_BODY: Record<WorkspaceKind, string> = {
     "No questions yet—ask the professor to draft **multiple-choice** and **short-answer** items, or use the chat for discussion once the quiz exists.",
   project:
     "No project spec yet—ask the professor to draft deliverables and milestones, or use the chat for design discussion once a spec exists.",
+  exam:
+    "No exam content yet—ask the professor to draft the midterm/final (MC and short answer), or use the chat for discussion once it exists.",
 };
 
 type Props = {

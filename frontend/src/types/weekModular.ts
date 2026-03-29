@@ -1,7 +1,12 @@
 import type { Syllabus } from "./syllabus";
 import type { WeekContextSummaryEntry } from "./weekShared";
 
-export type WeekModuleKind = "lecture" | "project" | "problem_set" | "quiz";
+export type WeekModuleKind =
+  | "lecture"
+  | "project"
+  | "problem_set"
+  | "quiz"
+  | "exam";
 
 export interface WeekModule {
   id: string;
@@ -11,6 +16,8 @@ export interface WeekModule {
   body_md: string;
   estimated_minutes?: number | null;
   is_new?: boolean;
+  /** Per-exam notes (exam workspace only); not shared across exams. */
+  exam_specific_rules?: string;
 }
 
 export interface WeekModularGenerated {

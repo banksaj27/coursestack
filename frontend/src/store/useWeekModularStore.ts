@@ -61,6 +61,8 @@ function moduleSig(m: WeekModule): string {
     title: m.title,
     summary: m.summary,
     body: m.body_md.slice(0, 400),
+    examRules:
+      m.kind === "exam" ? (m.exam_specific_rules ?? "").slice(0, 300) : "",
   });
 }
 
@@ -75,10 +77,28 @@ function diffModules(old: WeekModule[], next: WeekModule[]): WeekModule[] {
 function normalizeModule(m: WeekModule): WeekModule {
   const k = m.kind;
   const kind: WeekModule["kind"] =
-    k === "project" || k === "problem_set" || k === "quiz" || k === "lecture"
+    k === "project" ||
+    k === "problem_set" ||
+    k === "quiz" ||
+    k === "exam" ||
+    k === "lecture"
       ? k
       : "lecture";
   return { ...m, kind };
+}
+
+/** Keep per-exam notes when the week AI regenerates modules (ids unchanged). */
+function mergeExamSpecificRulesFromPrevious(
+  prev: WeekModule[],
+  next: WeekModule[],
+): WeekModule[] {
+  const prevById = new Map(prev.map((m) => [m.id, m]));
+  return next.map((m) => {
+    if (m.kind !== "exam") return m;
+    const old = prevById.get(m.id);
+    if (!old?.exam_specific_rules?.trim()) return m;
+    return { ...m, exam_specific_rules: old.exam_specific_rules };
+  });
 }
 
 const bootstrapCooldown = new Map<number, number>();
@@ -381,7 +401,11 @@ export const useWeekModularStore = create<WeekModularStore>((set, get) => ({
           setWeekSummaryForWeek(weekAtStart, data.week_context_summary);
         }
         const rawMods = data.generated.modules.map(normalizeModule);
-        const withNew = diffModules(get().generated.modules, rawMods);
+        const mergedMods = mergeExamSpecificRulesFromPrevious(
+          get().generated.modules,
+          rawMods,
+        );
+        const withNew = diffModules(get().generated.modules, mergedMods);
         set((s) => ({
           generated: {
             modules: withNew,

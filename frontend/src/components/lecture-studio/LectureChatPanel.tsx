@@ -32,7 +32,12 @@ function ThinkingIndicator() {
   );
 }
 
-export type ModuleWorkspaceKind = "lecture" | "problem_set" | "quiz" | "project";
+export type ModuleWorkspaceKind =
+  | "lecture"
+  | "problem_set"
+  | "quiz"
+  | "project"
+  | "exam";
 
 const WORKSPACE_COPY: Record<
   ModuleWorkspaceKind,
@@ -80,6 +85,16 @@ const WORKSPACE_COPY: Record<
     footerTip:
       "Discussion stays in chat; spec edits update the preview on the right.",
   },
+  exam: {
+    subtitle:
+      "Build or refine the midterm/final document, or discuss it—without always changing the file.",
+    emptyHint:
+      "Ask to edit questions, coverage, or logistics when you want the right panel to change. For study strategy or concept checks, just ask—the reply can stay in chat unless you ask to update the exam.",
+    placeholder:
+      "Add MC items, adjust coverage, or clarify instructions…",
+    footerTip:
+      "Discussion stays in chat; exam edits update the preview on the right. Notes above apply only to this exam.",
+  },
 };
 
 type Props = {
@@ -92,7 +107,7 @@ type Props = {
   isBusy: boolean;
   streamingContent: string;
   agentStatus: string;
-  /** Rendered below the header (e.g. all-problem-sets or all-quizzes house rules). */
+  /** Rendered below the header (e.g. problem-set, quiz, or exam global house rules). */
   belowHeaderSlot?: ReactNode;
 };
 

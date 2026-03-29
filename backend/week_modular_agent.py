@@ -86,14 +86,30 @@ def _build_system_prompt(state: WeekModularState) -> str:
     )
     quiz_global_fmt = format_quiz_global_block(state.quiz_global_instructions)
 
-    return f"""You are an expert professor. The user is designing **one calendar week** of a course as a **sequence of modules** (like a vertical timeline), similar to how a full syllabus is broken into weeks — but here each step is a **lecture**, **project**, **problem_set**, or **quiz**.
+    exam_week_rule = ""
+    if week_obj is not None:
+        a = (week_obj.assessment or "").strip().lower()
+        if a in ("midterm", "final"):
+            exam_label = "Midterm" if a == "midterm" else "Final"
+            exam_week_rule = f"""
+=== EXAM WEEK (syllabus tags this week as **{a}**) ===
+The selected week's JSON includes `"assessment": "{a}"`. You **must**:
+1. Put **exactly one** module with **kind** `exam` as the **last** item in `modules` (after every lecture, problem_set, quiz, and project for this week). **Nothing** may follow it.
+2. That **exam** module's `body_md` must be a complete **{exam_label.lower()}** document students could receive: coverage (aligned with this week and cumulative expectations for a {a}), duration, allowed materials, academic integrity, and **only** **multiple-choice** (full stems + labeled options) and/or **short-answer** questions—every item **complete and gradable** (same bar as **quiz**), scaled longer than a weekly quiz when appropriate.
+3. **title** / **summary** should clearly identify it as the **{exam_label.lower()}** so the timeline matches the syllabus tag.
+
+When `assessment` is **null** or missing, **do not** emit any module with **kind** `exam`.
+
+"""
+
+    return f"""You are an expert professor. The user is designing **one calendar week** of a course as a **sequence of modules** (like a vertical timeline), similar to how a full syllabus is broken into weeks — but here each step is a **lecture**, **project**, **problem_set**, **quiz**, or **exam**.
 
 {global_fmt}{ps_global_fmt}{quiz_global_fmt}Course context:
 {syllabus_snapshot}
 
 **Selected week:**
 {week_json}
-
+{exam_week_rule}
 === OTHER WEEKS — COMPACT SUMMARIES ONLY ===
 Short memories of what was generated for *other* weeks. Use for consistency; full structure is the syllabus JSON above.
 
@@ -109,6 +125,7 @@ Short memories of what was generated for *other* weeks. Use for consistency; ful
 - **project** — Spec in `body_md`: goal, deliverables, milestones, grading criteria, suggested timeline within the week.
 - **problem_set** — `body_md` lists concrete problems (numbered) with full statements; students could submit written solutions. If **GLOBAL PROBLEM SET HOUSE RULES** appear above, **every** `problem_set` module’s `body_md` must satisfy them (notation, length, sections, collaboration policy, etc.).
 - **quiz** — `body_md`: the **actual quiz** students would take—**only multiple-choice** (stems with labeled options) **and/or short-answer** questions (explicit prompts); plus instructions, timing, and policies as needed. **Not** a blueprint or list of topics—every item must be a complete, gradable question. If **GLOBAL QUIZ HOUSE RULES** appear above, **every** `quiz` module’s `body_md` must satisfy them (MC/SA mix, length, timing, difficulty, etc.).
+- **exam** — **Only** when **EXAM WEEK** rules apply above (`assessment` is **midterm** or **final**). One **terminal** module: full **midterm** or **final** handout with real MC and/or short-answer items (longer/cumulative as appropriate). Per-exam instructor notes live in `exam_specific_rules` on the module (usually empty until set in exam studio). **Never** use `exam` when there is no exam week tag.
 
 === LECTURE MODULES — TEXTBOOK CHAPTER body_md (CRITICAL) ===
 For every **lecture** module, `body_md` must read like **one full textbook chapter** (or major chapter section)—not slides, not a topic list, not “we will cover…”, not a short handout.
@@ -130,7 +147,7 @@ You MUST NOT:
 **If multiple lecture modules share one week:** Each **individual** lecture module’s `body_md` should still approximate **one chapter’s worth** of material for the topics it covers (do not split one thin lecture into many tiny files—prefer fewer, longer lectures when the syllabus allows).
 
 === STRUCTURE RULES ===
-1. Produce **ordered** `modules` (top = earlier in the week, bottom = later). Typical week: mix of lectures + at least one **problem_set** and/or **quiz**; add a **project** when it fits the topic (e.g. implementation, extended investigation).
+1. Produce **ordered** `modules` (top = earlier in the week, bottom = later). Typical week: mix of lectures + at least one **problem_set** and/or **quiz**; add a **project** when it fits the topic (e.g. implementation, extended investigation). If **EXAM WEEK** rules apply, the **last** module **must** be **kind** `exam`.
 2. Cover the week's **topics** across the **lecture** modules; do not leave syllabus topics only in titles.
 3. Each module needs: **id** (unique snake_case, e.g. `w3_lecture_axioms`), **kind**, **title**, **summary** (one line for the timeline card), **body_md** (substantive), optional **estimated_minutes**.
 4. **instructor_notes_md**: pacing for the whole week, how modules connect, what to do in class vs async.
@@ -151,8 +168,8 @@ Rules:
 - Valid JSON only inside the block. Use \\n inside strings for newlines in body_md.
 - Pack as much **chapter-length** lecture material as the response allows; if constrained, prioritize **complete** proofs and worked examples over filler—then the instructor can ask to continue in a follow-up turn.
 - **Every** reply must include the block. **modules** must be a non-empty array unless the user explicitly asked to clear it.
-- **kind** must be exactly one of: lecture, project, problem_set, quiz.
-- **week_context_summary** (REQUIRED): 4–10 sentences, plain text, max ~1200 characters. Summarize THIS week's module line-up and what students do in each type—stored for when other weeks are edited. If global format rules or global problem set house rules are in effect, note that modules follow those constraints.
+- **kind** must be exactly one of: lecture, project, problem_set, quiz, exam.
+- **week_context_summary** (REQUIRED): 4–10 sentences, plain text, max ~1200 characters. Summarize THIS week's module line-up and what students do in each type—stored for when other weeks are edited. If global format rules or global problem set or quiz house rules are in effect, note that modules follow those constraints.
 """
 
 
@@ -184,7 +201,7 @@ def _parse_modules(
             if not isinstance(m, dict):
                 continue
             kind = str(m.get("kind", "lecture")).lower().strip()
-            if kind not in ("lecture", "project", "problem_set", "quiz"):
+            if kind not in ("lecture", "project", "problem_set", "quiz", "exam"):
                 kind = "lecture"
             est = m.get("estimated_minutes")
             modules.append(
@@ -195,6 +212,7 @@ def _parse_modules(
                     summary=str(m.get("summary", "")),
                     body_md=str(m.get("body_md", "")),
                     estimated_minutes=int(est) if est is not None else None,
+                    exam_specific_rules=str(m.get("exam_specific_rules", "")),
                 )
             )
         notes = str(data.get("instructor_notes_md", ""))

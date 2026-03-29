@@ -34,6 +34,12 @@ const KIND_META: Record<
     badge: "bg-sky-50 text-sky-900 border-sky-200",
     borderNew: "border-indigo-300 bg-indigo-50/50",
   },
+  exam: {
+    label: "Exam",
+    dot: "bg-rose-500",
+    badge: "bg-rose-50 text-rose-900 border-rose-200",
+    borderNew: "border-indigo-300 bg-indigo-50/50",
+  },
 };
 
 interface Props {
@@ -142,6 +148,15 @@ export default function ModuleTimelineNode({
                 className="mt-1.5 inline-block text-[11px] font-medium text-violet-800 underline decoration-violet-200 underline-offset-2 hover:text-violet-950"
               >
                 Open project workspace →
+              </Link>
+            ) : null}
+            {mod.kind === "exam" && mod.id ? (
+              <Link
+                href={`/exam/${week}/${encodeURIComponent(mod.id)}`}
+                onClick={(e) => e.stopPropagation()}
+                className="mt-1.5 inline-block text-[11px] font-medium text-rose-800 underline decoration-rose-200 underline-offset-2 hover:text-rose-950"
+              >
+                Open exam workspace →
               </Link>
             ) : null}
           </div>

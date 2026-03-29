@@ -9,6 +9,7 @@ from openai import AsyncOpenAI
 from models import LectureStudioState, WeekModule
 from week_context_utils import (
     build_messages_with_trim,
+    format_exam_specific_rules_block,
     format_global_format_block,
     format_other_week_summaries,
     format_problem_set_global_block,
@@ -86,6 +87,11 @@ def _build_system_prompt(state: LectureStudioState) -> str:
     quiz_global_fmt = format_quiz_global_block(state.quiz_global_instructions)
 
     kind = state.module.kind
+    exam_specific_fmt = ""
+    if kind == "exam":
+        exam_specific_fmt = format_exam_specific_rules_block(
+            state.module.exam_specific_rules or ""
+        )
     kind_note = ""
     if kind == "lecture":
         kind_note = (
@@ -129,6 +135,14 @@ def _build_system_prompt(state: LectureStudioState) -> str:
             "**timeline** within the week, collaboration/submission expectations, and constraints or starter materials as needed. "
             "Target substantive length when appropriate (often **~1,000–5,000+ words** plus LaTeX/code when relevant). "
             "Use `##`/`###` for sections. **No** one-line stubs: every deliverable must be actionable."
+        )
+    elif kind == "exam":
+        kind_note = (
+            "This module is an **exam** (midterm or final): rewrite `body_md` as the **actual exam** students would sit—"
+            "instructions, coverage, duration, allowed materials, integrity; then **only** **multiple-choice** (stem + labeled options) "
+            "and/or **short-answer** items, each **complete and gradable**—not blueprints or topic lists. "
+            "Scale length and difficulty for a **cumulative** sitting when the title/summary indicate a final. "
+            "Unless the user asks to shorten, **expand** thin text toward a full exam."
         )
 
     if kind == "problem_set":
@@ -236,6 +250,40 @@ Rules when the JSON block **is** present:
 Rules when **no** JSON block:
 - Your chat message is the entire answer. Be helpful and precise; do not silently change the stored project spec.
 """
+    elif kind == "exam":
+        intro = (
+            "You are an expert professor. The user is in **one exam module** on the course timeline (midterm or final). "
+            "They may **shape the exam** (what appears in `body_md` on the right) **and/or** use the chat for "
+            "**review strategy**, **concept checks**, or **clarifications**—often **without** changing that write-up."
+        )
+        job_section = f"""=== YOUR JOB ===
+1. Read the **latest** user message and the current module JSON (especially `body_md`).
+2. **Tutoring / Q&A** (explain ideas the exam may cover, discuss study approach, “is this reasoning sound?”): reply in **prose only** (markdown, LaTeX/code fences as needed). Treat the existing `body_md` as the **source of truth**; cite question numbers. Prefer **hints and guiding questions** over a **full answer key** unless they **explicitly** ask for solutions or official grading notes.
+3. **Exam editing** (add/remove/reword MC or short-answer items, timing, coverage, instructions, logistics, LaTeX, **whole sections**): before the update block, write **only a short** chat message (about **1–4 sentences**): what you changed or a quick confirmation. **Do not** paste the full exam or long excerpts into chat—the **entire** revised exam must appear **only** inside the JSON `body_md` string, not duplicated in prose above the marker. Honor **THIS EXAM — INSTRUCTOR RULES** whenever that block is present. **Structural removals:** if they ask to remove a section, output `body_md` **without** that section—**actually delete the text**, do not claim it is gone while leaving it in JSON.
+4. **Mixed** requests: give tutoring in normal prose, then **one brief** line (optional) before the block—still **no** full exam text in chat—then **one** update block with the **full** `body_md` when edits are needed.
+5. {kind_note}
+6. Whenever you emit JSON, preserve logical **id** and **kind** (enforced server-side).
+"""
+        output_format_section = """=== OUTPUT FORMAT (exam) ===
+**When you change the module** (steps 3–4): write a **short** natural-language preface (see step 3), then **immediately** end with exactly (no large markdown draft of the exam before this):
+
+:::LECTURE_MODULE_UPDATE:::
+{ "title": "...", "summary": "...", "body_md": "...", "estimated_minutes": null }
+:::END_LECTURE_MODULE_UPDATE:::
+
+**When you are only tutoring** (step 2): write your full reply in prose. **Do not** include `:::LECTURE_MODULE_UPDATE:::` or any JSON—the exam text on the right must stay unchanged.
+
+Rules when the JSON block **is** present:
+- Valid JSON only inside the block. Use \\n inside strings for newlines in body_md.
+- **estimated_minutes** may be a number or null.
+- **body_md** must be **non-empty** and the **complete** updated exam unless the user explicitly asked to clear it (brief placeholder + explanation).
+- **body_md** must be the **full** exam text—not a topic list or stubs. **Questions must be real MC or short-answer items**—not illustrative placeholders.
+- **Section removal** requests must change `body_md`: the removed section must be **absent** from the string you emit.
+- The visible chat **before** the marker must stay **brief**: put the full exam **only** in `body_md`.
+
+Rules when **no** JSON block:
+- Your chat message is the entire answer. Be helpful and precise; do not silently change the stored exam.
+"""
     else:
         intro = (
             "You are an expert professor. The instructor is editing **one module** inside a week timeline."
@@ -262,7 +310,7 @@ Rules:
 
     return f"""{intro}
 
-{global_fmt}{ps_global_fmt}{quiz_global_fmt}Course context:
+{global_fmt}{ps_global_fmt}{quiz_global_fmt}{exam_specific_fmt}Course context:
 {syllabus_snapshot}
 
 **Selected week (for context):**
@@ -288,6 +336,9 @@ If this module is a **quiz**, treat `body_md` as the **complete quiz** students 
 
 === PROJECT DEPTH (WHEN kind IS project) ===
 If this module is a **project**, treat `body_md` as the **complete project handout**: goal, **actionable** deliverables, milestones, grading expectations, timeline, logistics, and constraints—written so a student could start work without guessing. Whenever you emit an update block, the JSON `body_md` must be the **full spec**, not an outline—**do not** mirror it in chat. For **discussion-only** replies, rely on the existing `body_md` and do not emit a block.
+
+=== EXAM DEPTH (WHEN kind IS exam) ===
+If this module is an **exam**, treat `body_md` as the **complete exam** students would receive: cumulative coverage as appropriate for midterm/final; clear logistics; **only** real **multiple-choice** and/or **short-answer** questions. Whenever you emit an update block, the JSON `body_md` must be the **full exam**, not an outline—**do not** mirror it in chat. For **tutoring-only** replies, rely on the existing `body_md` and do not emit a block.
 
 {output_format_section}
 """
@@ -323,6 +374,7 @@ def _parse_module_update(
             summary=str(data.get("summary", fallback.summary)),
             body_md=str(data.get("body_md", fallback.body_md)),
             estimated_minutes=int(est) if est is not None else None,
+            exam_specific_rules=fallback.exam_specific_rules,
         )
     except (json.JSONDecodeError, TypeError, ValueError):
         return agent_message, fallback

@@ -34,7 +34,8 @@ function moduleContentChanged(before: WeekModule, after: WeekModule): boolean {
     before.title !== after.title ||
     before.summary !== after.summary ||
     before.body_md !== after.body_md ||
-    before.estimated_minutes !== after.estimated_minutes
+    before.estimated_minutes !== after.estimated_minutes ||
+    (before.exam_specific_rules ?? "") !== (after.exam_specific_rules ?? "")
   );
 }
 
@@ -45,7 +46,11 @@ function normalizeModule(
 ): WeekModule {
   const k = m.kind;
   const kind: WeekModule["kind"] =
-    k === "project" || k === "problem_set" || k === "quiz" || k === "lecture"
+    k === "project" ||
+    k === "problem_set" ||
+    k === "quiz" ||
+    k === "exam" ||
+    k === "lecture"
       ? k
       : preserveKind;
   return {
@@ -146,9 +151,19 @@ export function useModuleStudio(week: number, moduleId: string) {
             modSnap.id,
             modSnap.kind,
           );
-          if (moduleContentChanged(modSnap, next)) {
-            setModule(next);
-            patchModuleInWeekPack(week, moduleId, next);
+          const merged =
+            modSnap.kind === "exam"
+              ? {
+                  ...next,
+                  exam_specific_rules:
+                    next.exam_specific_rules ??
+                    modSnap.exam_specific_rules ??
+                    "",
+                }
+              : next;
+          if (moduleContentChanged(modSnap, merged)) {
+            setModule(merged);
+            patchModuleInWeekPack(week, moduleId, merged);
             useWeekModularStore.getState().syncWeekFromPackIfActive(week);
             setAgentStatus("updating");
           } else {
@@ -183,6 +198,18 @@ export function useModuleStudio(week: number, moduleId: string) {
     [week, moduleId, module, messages, agentStatus],
   );
 
+  const updateExamSpecificRules = useCallback(
+    (rules: string) => {
+      const m = module;
+      if (!m || m.kind !== "exam") return;
+      const next: WeekModule = { ...m, exam_specific_rules: rules };
+      setModule(next);
+      patchModuleInWeekPack(week, moduleId, next);
+      useWeekModularStore.getState().syncWeekFromPackIfActive(week);
+    },
+    [week, moduleId, module],
+  );
+
   return {
     syllabusTopic: syllabus.topic,
     module,
@@ -192,5 +219,6 @@ export function useModuleStudio(week: number, moduleId: string) {
     streamingContent,
     sendMessage,
     isBusy: agentStatus !== "idle",
+    updateExamSpecificRules,
   };
 }

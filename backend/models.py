@@ -66,15 +66,19 @@ class WeekContextSummary(BaseModel):
 
 
 class WeekModule(BaseModel):
-    """One ordered block within a week: lecture, project, problem_set, or quiz."""
+    """One ordered block within a week: lecture, project, problem_set, quiz, or exam."""
 
     id: str = ""
-    kind: str = "lecture"  # lecture | project | problem_set | quiz
+    kind: str = "lecture"  # lecture | project | problem_set | quiz | exam
     title: str = ""
     summary: str = ""
     body_md: str = ""
     estimated_minutes: int | None = None
     is_new: bool = False
+    exam_specific_rules: str = Field(
+        default="",
+        description="Per-exam instructor rules (exam studio only); not a course-wide global.",
+    )
 
 
 class WeekModularGenerated(BaseModel):
