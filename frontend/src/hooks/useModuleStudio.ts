@@ -60,7 +60,8 @@ function moduleContentChanged(before: WeekModule, after: WeekModule): boolean {
     JSON.stringify(before.graded_item_points ?? []) !==
       JSON.stringify(after.graded_item_points ?? []) ||
     JSON.stringify(before.assessment_items ?? []) !==
-      JSON.stringify(after.assessment_items ?? [])
+      JSON.stringify(after.assessment_items ?? []) ||
+    (before.solution_md ?? "") !== (after.solution_md ?? "")
   );
 }
 
@@ -200,7 +201,15 @@ export function useModuleStudio(week: number, moduleId: string) {
                     modSnap.exam_specific_rules ??
                     "",
                 }
-              : next;
+              : modSnap.kind === "problem_set"
+                ? {
+                    ...next,
+                    solution_md:
+                      (next.solution_md ?? "").trim() !== ""
+                        ? next.solution_md
+                        : modSnap.solution_md,
+                  }
+                : next;
           if (moduleContentChanged(modSnap, merged)) {
             setModule(merged);
             patchModuleInWeekPack(week, moduleId, merged);

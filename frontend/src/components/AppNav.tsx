@@ -4,7 +4,6 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { getCourseworkDestinationHref } from "@/lib/courseworkNavigation";
-import { useCourseStore } from "@/store/useCourseStore";
 import { useClassesStore } from "@/store/useClassesStore";
 import MyClassesPanel from "./MyClassesPanel";
 
@@ -22,7 +21,6 @@ function isModuleWorkspacePath(path: string): boolean {
 export default function AppNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const phase = useCourseStore((s) => s.phase);
   const drawerOpen = useClassesStore((s) => s.drawerOpen);
   const toggleDrawer = useClassesStore((s) => s.toggleDrawer);
 
@@ -54,7 +52,7 @@ export default function AppNav() {
   /** Course tabs only on syllabus / weekly / coursework routes — not home or About. */
   const showCourseNav = !isHome && !onAboutPage;
   const onCoursework = isModuleWorkspacePath(pathname);
-  const onSyllabus = !onCoursework && (pathname.startsWith("/syllabus") || (pathname === "/" && phase !== "topic_input"));
+  const onSyllabus = !onCoursework && pathname.startsWith("/syllabus");
   const onWeekly = !onCoursework && !onSyllabus && pathname.startsWith("/weekly-plan");
 
   return (

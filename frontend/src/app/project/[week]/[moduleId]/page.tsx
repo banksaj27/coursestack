@@ -14,6 +14,7 @@ import {
 import LectureChatPanel from "@/components/lecture-studio/LectureChatPanel";
 import LectureContentPanel from "@/components/lecture-studio/LectureContentPanel";
 import ProjectSubmissionPanel from "@/components/project/ProjectSubmissionPanel";
+import { useGradedWorkspaceBootstrap } from "@/hooks/useGradedWorkspaceBootstrap";
 import { useModuleStudio } from "@/hooks/useModuleStudio";
 import { setLastCourseworkVisit } from "@/lib/courseworkNavigation";
 import { hydrateWeekWorkspace } from "@/lib/hydrateWeekWorkspace";
@@ -42,6 +43,8 @@ export default function ProjectWorkspacePage() {
     sendMessage,
     isBusy,
   } = useModuleStudio(week, moduleId);
+
+  useGradedWorkspaceBootstrap(week, moduleId, module, notFound, sendMessage);
 
   const moduleNeighbors = useWeekModuleNeighbors(week, moduleId, module);
 

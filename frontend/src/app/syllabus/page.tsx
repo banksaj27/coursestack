@@ -2,16 +2,17 @@
 
 import { useLayoutEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { useCourseStore } from "@/store/useCourseStore";
 import AppNav from "@/components/AppNav";
 import ChatPanel from "@/components/ChatPanel";
 import CourseTimeline from "@/components/CourseTimeline";
-import TopicInput from "@/components/TopicInput";
 import { hydrateWeekWorkspace } from "@/lib/hydrateWeekWorkspace";
 
+/**
+ * Syllabus route always shows the syllabus workspace (conversation + timeline).
+ * The landing / topic entry UI lives only on `/` (home).
+ */
 export default function SyllabusPage() {
   const [clientReady, setClientReady] = useState(false);
-  const phase = useCourseStore((s) => s.phase);
 
   useLayoutEffect(() => {
     hydrateWeekWorkspace();
@@ -24,18 +25,6 @@ export default function SyllabusPage() {
         <AppNav />
         <div className="flex flex-1 items-center justify-center text-sm text-neutral-500">
           Loading…
-        </div>
-      </div>
-    );
-  }
-
-  /** New or empty courses stay on /syllabus (same topic entry as home) — do not redirect away. */
-  if (phase === "topic_input") {
-    return (
-      <div className="flex h-screen flex-col overflow-hidden bg-neutral-50/50">
-        <AppNav />
-        <div className="min-h-0 flex-1">
-          <TopicInput />
         </div>
       </div>
     );

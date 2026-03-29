@@ -22,6 +22,7 @@ import { normalizeAdjacentMarkdownHeadings } from "@/lib/normalizeAssessmentMark
 import { setModuleAssessmentCompletion } from "@/lib/moduleAssessmentCompletion";
 import { splitMarkdownIntoH2Pages } from "@/lib/splitMarkdownByH2";
 import { stripAnswerSpoilersForTesting } from "@/lib/stripAnswerSpoilersForTesting";
+import { stripProblemSetDisplayPreamble } from "@/lib/stripProblemSetDisplayPreamble";
 import {
   isInstructionBlock,
   parseQuestionBlock,
@@ -1064,10 +1065,14 @@ function GradedTestingModePanelMarkdown({
   gradeItems,
 }: Props) {
   const isReview = mode === "review";
-  const displayBodyMd = useMemo(
-    () => stripAnswerSpoilersForTesting(module.body_md),
-    [module.body_md],
-  );
+  const displayBodyMd = useMemo(() => {
+    let raw = module.body_md;
+    if (module.kind === "problem_set") {
+      raw = stripProblemSetDisplayPreamble(raw);
+    }
+    if (isReview) return raw;
+    return stripAnswerSpoilersForTesting(raw);
+  }, [isReview, module.body_md, module.kind]);
 
   const pages = useMemo(() => {
     const p = splitMarkdownIntoH2Pages(displayBodyMd);

@@ -150,6 +150,8 @@ class WeekModule(BaseModel):
     graded_item_points: list[float] = Field(default_factory=list)
     #: When non-empty for quiz/exam, the app renders and grades from these fields instead of parsing body_md.
     assessment_items: list[AssessmentQuizItem] = Field(default_factory=list)
+    #: Reference answer key (problem_set only); not shown to students until after grading.
+    solution_md: str = ""
 
 
 class WeekModularGenerated(BaseModel):
@@ -212,6 +214,23 @@ class LectureNotesGenerateRequest(BaseModel):
     """Trigger multi-step lecture body generation (outline → per-section → concat)."""
 
     state: LectureStudioState
+
+
+class ProblemSetGenerateRequest(BaseModel):
+    """Trigger multi-step problem set body generation (outline → per-problem → concat)."""
+
+    state: LectureStudioState
+
+
+class ProblemSetGradePayload(BaseModel):
+    """Metadata for PDF grading (JSON in multipart form)."""
+
+    syllabus_topic: str = ""
+    module_title: str = ""
+    body_md: str = ""
+    solution_md: str = ""
+    assessment_total_points: float = 10.0
+    graded_item_points: list[float] = Field(default_factory=list)
 
 
 class ProjectScaffoldRequest(BaseModel):

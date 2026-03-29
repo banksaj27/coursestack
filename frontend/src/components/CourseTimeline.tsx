@@ -87,7 +87,7 @@ export default function CourseTimeline() {
                        disabled:opacity-30 disabled:cursor-not-allowed"
           >
             {isExporting
-              ? "Generating course..."
+              ? "Generating Course..."
               : hasGeneratedCourse
                 ? "View Course"
                 : "Generate Course"}

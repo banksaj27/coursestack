@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useWeekModuleNeighbors } from "@/hooks/useWeekModuleNeighbors";
 import { motion } from "framer-motion";
 import AppNav from "@/components/AppNav";
-import GradedTestingModePanel from "@/components/graded/GradedTestingModePanel";
 import {
   EmptyWorkspaceScreen,
   WorkspacePlaceholderLink,
@@ -16,9 +15,11 @@ import LectureChatPanel from "@/components/lecture-studio/LectureChatPanel";
 import LectureContentPanel from "@/components/lecture-studio/LectureContentPanel";
 import ProblemSetHouseRulesPanel from "@/components/lecture-studio/ProblemSetHouseRulesPanel";
 import { useModuleProgress } from "@/hooks/useModuleAssessmentCompletion";
-import { useGradedWorkspaceBootstrap } from "@/hooks/useGradedWorkspaceBootstrap";
 import { useModuleStudio } from "@/hooks/useModuleStudio";
-import { clearGradedModuleAttempt } from "@/lib/moduleAssessmentCompletion";
+import { useProblemSetBootstrap } from "@/hooks/useProblemSetBootstrap";
+import { effectiveAssessmentTotalPoints } from "@/lib/gradedAssessmentDefaults";
+import { setProblemSetPdfGrade } from "@/lib/moduleAssessmentCompletion";
+import { gradeProblemSetPdf } from "@/lib/problemSetGradeApi";
 import { setLastCourseworkVisit } from "@/lib/courseworkNavigation";
 import { hydrateWeekWorkspace } from "@/lib/hydrateWeekWorkspace";
 import { APPLY_PROBLEM_SET_RULES_MESSAGE } from "@/lib/problemSetStudioApply";
@@ -45,15 +46,75 @@ export default function ProblemSetWorkspacePage() {
     streamingContent,
     sendMessage,
     isBusy,
+    refreshModuleFromPack,
+    appendAssistantMessage,
   } = useModuleStudio(week, moduleId);
 
-  useGradedWorkspaceBootstrap(week, moduleId, module, notFound, sendMessage);
+  const {
+    problemSetProgress,
+    problemSetError,
+    problemSetGenerating,
+    retryProblemSet,
+  } = useProblemSetBootstrap(
+    week,
+    moduleId,
+    module,
+    notFound,
+    refreshModuleFromPack,
+    appendAssistantMessage,
+  );
 
   const moduleNeighbors = useWeekModuleNeighbors(week, moduleId, module);
   const progress = useModuleProgress(week, moduleId);
-  const [testingMode, setTestingMode] = useState(false);
-  const [reviewMode, setReviewMode] = useState(false);
-  const hasGradedAttempt = Boolean(progress.graded);
+
+  const [showAnswerKey, setShowAnswerKey] = useState(false);
+  const [grading, setGrading] = useState(false);
+  const [gradeError, setGradeError] = useState<string | null>(null);
+
+  const hasGradedAttempt = progress.graded != null;
+
+  useEffect(() => {
+    if (hasGradedAttempt) {
+      setShowAnswerKey(true);
+    }
+  }, [hasGradedAttempt]);
+
+  const handlePdfSelected = useCallback(
+    async (file: File) => {
+      const m = module;
+      if (!m || m.kind !== "problem_set") return;
+      if (!file.type.includes("pdf")) {
+        setGradeError("Please upload a PDF file.");
+        return;
+      }
+      const sol = (m.solution_md ?? "").trim();
+      if (!sol) {
+        setGradeError(
+          "Answer key is not available yet. Wait for generation to finish or regenerate the problem set.",
+        );
+        return;
+      }
+      setGradeError(null);
+      setGrading(true);
+      try {
+        const r = await gradeProblemSetPdf(file, {
+          syllabus_topic: syllabusTopic,
+          module_title: m.title,
+          body_md: m.body_md,
+          solution_md: sol,
+          assessment_total_points: effectiveAssessmentTotalPoints(m),
+          graded_item_points: m.graded_item_points ?? [],
+        });
+        setProblemSetPdfGrade(week, moduleId, r.score, r.maxScore, r.feedbackMd);
+        setShowAnswerKey(true);
+      } catch (e) {
+        setGradeError(e instanceof Error ? e.message : String(e));
+      } finally {
+        setGrading(false);
+      }
+    },
+    [module, moduleId, syllabusTopic, week],
+  );
 
   useEffect(() => {
     if (!Number.isFinite(week) || !moduleId || notFound) return;
@@ -115,6 +176,11 @@ export default function ProblemSetWorkspacePage() {
     );
   }
 
+  const canSubmitPdf =
+    Boolean(module?.body_md?.trim()) &&
+    Boolean((module?.solution_md ?? "").trim()) &&
+    !problemSetGenerating;
+
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-neutral-50/50">
       <AppNav />
@@ -125,31 +191,7 @@ export default function ProblemSetWorkspacePage() {
         transition={{ duration: 0.2 }}
         className="flex min-h-0 flex-1"
       >
-        {reviewMode && module && progress.graded ? (
-          <GradedTestingModePanel
-            week={week}
-            moduleId={moduleId}
-            module={module}
-            moduleKind="problem_set"
-            courseTopic={syllabusTopic}
-            mode="review"
-            initialAnswers={progress.graded.answers}
-            savedScore={{
-              score: progress.graded.score,
-              maxScore: progress.graded.maxScore,
-            }}
-            onExit={() => setReviewMode(false)}
-          />
-        ) : testingMode && module ? (
-          <GradedTestingModePanel
-            week={week}
-            moduleId={moduleId}
-            module={module}
-            moduleKind="problem_set"
-            courseTopic={syllabusTopic}
-            onExit={() => setTestingMode(false)}
-          />
-        ) : !testingMode && !reviewMode && module ? (
+        {module ? (
           <>
             <div className="w-[42%] border-r border-neutral-100 bg-white">
               <LectureChatPanel
@@ -159,7 +201,7 @@ export default function ProblemSetWorkspacePage() {
                 moduleTitle={module?.title ?? ""}
                 messages={messages}
                 sendMessage={sendMessage}
-                isBusy={isBusy}
+                isBusy={isBusy || problemSetGenerating}
                 streamingContent={streamingContent}
                 agentStatus={agentStatus}
                 belowHeaderSlot={
@@ -179,15 +221,24 @@ export default function ProblemSetWorkspacePage() {
                 courseTopic={syllabusTopic}
                 module={module}
                 moduleNeighbors={moduleNeighbors}
+                problemSetGenerating={problemSetGenerating}
+                problemSetProgress={problemSetProgress}
+                problemSetError={problemSetError}
+                onRetryProblemSet={retryProblemSet}
                 gradedWorkspaceBar={{
-                  onBeginTesting: () => setTestingMode(true),
-                  onViewAnswers: () => setReviewMode(true),
-                  onReattempt: () => {
-                    clearGradedModuleAttempt(week, moduleId);
-                    setReviewMode(false);
-                  },
                   completedScore: progress.graded,
                   hasGradedAttempt,
+                }}
+                problemSetBar={{
+                  grading,
+                  gradeError,
+                  feedbackMd: progress.graded?.feedbackMd ?? null,
+                  hasAnswerKey: Boolean((module.solution_md ?? "").trim()),
+                  showAnswerKey,
+                  onToggleAnswerKey: () => setShowAnswerKey((v) => !v),
+                  onPdfSelected: handlePdfSelected,
+                  hasGradedAttempt,
+                  canSubmitPdf,
                 }}
               />
             </div>

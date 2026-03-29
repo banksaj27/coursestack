@@ -104,8 +104,22 @@ export function initCoursePlannerPersistence(
     const json = JSON.stringify(payload);
     if (json === lastPersistedJson) return;
 
-    if (state.phase === "topic_input" && !state.planState.topic.trim()) {
-      clearCoursePlannerSnapshot();
+    // Never remove localStorage from this subscription. A transient
+    // `topic_input` + empty topic (navigation order, Strict Mode, or a
+    // single bad tick) used to call `clearCoursePlannerSnapshot()` and wipe
+    // the whole syllabus + chat while other course keys stayed intact.
+    // Only skip persisting when there is nothing meaningful to save; explicit
+    // reset still uses `clearCoursePlannerSnapshot()` in the store.
+    const noTopic = !state.planState.topic.trim();
+    const noWeeks = state.planState.course_plan.weeks.length === 0;
+    const noMessages = state.messages.length === 0;
+    if (
+      state.phase === "topic_input" &&
+      noTopic &&
+      noWeeks &&
+      noMessages &&
+      !state.isComplete
+    ) {
       lastPersistedJson = "";
       return;
     }

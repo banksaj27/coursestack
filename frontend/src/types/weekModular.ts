@@ -46,6 +46,8 @@ export interface WeekModule {
   graded_item_points?: number[];
   /** When non-empty for quiz/exam, testing UI and grading use these instead of parsing body_md. */
   assessment_items?: AssessmentQuizItem[];
+  /** Reference answer key (problem_set); hidden until after PDF grading. */
+  solution_md?: string;
 }
 
 export interface WeekModularGenerated {

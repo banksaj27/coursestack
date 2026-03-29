@@ -175,6 +175,7 @@ def _coerce_module_dict(m: dict) -> WeekModule | None:
         assessment_total_points=atp,
         graded_item_points=gip,
         assessment_items=aitems,
+        solution_md=str(m.get("solution_md", "")),
     )
 
 

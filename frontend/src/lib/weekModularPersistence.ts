@@ -35,6 +35,15 @@ function writeRoot(root: Root): void {
   }
 }
 
+function dispatchWeekPackUpdated(week?: number): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent<{ week?: number }>("week-modular-pack-updated", {
+      detail: week !== undefined ? { week } : {},
+    }),
+  );
+}
+
 function isValidPack(p: unknown): p is StoredPack {
   if (!p || typeof p !== "object") return false;
   const o = p as StoredPack;
@@ -86,6 +95,7 @@ export function saveModularWeekPack(
   };
   root[String(week)] = pack;
   writeRoot(root);
+  dispatchWeekPackUpdated(week);
 }
 
 /** Remove saved data for one week (optional tooling). */
@@ -93,6 +103,7 @@ export function clearModularWeekPack(week: number): void {
   const root = readRoot();
   delete root[String(week)];
   writeRoot(root);
+  dispatchWeekPackUpdated(week);
 }
 
 /** Remove all saved week packs (used when the syllabus changes). */
@@ -103,6 +114,7 @@ export function clearAllModularWeekPacks(): void {
   } catch {
     // ignore
   }
+  dispatchWeekPackUpdated();
 }
 
 /** Replace one module in the saved week pack (e.g. after Lecture Studio edits). */
