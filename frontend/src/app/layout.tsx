@@ -12,6 +12,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Favicon: place `icon.png` in `src/app/` (Next.js metadata file convention).
 export const metadata: Metadata = {
   title: "CourseStack",
   description:

@@ -262,6 +262,16 @@ A final project is more appropriate than a final exam — set assessment to "fin
 for the capstone week.
 - Mixed courses: use whatever combination makes sense for the material.
 
+**STRICT TAG RULES for `assessment` on each week (must follow):**
+- **At most ONE week** in the entire course may use `"assessment": "midterm"` \
+(tag the week that is primarily the midterm exam).
+- **At most ONE week** may use `"assessment": "final"` (the **last** exam week / \
+capstone — typically the **final** week of the course).
+- **Never** tag multiple weeks as `"final"`. Never tag multiple weeks as `"midterm"`.
+- The midterm week (if any) must come **before** the final week (if any) in week order.
+- If the course needs only one big exam, use a single `"final"` on the closing week \
+and leave other weeks with `assessment: null` unless you also need a distinct midterm.
+
 Do NOT default to "problem set every week" — think about what kind of work a real \
 professor in this field would assign. Place midterms after the material they cover \
 and finals/capstones at the end.
@@ -279,7 +289,8 @@ if a topic implicitly requires background the student hasn't seen yet, add it.
 2. ASSESSMENT PLACEMENT: Every exam, quiz, or graded assignment must fall in a week \
 AFTER the topics it assesses have been fully taught. A midterm must cover only \
 material already presented. A final must come after all core content. If any \
-assessment is misplaced relative to its content, move it.
+assessment is misplaced relative to its content, move it. Enforce **at most one** \
+`midterm` and **one** `final` week for the whole course; remove duplicate tags.
 
 3. COHERENT PROGRESSION: The overall sequence must flow logically — \
 foundations → core theory → advanced topics → applications/synthesis. Each week \

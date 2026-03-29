@@ -103,6 +103,10 @@ export function useModuleStudio(week: number, moduleId: string) {
       const modSnap = module;
       if (!modSnap) return;
 
+      const { drainPendingAttachmentContext } = await import("@/lib/attachmentContext");
+      const extra = drainPendingAttachmentContext();
+      const textForApi = extra ? `${trimmed}${extra}` : trimmed;
+
       const snapshot = messages;
       const hist = snapshot.map((m) => ({ role: m.role, content: m.content }));
       const userMsg: Message = {
@@ -144,7 +148,7 @@ export function useModuleStudio(week: number, moduleId: string) {
         ...(maxConv !== undefined ? { max_conversation_messages: maxConv } : {}),
       };
 
-      await streamLectureStudioRequest(trimmed, payload, {
+      await streamLectureStudioRequest(textForApi, payload, {
         onToken: (token) => {
           setStreamingContent((s) => s + token);
           setAgentStatus("streaming");

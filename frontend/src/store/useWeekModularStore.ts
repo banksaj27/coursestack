@@ -346,6 +346,10 @@ export const useWeekModularStore = create<WeekModularStore>((set, get) => ({
   },
 
   sendMessage: async (text: string, options?: { displayText?: string }) => {
+    const { drainPendingAttachmentContext } = await import("@/lib/attachmentContext");
+    const extra = drainPendingAttachmentContext();
+    const textForApi = extra ? `${text}${extra}` : text;
+
     const displayText = options?.displayText ?? text;
     const useAgentStatusBubble =
       options?.displayText != null && options.displayText !== text;
@@ -405,7 +409,7 @@ export const useWeekModularStore = create<WeekModularStore>((set, get) => ({
       history,
     );
 
-    await streamWeekModularRequest(text, statePayload, {
+    await streamWeekModularRequest(textForApi, statePayload, {
       onToken: (_token) => {
         if (get().selectedWeek !== weekAtStart) return;
         // Do not stream pre-marker tokens into chat: full module text belongs on the

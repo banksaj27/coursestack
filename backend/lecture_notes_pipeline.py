@@ -11,21 +11,38 @@ from __future__ import annotations
 import json
 import os
 import re
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator
 
-from openai import AsyncOpenAI
+from google.genai import types
 
+from gemini_client import (
+    gemini_thinking_disabled,
+    get_gemini_client,
+    get_gemini_model,
+    streaming_chunk_text,
+)
 from models import LectureStudioState
 from week_context_utils import format_global_format_block
 
-_client: AsyncOpenAI | None = None
-
-
-def _get_client() -> AsyncOpenAI:
-    global _client
-    if _client is None:
-        _client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    return _client
+_OUTLINE_JSON_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "sections": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 12,
+            "items": {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string"},
+                    "goal": {"type": "string"},
+                },
+                "required": ["title", "goal"],
+            },
+        },
+    },
+    "required": ["sections"],
+}
 
 
 def _week_context_json(state: LectureStudioState) -> tuple[str, str]:
@@ -104,8 +121,9 @@ async def run_lecture_notes_pipeline(
         }
         return
 
-    model = os.getenv("OPENAI_MODEL", "gpt-4o")
-    client = _get_client()
+    default_model = get_gemini_model()
+    model = os.getenv("GEMINI_MODEL_LECTURE_NOTES", default_model)
+    client = get_gemini_client()
     mod = state.module
     week_json, week_title = _week_context_json(state)
     profile = state.syllabus.user_profile
@@ -136,7 +154,7 @@ async def run_lecture_notes_pipeline(
     }
 
     outline_system = f"""You are an expert professor planning ONE lecture chapter for a university course.
-Return ONLY a JSON object (no markdown fences) with this exact shape:
+Return ONLY a JSON object matching the schema with this shape:
 {{"sections":[{{"title":"Short specific section title (will become a ## heading)","goal":"What students must get from this section — concepts, skills, one sentence"}}]}}
 
 Rules:
@@ -165,17 +183,24 @@ Selected week JSON:
 Emit JSON only."""
 
     try:
-        r_outline = await client.chat.completions.create(
+        r_outline = await client.aio.models.generate_content(
             model=model,
-            messages=[
-                {"role": "system", "content": outline_system},
-                {"role": "user", "content": outline_user},
+            contents=[
+                types.Content(
+                    role="user",
+                    parts=[types.Part.from_text(text=outline_user)],
+                )
             ],
-            response_format={"type": "json_object"},
-            temperature=0.35,
-            max_tokens=4096,
+            config=types.GenerateContentConfig(
+                system_instruction=outline_system,
+                temperature=0.35,
+                max_output_tokens=8192,
+                thinking_config=gemini_thinking_disabled(),
+                response_mime_type="application/json",
+                response_json_schema=_OUTLINE_JSON_SCHEMA,
+            ),
         )
-        oc = (r_outline.choices[0].message.content or "").strip()
+        oc = (r_outline.text or "").strip()
         sections = _clamp_sections(_parse_outline_sections(oc))
     except Exception as e:
         yield {
@@ -276,16 +301,22 @@ Write **only** the new material for **{title}** that advances the chapter withou
 Write this portion now."""
 
         try:
-            r_sec = await client.chat.completions.create(
+            r_sec = await client.aio.models.generate_content(
                 model=model,
-                messages=[
-                    {"role": "system", "content": section_system},
-                    {"role": "user", "content": section_user},
+                contents=[
+                    types.Content(
+                        role="user",
+                        parts=[types.Part.from_text(text=section_user)],
+                    )
                 ],
-                temperature=0.45,
-                max_tokens=12000,
+                config=types.GenerateContentConfig(
+                    system_instruction=section_system,
+                    temperature=0.45,
+                    max_output_tokens=32768,
+                    thinking_config=gemini_thinking_disabled(),
+                ),
             )
-            chunk = (r_sec.choices[0].message.content or "").strip()
+            chunk = (r_sec.text or "").strip()
             chunk = _strip_duplicate_h2(chunk, title)
             parts.append(f"## {title}\n\n{chunk}\n")
         except Exception as e:

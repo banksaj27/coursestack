@@ -6,7 +6,12 @@ from typing import AsyncGenerator
 
 from google.genai import types
 
-from gemini_client import get_gemini_client, get_gemini_model
+from gemini_client import (
+    gemini_thinking_disabled,
+    get_gemini_client,
+    get_gemini_model,
+    streaming_chunk_text,
+)
 from models import LectureStudioState, WeekModule
 from week_modular_agent import _DEFAULT_ASSESSMENT_POINTS, _parse_graded_item_points
 from week_context_utils import (
@@ -490,16 +495,6 @@ def _turns_to_contents(turns: list[dict[str, str]]) -> list[types.Content]:
     ]
 
 
-def _stream_chunk_text(chunk) -> str:
-    try:
-        t = getattr(chunk, "text", None)
-        if t:
-            return t
-    except (ValueError, AttributeError):
-        pass
-    return ""
-
-
 def _parse_module_update(
     raw: str, fallback: WeekModule
 ) -> tuple[str, WeekModule]:
@@ -572,11 +567,7 @@ def _lecture_studio_max_tokens(state: LectureStudioState) -> int:
     if state.module.kind != "project":
         raw = os.getenv("GEMINI_MAX_OUTPUT_TOKENS", str(default_cap))
     else:
-        raw = (
-            os.getenv("GEMINI_MAX_OUTPUT_TOKENS_PROJECT")
-            or os.getenv("OPENAI_MAX_OUTPUT_TOKENS_PROJECT")
-            or str(default_cap)
-        )
+        raw = os.getenv("GEMINI_MAX_OUTPUT_TOKENS_PROJECT") or str(default_cap)
     try:
         cap = int(raw.strip())
     except ValueError:
@@ -602,6 +593,7 @@ async def run_lecture_studio_stream(
             system_instruction=system,
             temperature=temperature,
             max_output_tokens=max_tokens,
+            thinking_config=gemini_thinking_disabled(),
         ),
     )
 
@@ -609,7 +601,7 @@ async def run_lecture_studio_stream(
     marker_seen = False
 
     async for chunk in stream:
-        token = _stream_chunk_text(chunk)
+        token = streaming_chunk_text(chunk)
         if not token:
             continue
         full_response += token

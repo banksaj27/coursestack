@@ -8,7 +8,12 @@ from typing import AsyncGenerator
 
 from google.genai import types
 
-from gemini_client import get_gemini_client, get_gemini_model
+from gemini_client import (
+    gemini_thinking_disabled,
+    get_gemini_client,
+    get_gemini_model,
+    streaming_chunk_text,
+)
 from models import (
     CoursePlan,
     PlanRequest,
@@ -43,16 +48,6 @@ def _build_plan_contents(state: PlanState, user_message: str) -> tuple[str, list
             types.Content(role="user", parts=[types.Part.from_text(text=user_message)])
         )
     return system, contents
-
-
-def _stream_chunk_text(chunk) -> str:
-    try:
-        t = getattr(chunk, "text", None)
-        if t:
-            return t
-    except (ValueError, AttributeError):
-        pass
-    return ""
 
 
 _PLAN_RE = re.compile(
@@ -112,6 +107,48 @@ def _week_signature(week: Week) -> str:
         "hw": week.has_homework,
         "assessment": week.assessment,
     }, sort_keys=True)
+
+
+def _normalize_assessment_tags(weeks: list[Week]) -> list[Week]:
+    """At most one midterm (earliest week) and one final (latest week); drop duplicate tags."""
+    if not weeks:
+        return weeks
+
+    def norm_a(w: Week) -> str | None:
+        a = (w.assessment or "").strip().lower()
+        if a == "midterm":
+            return "midterm"
+        if a == "final":
+            return "final"
+        return None
+
+    mid_idx = [
+        i for i, w in enumerate(weeks) if norm_a(w) == "midterm"
+    ]
+    fin_idx = [
+        i for i, w in enumerate(weeks) if norm_a(w) == "final"
+    ]
+    keep_mid = min(mid_idx, key=lambda i: weeks[i].week) if mid_idx else None
+    keep_fin = max(fin_idx, key=lambda i: weeks[i].week) if fin_idx else None
+
+    if (
+        keep_mid is not None
+        and keep_fin is not None
+        and weeks[keep_mid].week >= weeks[keep_fin].week
+    ):
+        keep_mid = None
+
+    out: list[Week] = []
+    for i, w in enumerate(weeks):
+        tag = norm_a(w)
+        if tag == "midterm":
+            new_a = w.assessment if i == keep_mid else None
+        elif tag == "final":
+            new_a = w.assessment if i == keep_fin else None
+        else:
+            new_a = w.assessment
+        out.append(w.model_copy(update={"assessment": new_a}))
+    return out
 
 
 def _parse_response(raw: str, current_state: PlanState) -> tuple[str, PlanState, bool]:
@@ -182,9 +219,13 @@ def _parse_response(raw: str, current_state: PlanState) -> tuple[str, PlanState,
                         if lw.week not in existing_nums:
                             merged.append(lw)
                     merged.sort(key=lambda w: w.week)
-                    new_state.course_plan = CoursePlan(weeks=merged)
+                    new_state.course_plan = CoursePlan(
+                        weeks=_normalize_assessment_tags(merged)
+                    )
                 else:
-                    new_state.course_plan = CoursePlan(weeks=llm_weeks)
+                    new_state.course_plan = CoursePlan(
+                        weeks=_normalize_assessment_tags(llm_weeks)
+                    )
 
             if "agent_phase" in plan_data:
                 new_state.agent_phase = plan_data["agent_phase"]
@@ -208,6 +249,7 @@ async def run_agent(request: PlanRequest) -> PlanResponse:
             system_instruction=system,
             temperature=0.7,
             max_output_tokens=32768,
+            thinking_config=gemini_thinking_disabled(),
         ),
     )
 
@@ -242,11 +284,12 @@ async def run_agent_stream(request: PlanRequest) -> AsyncGenerator[dict, None]:
                 system_instruction=system,
                 temperature=0.7,
                 max_output_tokens=32768,
+                thinking_config=gemini_thinking_disabled(),
             ),
         )
 
         async for chunk in stream:
-            token = _stream_chunk_text(chunk)
+            token = streaming_chunk_text(chunk)
             if not token:
                 continue
             full_response += token
@@ -294,10 +337,11 @@ async def run_agent_stream(request: PlanRequest) -> AsyncGenerator[dict, None]:
                     system_instruction=retry_system,
                     temperature=0.7,
                     max_output_tokens=32768,
+                    thinking_config=gemini_thinking_disabled(),
                 ),
             )
             async for chunk in retry_stream:
-                t = _stream_chunk_text(chunk)
+                t = streaming_chunk_text(chunk)
                 if t:
                     retry_response += t
         except Exception:
@@ -402,6 +446,7 @@ RULES:
         config=types.GenerateContentConfig(
             temperature=0.4,
             max_output_tokens=32768,
+            thinking_config=gemini_thinking_disabled(),
         ),
     )
 

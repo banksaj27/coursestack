@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { WeekModule } from "@/types/weekModular";
 import { MarkdownMath } from "@/components/shared/MarkdownMath";
@@ -11,37 +11,37 @@ import { isGradedAssessmentKind } from "@/lib/moduleAssessmentCompletion";
 
 const KIND_META: Record<
   WeekModule["kind"],
-  { label: string; dot: string; badge: string; borderNew: string }
+  { label: string; dot: string; badge: string; pulse: string }
 > = {
   lecture: {
     label: "Lecture",
     dot: "bg-emerald-500",
     badge: "bg-emerald-50 text-emerald-800 border-emerald-200",
-    borderNew: "border-indigo-300 bg-indigo-50/50",
+    pulse: "bg-emerald-400",
   },
   project: {
     label: "Project",
     dot: "bg-violet-500",
     badge: "bg-violet-50 text-violet-900 border-violet-200",
-    borderNew: "border-indigo-300 bg-indigo-50/50",
+    pulse: "bg-violet-400",
   },
   problem_set: {
     label: "Problem set",
     dot: "bg-amber-500",
     badge: "bg-amber-50 text-amber-900 border-amber-200",
-    borderNew: "border-indigo-300 bg-indigo-50/50",
+    pulse: "bg-amber-400",
   },
   quiz: {
     label: "Quiz",
     dot: "bg-sky-500",
     badge: "bg-sky-50 text-sky-900 border-sky-200",
-    borderNew: "border-indigo-300 bg-indigo-50/50",
+    pulse: "bg-sky-400",
   },
   exam: {
     label: "Exam",
     dot: "bg-rose-500",
     badge: "bg-rose-50 text-rose-900 border-rose-200",
-    borderNew: "border-indigo-300 bg-indigo-50/50",
+    pulse: "bg-rose-400",
   },
 };
 
@@ -60,11 +60,28 @@ export default function ModuleTimelineNode({
   isFirst,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
+  const [highlight, setHighlight] = useState(!!mod.is_new);
   const meta = KIND_META[mod.kind] ?? KIND_META.lecture;
   const onlyNode = isFirst && isLast;
   const graded = isGradedAssessmentKind(mod.kind);
   const ptsTotal = graded ? effectiveAssessmentTotalPoints(mod) : 0;
   const progress = useModuleProgress(week, mod.id);
+
+  useEffect(() => {
+    if (mod.is_new) {
+      setHighlight(true);
+      const timer = setTimeout(() => setHighlight(false), 2000);
+      return () => clearTimeout(timer);
+    }
+    setHighlight(false);
+  }, [
+    mod.is_new,
+    mod.id,
+    mod.title,
+    mod.summary,
+    mod.one_line_summary,
+    mod.body_md,
+  ]);
 
   return (
     <motion.div
@@ -87,15 +104,35 @@ export default function ModuleTimelineNode({
 
       <div className="relative flex w-3.5 shrink-0 flex-col items-center">
         <div
-          className={`relative z-10 mt-[13px] h-3.5 w-3.5 shrink-0 rounded-full border-2 border-white shadow-sm ${meta.dot}`}
+          className="relative z-10 mt-[13px] h-3.5 w-3.5 shrink-0"
           style={{ marginLeft: "0.5px" }}
-        />
+        >
+          {mod.is_new && (
+            <motion.div
+              key={`pulse-${mod.id}-${mod.title}-${(mod.summary || "").slice(0, 40)}`}
+              className={`absolute inset-0 rounded-full ${meta.pulse}`}
+              initial={{ scale: 1, opacity: 0.6 }}
+              animate={{ scale: 2.2, opacity: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+            />
+          )}
+          <div
+            className={`h-full w-full rounded-full border-2 border-white shadow-sm ${meta.dot}`}
+          />
+        </div>
       </div>
 
       <div
-        className={`flex-1 cursor-pointer rounded-xl border transition-colors duration-300 ${
-          mod.is_new ? meta.borderNew : "border-neutral-200 bg-white"
+        className={`flex-1 cursor-pointer rounded-xl border ${
+          highlight
+            ? "border-indigo-300 bg-indigo-50/50"
+            : "border-neutral-200 bg-white"
         }`}
+        style={{
+          transition: highlight
+            ? "none"
+            : "background-color 600ms ease, border-color 600ms ease",
+        }}
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center justify-between gap-2 px-4 py-2.5">

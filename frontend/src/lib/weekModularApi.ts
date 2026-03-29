@@ -41,12 +41,14 @@ export async function streamWeekModularRequest(
     callbacks.onError(
       new Error(`HTTP ${response.status}: ${response.statusText}`),
     );
+    callbacks.onDone();
     return;
   }
 
   const reader = response.body?.getReader();
   if (!reader) {
     callbacks.onError(new Error("No response body"));
+    callbacks.onDone();
     return;
   }
 

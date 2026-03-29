@@ -6,16 +6,14 @@ import json
 import os
 from typing import AsyncGenerator
 
-from openai import AsyncOpenAI
+from google.genai import types
 
-_client: AsyncOpenAI | None = None
-
-
-def _get_client() -> AsyncOpenAI:
-    global _client
-    if _client is None:
-        _client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    return _client
+from gemini_client import (
+    gemini_thinking_disabled,
+    get_gemini_client,
+    get_gemini_model,
+    streaming_chunk_text,
+)
 
 
 def _build_grading_prompt(
@@ -79,30 +77,35 @@ async def run_project_grading_stream(
     project_title: str = "",
     course_topic: str = "",
 ) -> AsyncGenerator[dict, None]:
-    client = _get_client()
-    model = os.getenv("OPENAI_MODEL_PROJECT", os.getenv("OPENAI_MODEL", "gpt-4o"))
+    client = get_gemini_client()
+    default_model = get_gemini_model()
+    model = os.getenv("GEMINI_MODEL_PROJECT", default_model)
 
     system = _build_grading_prompt(body_md, project_title, course_topic)
+    user_text = f"Here is my submission:\n\n{submission}"
 
-    messages = [
-        {"role": "system", "content": system},
-        {"role": "user", "content": f"Here is my submission:\n\n{submission}"},
-    ]
-
-    stream = await client.chat.completions.create(
+    stream = await client.aio.models.generate_content_stream(
         model=model,
-        messages=messages,
-        temperature=0.4,
-        max_tokens=4096,
-        stream=True,
+        contents=[
+            types.Content(
+                role="user",
+                parts=[types.Part.from_text(text=user_text)],
+            )
+        ],
+        config=types.GenerateContentConfig(
+            system_instruction=system,
+            temperature=0.4,
+            max_output_tokens=8192,
+            thinking_config=gemini_thinking_disabled(),
+        ),
     )
 
     async for chunk in stream:
-        delta = chunk.choices[0].delta
-        if delta.content:
+        t = streaming_chunk_text(chunk)
+        if t:
             yield {
                 "event": "token",
-                "data": json.dumps({"token": delta.content}),
+                "data": json.dumps({"token": t}),
             }
 
     yield {"event": "done", "data": "{}"}

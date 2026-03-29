@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useCourseStore } from "@/store/useCourseStore";
 import { useWeekModularStore } from "@/store/useWeekModularStore";
 import {
   APPLY_GLOBAL_FORMAT_MODULAR_API_MESSAGE,
@@ -70,12 +71,19 @@ export default function WeekModularChatPanel() {
     (s) => s.reloadCurrentWeekFromStorage,
   );
 
+  const uploadSyllabus = useCourseStore((s) => s.uploadSyllabus);
+  const uploadImage = useCourseStore((s) => s.uploadImage);
+  const removePendingAttachment = useCourseStore((s) => s.removePendingAttachment);
+  const pendingAttachments = useCourseStore((s) => s.pendingAttachments);
+
   const [input, setInput] = useState("");
+  const [uploading, setUploading] = useState(false);
   const [houseRulesOpen, setHouseRulesOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const houseRulesPanelId = "weekly-plan-house-rules-panel";
   const houseRulesToggleId = "weekly-plan-house-rules-toggle";
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const didHydrateModular = useRef(false);
 
   const isBusy = agentStatus !== "idle";
@@ -121,6 +129,34 @@ export default function WeekModularChatPanel() {
     el.style.height = "auto";
     el.style.height = Math.min(el.scrollHeight, 120) + "px";
   };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    if (file.type === "application/pdf") {
+      await uploadSyllabus(file);
+    } else {
+      await uploadImage(file);
+    }
+    setUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handlePaste = useCallback(
+    async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+      const items = Array.from(e.clipboardData.items);
+      const imageItem = items.find((i) => i.type.startsWith("image/"));
+      if (!imageItem) return;
+      e.preventDefault();
+      const file = imageItem.getAsFile();
+      if (!file) return;
+      setUploading(true);
+      await uploadImage(file);
+      setUploading(false);
+    },
+    [uploadImage],
+  );
 
   const handleAfterResetGlobalFormat = useCallback(() => {
     reloadCurrentWeekFromStorage();
@@ -256,29 +292,65 @@ export default function WeekModularChatPanel() {
       </div>
 
       <div className="shrink-0 border-t border-neutral-100 px-8 py-3">
-        <div className="flex items-center gap-2">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.png,.jpg,.jpeg"
+          onChange={handleFileChange}
+          className="hidden"
+        />
+        {pendingAttachments.length > 0 && (
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            {pendingAttachments.map((att, i) => (
+              <span
+                key={`${att.name}-${i}`}
+                className="inline-flex items-center gap-1 rounded border border-neutral-200 px-2 py-0.5 text-[11px] text-neutral-500"
+              >
+                {att.name}
+                <button
+                  type="button"
+                  onClick={() => removePendingAttachment(i)}
+                  className="ml-0.5 text-neutral-300 hover:text-neutral-600"
+                >
+                  &times;
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="flex items-end gap-2">
           <button
             type="button"
-            disabled={isBusy}
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isBusy || uploading}
             title="Upload file (PDF or image)"
-            className="shrink-0 cursor-pointer rounded-lg border border-neutral-200 p-2 text-neutral-400
-                       transition-colors hover:text-neutral-600 hover:border-neutral-300
-                       disabled:opacity-30 disabled:cursor-not-allowed"
+            className="shrink-0 rounded-lg border border-neutral-200 p-2 text-neutral-400 transition-colors
+                       hover:border-neutral-300 hover:text-neutral-600
+                       disabled:cursor-not-allowed disabled:opacity-30"
           >
-            <PaperclipIcon />
+            {uploading ? (
+              <motion.span
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="block h-4 w-4 rounded-full border-2 border-neutral-300 border-t-neutral-600"
+              />
+            ) : (
+              <PaperclipIcon />
+            )}
           </button>
           <textarea
             ref={textareaRef}
             value={input}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             placeholder={isBusy ? "Thinking..." : "Type your response..."}
             disabled={isBusy}
             rows={1}
             className="flex-1 resize-none rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm
                        text-neutral-900 placeholder-neutral-400 outline-none
                        transition-colors focus:border-neutral-400
-                       disabled:opacity-50 disabled:cursor-not-allowed"
+                       disabled:cursor-not-allowed disabled:opacity-50"
             style={{ minHeight: "36px", maxHeight: "120px" }}
           />
           <button
@@ -287,7 +359,7 @@ export default function WeekModularChatPanel() {
             disabled={isBusy || !input.trim()}
             className="shrink-0 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white
                        transition-colors hover:bg-neutral-800
-                       disabled:opacity-30 disabled:cursor-not-allowed"
+                       disabled:cursor-not-allowed disabled:opacity-30"
           >
             Send
           </button>

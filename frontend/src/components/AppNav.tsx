@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { getCourseworkDestinationHref } from "@/lib/courseworkNavigation";
@@ -63,58 +64,77 @@ export default function AppNav() {
   return (
     <>
       <header
-        className="sticky top-0 z-50 grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-1 border-b border-neutral-200 bg-white px-2 py-2 sm:gap-2 sm:px-4"
+        className="sticky top-0 z-50 flex shrink-0 items-center border-b border-neutral-200 bg-white px-2 py-1.5 sm:px-4 sm:py-1"
         role="navigation"
         aria-label="Main"
       >
-        <div className="flex min-w-0 items-center gap-1 sm:gap-2">
-          {(isHome || onAboutPage) && (
-            <button
-              type="button"
-              onClick={goAbout}
-              className={`${btn} ${onAboutPage ? active : idle}`}
-            >
-              About
-            </button>
-          )}
-          {showCourseNav && (
-            <>
+        <div className="flex min-w-0 flex-1 items-center gap-1.5 pl-0.5 sm:pl-1 sm:gap-2">
+          <button
+            type="button"
+            onClick={goHome}
+            className="flex shrink-0 items-center rounded-md p-0 outline-none ring-neutral-400 transition-opacity hover:opacity-90 focus-visible:ring-2"
+            aria-label="Home"
+          >
+            <Image
+              src="/logo.png"
+              alt=""
+              width={112}
+              height={28}
+              className="h-8 w-auto max-w-[7.5rem] object-contain object-left sm:h-9 sm:max-w-[9rem]"
+              priority
+            />
+          </button>
+          <div className="flex min-w-0 flex-wrap items-center gap-1 sm:gap-2">
+            {(isHome || onAboutPage) && (
               <button
                 type="button"
-                onClick={goSyllabus}
-                className={`${btn} ${onSyllabus ? active : idle}`}
+                onClick={goAbout}
+                className={`${btn} ${onAboutPage ? active : idle}`}
               >
-                Syllabus
+                About
               </button>
+            )}
+            {showCourseNav && (
+              <>
+                <button
+                  type="button"
+                  onClick={goSyllabus}
+                  className={`${btn} ${onSyllabus ? active : idle}`}
+                >
+                  Syllabus
+                </button>
 
-              <button
-                type="button"
-                onClick={goPlan}
-                className={`${btn} ${onWeekly ? active : idle}`}
-              >
-                Weekly Plan
-              </button>
+                <button
+                  type="button"
+                  onClick={goPlan}
+                  className={`${btn} ${onWeekly ? active : idle}`}
+                >
+                  Weekly Plan
+                </button>
 
-              <button
-                type="button"
-                onClick={goCoursework}
-                className={`${btn} ${onCoursework ? active : idle}`}
-              >
-                Coursework
-              </button>
-            </>
-          )}
+                <button
+                  type="button"
+                  onClick={goCoursework}
+                  className={`${btn} ${onCoursework ? active : idle}`}
+                >
+                  Coursework
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
-        <button
-          type="button"
-          onClick={goHome}
-          className="cursor-pointer text-sm font-semibold text-neutral-900"
-        >
-          CourseStack
-        </button>
+        <div className="flex shrink-0 justify-center px-1">
+          <button
+            type="button"
+            onClick={goHome}
+            className="cursor-pointer whitespace-nowrap text-sm font-semibold text-neutral-900"
+          >
+            CourseStack
+          </button>
+        </div>
 
-        <div className="flex min-w-0 items-center justify-end gap-1 sm:gap-2">
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-1 sm:gap-2">
           <button
             type="button"
             onClick={toggleDrawer}

@@ -1,11 +1,18 @@
 from __future__ import annotations
 
 import json
-from typing import AsyncGenerator
+import re
+import traceback
+from typing import Any, AsyncGenerator
 
 from google.genai import types
 
-from gemini_client import get_gemini_client, get_gemini_model
+from gemini_client import (
+    gemini_thinking_disabled,
+    get_gemini_client,
+    get_gemini_model,
+    streaming_chunk_text,
+)
 from models import WeekModularGenerated, WeekModularState, WeekModule
 from week_context_utils import (
     assessment_markdown_format_block,
@@ -52,12 +59,76 @@ _REPAIR_USER_MESSAGE = (
     "Do not omit the closing tag; do not truncate the JSON."
 )
 
+# Gemini structured output when delimited prose+JSON fails (markers missing, fences, or truncation).
+_WEEK_MODULAR_RESPONSE_JSON_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "agent_message": {
+            "type": "string",
+            "description": "Brief reply to the instructor (1–6 sentences).",
+        },
+        "modules": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string"},
+                    "kind": {"type": "string"},
+                    "title": {"type": "string"},
+                    "one_line_summary": {"type": "string"},
+                    "summary": {"type": "string"},
+                    "body_md": {"type": "string"},
+                    "estimated_minutes": {"type": "integer"},
+                    "exam_specific_rules": {"type": "string"},
+                    "assessment_total_points": {"type": "integer"},
+                    "graded_item_points": {
+                        "type": "array",
+                        "items": {"type": "number"},
+                    },
+                },
+                "required": [
+                    "id",
+                    "kind",
+                    "title",
+                    "one_line_summary",
+                    "summary",
+                    "body_md",
+                ],
+            },
+        },
+        "instructor_notes_md": {"type": "string"},
+        "week_context_summary": {"type": "string"},
+    },
+    "required": [
+        "agent_message",
+        "modules",
+        "instructor_notes_md",
+        "week_context_summary",
+    ],
+}
+
 
 def _cap_chat_text(text: str, max_chars: int = 2800) -> str:
     t = (text or "").strip()
     if len(t) <= max_chars:
         return t
     return t[: max_chars - 1].rstrip() + "…"
+
+
+def _strip_fenced_json(blob: str) -> str:
+    """Models often wrap JSON in ```json ... ``` inside the delimiters."""
+    b = blob.strip()
+    if not b.startswith("```"):
+        return b
+    first_nl = b.find("\n")
+    if first_nl == -1:
+        return b
+    b = b[first_nl + 1 :]
+    b = b.rstrip()
+    if b.endswith("```"):
+        b = b[: -3].rstrip()
+    return b.strip()
 
 
 def _extract_modules_json(raw: str) -> str | None:
@@ -68,6 +139,103 @@ def _extract_modules_json(raw: str) -> str | None:
     if ei < 0:
         return None
     return raw[si + len(_START_TAG) : ei].strip()
+
+
+def _coerce_module_dict(m: dict) -> WeekModule | None:
+    kind = str(m.get("kind", "lecture")).lower().strip()
+    if kind not in ("lecture", "project", "problem_set", "quiz", "exam"):
+        kind = "lecture"
+    est = m.get("estimated_minutes")
+    ols = m.get("one_line_summary")
+    one_line = "" if ols is None else str(ols).strip()
+    atp_raw = m.get("assessment_total_points")
+    if atp_raw is not None:
+        try:
+            atp: int | None = int(float(atp_raw))
+        except (TypeError, ValueError):
+            atp = _DEFAULT_ASSESSMENT_POINTS.get(kind)
+    else:
+        atp = _DEFAULT_ASSESSMENT_POINTS.get(kind)
+    gip = _parse_graded_item_points(m.get("graded_item_points"))
+    return WeekModule(
+        id=str(m.get("id", "")),
+        kind=kind,
+        title=str(m.get("title", "Untitled")),
+        one_line_summary=one_line,
+        summary=str(m.get("summary", "")),
+        body_md=str(m.get("body_md", "")),
+        estimated_minutes=int(est) if est is not None else None,
+        exam_specific_rules=str(m.get("exam_specific_rules", "")),
+        assessment_total_points=atp,
+        graded_item_points=gip,
+    )
+
+
+def _week_generated_from_data(
+    data: dict, fallback: WeekModularGenerated
+) -> tuple[WeekModularGenerated, str | None, bool]:
+    """Build WeekModularGenerated from a parsed JSON object; require ≥1 module."""
+    try:
+        mods_raw = data.get("modules", [])
+        if not isinstance(mods_raw, list):
+            return fallback, None, False
+        modules: list[WeekModule] = []
+        for m in mods_raw:
+            if isinstance(m, dict):
+                mod = _coerce_module_dict(m)
+                if mod.id:
+                    modules.append(mod)
+        if len(modules) < 1:
+            return fallback, None, False
+        notes = str(data.get("instructor_notes_md", ""))
+        summary_raw = data.get("week_context_summary")
+        summary = str(summary_raw).strip() if summary_raw is not None else None
+        if summary == "":
+            summary = None
+        return (
+            WeekModularGenerated(modules=modules, instructor_notes_md=notes),
+            summary,
+            True,
+        )
+    except (TypeError, ValueError):
+        return fallback, None, False
+
+
+def _try_parse_json_object_after_prose(raw: str) -> dict | None:
+    """If delimiters are missing, try the last top-level JSON object in the reply."""
+    t = raw.strip()
+    if not t:
+        return None
+    # Strip optional global ```json ... ``` around entire response
+    if "```" in t:
+        fence = re.search(
+            r"```(?:json)?\s*([\s\S]*?)\s*```",
+            t,
+            re.IGNORECASE,
+        )
+        if fence:
+            inner = fence.group(1).strip()
+            if inner.startswith("{"):
+                try:
+                    data = json.loads(inner)
+                    if isinstance(data, dict) and "modules" in data:
+                        return data
+                except json.JSONDecodeError:
+                    pass
+    # Last resort: find `{` that parses to dict with "modules"
+    for i in range(len(t) - 1, -1, -1):
+        if t[i] != "{":
+            continue
+        chunk = t[i:]
+        for j in range(len(chunk), 0, -1):
+            try:
+                data = json.loads(chunk[:j])
+            except json.JSONDecodeError:
+                continue
+            if isinstance(data, dict) and isinstance(data.get("modules"), list):
+                return data
+            break
+    return None
 
 
 def _build_system_prompt(state: WeekModularState) -> str:
@@ -334,19 +502,10 @@ async def _week_modular_repair_completion(
             system_instruction=system,
             temperature=0.2,
             max_output_tokens=65536,
+            thinking_config=gemini_thinking_disabled(),
         ),
     )
     return (resp.text or "").strip()
-
-
-def _stream_chunk_text(chunk) -> str:
-    try:
-        t = getattr(chunk, "text", None)
-        if t:
-            return t
-    except (ValueError, AttributeError):
-        pass
-    return ""
 
 
 async def run_week_modular_stream(
@@ -357,48 +516,64 @@ async def run_week_modular_stream(
     system, turns = _build_gemini_turns(state, user_message)
     contents = _turns_to_contents(turns)
 
-    stream = await client.aio.models.generate_content_stream(
-        model=model,
-        contents=contents,
-        config=types.GenerateContentConfig(
-            system_instruction=system,
-            temperature=0.5,
-            max_output_tokens=65536,
-        ),
-    )
-
     full_response = ""
     marker_seen = False
+    agent_message = ""
+    new_gen = state.generated
+    week_summary: str | None = None
+    parse_ok = False
 
-    async for chunk in stream:
-        token = _stream_chunk_text(chunk)
-        if not token:
-            continue
-        full_response += token
-
-        if not marker_seen:
-            if ":::WEEK_MODULES_UPDATE:::" in full_response:
-                marker_seen = True
-                pre = token.split(":::WEEK_MODULES_UPDATE:::", 1)[0]
-                if pre:
-                    yield {"event": "token", "data": json.dumps({"token": pre})}
-            else:
-                yield {"event": "token", "data": json.dumps({"token": token})}
-
-    agent_message, new_gen, week_summary, parse_ok = _parse_modules(
-        full_response, state.generated
-    )
-
-    if not parse_ok:
-        repair_raw = await _week_modular_repair_completion(
-            client, model, system, turns, full_response
+    try:
+        stream = await client.aio.models.generate_content_stream(
+            model=model,
+            contents=contents,
+            config=types.GenerateContentConfig(
+                system_instruction=system,
+                temperature=0.5,
+                max_output_tokens=65536,
+                thinking_config=gemini_thinking_disabled(),
+            ),
         )
-        ra, rg, rw, repair_ok = _parse_modules(repair_raw, state.generated)
-        if repair_ok:
-            agent_message, new_gen, week_summary = ra, rg, rw
-            parse_ok = True
 
-    if not parse_ok:
+        async for chunk in stream:
+            token = streaming_chunk_text(chunk)
+            if not token:
+                continue
+            full_response += token
+
+            if not marker_seen:
+                if ":::WEEK_MODULES_UPDATE:::" in full_response:
+                    marker_seen = True
+                    pre = token.split(":::WEEK_MODULES_UPDATE:::", 1)[0]
+                    if pre:
+                        yield {"event": "token", "data": json.dumps({"token": pre})}
+                else:
+                    yield {"event": "token", "data": json.dumps({"token": token})}
+
+        agent_message, new_gen, week_summary, parse_ok = _parse_modules(
+            full_response, state.generated
+        )
+
+        if not parse_ok:
+            repair_raw = await _week_modular_repair_completion(
+                client, model, system, turns, full_response
+            )
+            ra, rg, rw, repair_ok = _parse_modules(repair_raw, state.generated)
+            if repair_ok:
+                agent_message, new_gen, week_summary = ra, rg, rw
+                parse_ok = True
+    except Exception as exc:
+        traceback.print_exc()
+        agent_message = (
+            f"**Request failed:** {exc!s}\n\n"
+            "Confirm `GOOGLE_API_KEY` in `backend/.env` and that the backend can reach "
+            "the Gemini API."
+        )
+        new_gen = state.generated
+        week_summary = None
+        parse_ok = False
+
+    if not parse_ok and not agent_message.startswith("**Request failed:**"):
         agent_message = _cap_chat_text(agent_message)
         if not agent_message:
             agent_message = "I wasn't able to refresh the modules on the timeline."
