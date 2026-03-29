@@ -13,7 +13,12 @@ from gemini_client import (
     get_gemini_model,
     streaming_chunk_text,
 )
-from models import WeekModularGenerated, WeekModularState, WeekModule
+from models import (
+    WeekModularGenerated,
+    WeekModularState,
+    WeekModule,
+    parse_assessment_items_from_payload,
+)
 from week_context_utils import (
     assessment_markdown_format_block,
     build_gemini_turns_with_trim,
@@ -157,6 +162,7 @@ def _coerce_module_dict(m: dict) -> WeekModule | None:
     else:
         atp = _DEFAULT_ASSESSMENT_POINTS.get(kind)
     gip = _parse_graded_item_points(m.get("graded_item_points"))
+    aitems = parse_assessment_items_from_payload(m.get("assessment_items"))
     return WeekModule(
         id=str(m.get("id", "")),
         kind=kind,
@@ -168,6 +174,7 @@ def _coerce_module_dict(m: dict) -> WeekModule | None:
         exam_specific_rules=str(m.get("exam_specific_rules", "")),
         assessment_total_points=atp,
         graded_item_points=gip,
+        assessment_items=aitems,
     )
 
 
@@ -345,8 +352,9 @@ For **every** module with **kind** `problem_set`, `quiz`, or `exam` you **must**
 === STRUCTURE RULES ===
 1. Produce **ordered** `modules` (top = earlier in the week, bottom = later). **GLOBAL FORMAT & STRUCTURE RULES** (if present above) **define required module kinds and counts**—e.g. “at least one project per week” ⇒ include **≥1** module with `"kind": "project"`; “only one quiz” ⇒ **exactly one** `quiz` (exam week: still one **terminal** `exam` as specified elsewhere). If global rules are silent on projects, still include **≥1 `project`** when the week’s topic supports implementation, data, or an extended artifact; only omit a project when the subject is purely theoretical **and** global rules do not require one. Typical week: multiple **lecture**s + **problem_set** + **quiz** + **project** when required or fitting. If **EXAM WEEK** rules apply, the **last** module **must** be **kind** `exam`.
 2. Cover the week's **topics** across the **lecture** modules; do not leave syllabus topics only in titles.
-3. Each module needs: **id** (unique snake_case, e.g. `w3_lecture_axioms`), **kind**, **title**, **`one_line_summary`**, **`summary`** (see below), **`body_md`** (the single-line placeholder only), optional **estimated_minutes**.
-4. **instructor_notes_md**: pacing for the whole week, how modules connect, what to do in class vs async.
+3. **Subject alignment (critical):** Course **`topic`** plus **Selected week** `topics` define what this week is about. **Every** module—especially **`quiz`**, **`problem_set`**, **`exam`**, **`project`**, and **`lecture`**—must use **titles** and **summaries** that match that subject. **Never** reuse wording from a different discipline (e.g. do not title a quiz “Foundations of Probability” or describe probability axioms when the week is molecular biology, organic chemistry, etc.). When you **edit** or **regenerate** `modules`, **rewrite** any row whose title or summary still refers to the wrong field.
+4. Each module needs: **id** (unique snake_case, e.g. `w3_lecture_axioms`), **kind**, **title**, **`one_line_summary`**, **`summary`** (see below), **`body_md`** (the single-line placeholder only), optional **estimated_minutes**.
+5. **instructor_notes_md**: pacing for the whole week, how modules connect, what to do in class vs async.
 
 === MODULE timeline text — TWO FIELDS (every `kind`) ===
 Every module has **two** strings for the Weekly Plan timeline; substantive curriculum lives in workspaces, not in `body_md`.
