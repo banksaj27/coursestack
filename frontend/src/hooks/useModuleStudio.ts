@@ -29,6 +29,29 @@ function makeId() {
   return `ms-${Date.now()}-${++counter}`;
 }
 
+/** User-facing copy: network failures are usually backend/URL, not Gemini keys. */
+function moduleStudioErrorHint(error: Error): string {
+  const m = error.message.toLowerCase();
+  const unreachable =
+    m.includes("cannot reach") ||
+    m.includes("failed to fetch") ||
+    m.includes("network error") ||
+    m.includes("load failed");
+  if (unreachable) {
+    return `${error.message} — Usually the FastAPI server is not running or NEXT_PUBLIC_API_URL is wrong (default http://localhost:8000).`;
+  }
+  if (
+    m.includes("http 401") ||
+    m.includes("http 403") ||
+    m.includes("api key") ||
+    m.includes("permission denied") ||
+    m.includes("unauthorized")
+  ) {
+    return `${error.message} — Check GOOGLE_API_KEY in backend/.env (Google AI Studio).`;
+  }
+  return `${error.message} — Confirm the backend is up, NEXT_PUBLIC_API_URL matches it, and GOOGLE_API_KEY is set if the server logs mention Gemini/auth.`;
+}
+
 function moduleContentChanged(before: WeekModule, after: WeekModule): boolean {
   return (
     before.title !== after.title ||
@@ -201,7 +224,7 @@ export function useModuleStudio(week: number, moduleId: string) {
           const errMsg: Message = {
             id: makeId(),
             role: "assistant",
-            content: `Request failed (${error.message}). Check the backend and GOOGLE_API_KEY.`,
+            content: `Request failed: ${moduleStudioErrorHint(error)}`,
             timestamp: Date.now(),
           };
           const finalMsgs = [...withUser, errMsg];

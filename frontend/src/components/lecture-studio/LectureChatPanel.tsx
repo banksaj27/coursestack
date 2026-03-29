@@ -81,8 +81,6 @@ const WORKSPACE_COPY: Record<
       "Request edits to problems or the rubric when you want the right panel to change. For hints, “what if I try…?”, or checking a proof or program, just ask—the reply stays in chat unless you ask to update the assignment.",
     placeholder:
       "Hint for P3, discuss my approach, or edit the problem set…",
-    footerTip:
-      "Tutoring stays in chat; assignment edits update the preview on the right. House rules above apply to all problem sets in this course (weekly generation too).",
   },
   quiz: {
     subtitle:
@@ -294,7 +292,7 @@ export default function LectureChatPanel({
             ))}
           </div>
         )}
-        <div className="flex items-end gap-2">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}

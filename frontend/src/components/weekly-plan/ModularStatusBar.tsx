@@ -57,7 +57,7 @@ export default function ModularStatusBar() {
               disabled={isActive}
               className="h-9 shrink-0 rounded-lg border border-neutral-200 bg-white px-2.5 text-[11px] font-medium text-neutral-700 transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Reset &amp; regenerate
+              Reset &amp; Regenerate
             </button>
             {isActive && (
               <motion.div

@@ -1,14 +1,56 @@
 "use client";
 
-import type { HTMLAttributes } from "react";
+import { Children, isValidElement, type HTMLAttributes } from "react";
 import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
+import { extractTikzcdFromMarkdown } from "@/lib/extractTikzcdFromMarkdown";
 import { normalizeLatexDelimiters } from "@/lib/normalizeLatexDelimiters";
+import TikzDiagram, { codeToPlainString } from "./TikzDiagram";
 import type { PluggableList } from "unified";
 import "katex/dist/katex.min.css";
+
+/** Fenced ```latex blocks from tikzcd extraction get a small label + scroll. */
+function latexAwarePre(
+  defaultMb: string,
+  defaultPreClass: string,
+): NonNullable<Components["pre"]> {
+  return ({ children, ...props }) => {
+    const first = Children.toArray(children)[0];
+    const codeClass =
+      isValidElement(first) &&
+      first.props &&
+      typeof first.props === "object" &&
+      "className" in first.props &&
+      typeof (first.props as { className?: unknown }).className === "string"
+        ? (first.props as { className: string }).className
+        : "";
+    if (codeClass.includes("language-latex")) {
+      return (
+        <div
+          className={`${defaultMb} overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50`}
+        >
+          <p className="border-b border-neutral-100 bg-neutral-100/80 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
+            Commutative diagram (LaTeX source)
+          </p>
+          <pre
+            className="m-0 overflow-x-auto p-3 font-mono text-xs leading-relaxed text-neutral-900"
+            {...props}
+          >
+            {children}
+          </pre>
+        </div>
+      );
+    }
+    return (
+      <pre className={`${defaultMb} ${defaultPreClass}`} {...props}>
+        {children}
+      </pre>
+    );
+  };
+}
 
 const baseComponents: Components = {
   h1: ({ children, ...props }) => (
@@ -78,6 +120,9 @@ const baseComponents: Components = {
   ),
   code: ({ className, children, ...props }) => {
     const isBlock = Boolean(className?.includes("language-"));
+    if (isBlock && className?.includes("language-tikzcd")) {
+      return <TikzDiagram source={codeToPlainString(children)} />;
+    }
     if (isBlock) {
       return (
         <code
@@ -97,10 +142,9 @@ const baseComponents: Components = {
       </code>
     );
   },
-  pre: ({ children, ...props }) => (
-    <pre className="mb-3 overflow-x-auto rounded-lg bg-neutral-100 p-3 text-sm" {...props}>
-      {children}
-    </pre>
+  pre: latexAwarePre(
+    "mb-3",
+    "overflow-x-auto rounded-lg bg-neutral-100 p-3 text-sm",
   ),
   blockquote: ({ children, ...props }) => (
     <blockquote
@@ -205,10 +249,9 @@ const lightUniformComponents: Components = {
     </blockquote>
   ),
   hr: () => <hr className="my-4 border-neutral-200" />,
-  pre: ({ children, ...props }) => (
-    <pre className="mb-2 overflow-x-auto rounded-lg bg-neutral-100 p-3 text-sm" {...props}>
-      {children}
-    </pre>
+  pre: latexAwarePre(
+    "mb-2",
+    "overflow-x-auto rounded-lg bg-neutral-100 p-3 text-sm",
   ),
 };
 
@@ -255,14 +298,19 @@ const darkComponents: Components = {
       {children}
     </strong>
   ),
-  code: ({ children, ...props }) => (
-    <code
-      className="rounded bg-white/10 px-1 py-0.5 font-mono text-[0.9em] text-white/90"
-      {...props}
-    >
-      {children}
-    </code>
-  ),
+  code: ({ className, children, ...props }) => {
+    if (className?.includes("language-tikzcd")) {
+      return <TikzDiagram source={codeToPlainString(children)} />;
+    }
+    return (
+      <code
+        className="rounded bg-white/10 px-1 py-0.5 font-mono text-[0.9em] text-white/90"
+        {...props}
+      >
+        {children}
+      </code>
+    );
+  },
 };
 
 const darkUniformComponents: Components = {
@@ -359,6 +407,7 @@ export function MarkdownMath({
   if (latexDelimiterNormalize) {
     md = normalizeLatexDelimiters(md);
   }
+  md = extractTikzcdFromMarkdown(md);
 
   return (
     <div
