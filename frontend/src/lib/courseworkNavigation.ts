@@ -1,4 +1,5 @@
 import { ensureWeekFormatHydrated } from "@/lib/weekFormatInstructions";
+import { clearAllLectureStudioMessages } from "@/lib/lectureStudioPersistence";
 import { loadModularWeekPack } from "@/lib/weekModularPersistence";
 
 const STORAGE_KEY = "yhack-last-lecture-studio-v1";
@@ -30,6 +31,21 @@ export function getLastOpenedLectureStudio(): LastLectureStudio | null {
   } catch {
     return null;
   }
+}
+
+export function clearLastOpenedLectureStudio(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Lecture-studio chat history + last Coursework nav target; call when weekly modules are wiped or replaced. */
+export function clearAllCourseworkCaches(): void {
+  clearAllLectureStudioMessages();
+  clearLastOpenedLectureStudio();
 }
 
 /** First lecture module in saved week 1, if any. */

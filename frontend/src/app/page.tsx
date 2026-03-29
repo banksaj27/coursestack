@@ -1,9 +1,15 @@
 "use client";
 
+import { useLayoutEffect } from "react";
 import AppNav from "@/components/AppNav";
 import TopicInput from "@/components/TopicInput";
+import { hydrateWeekWorkspace } from "@/lib/hydrateWeekWorkspace";
 
 export default function Home() {
+  useLayoutEffect(() => {
+    hydrateWeekWorkspace();
+  }, []);
+
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-neutral-50/50">
       <AppNav />

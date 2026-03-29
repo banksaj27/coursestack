@@ -87,10 +87,10 @@ export default function CourseTimeline() {
                        disabled:opacity-30 disabled:cursor-not-allowed"
           >
             {isExporting
-              ? "Generating course..."
+              ? "Generating courses..."
               : hasGeneratedCourse
-                ? "View Course"
-                : "Generate Course"}
+                ? "View Courses"
+                : "Generate Courses"}
           </button>
         </div>
       )}

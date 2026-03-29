@@ -50,3 +50,13 @@ export function saveLectureStudioMessages(
   };
   writeRoot(root);
 }
+
+/** Remove all saved lecture / problem set / quiz / project workspace chats (e.g. after syllabus or week regeneration). */
+export function clearAllLectureStudioMessages(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+}

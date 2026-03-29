@@ -15,11 +15,17 @@ import {
   setWeekSummaryForWeek,
   weekSummariesForApiPayload,
 } from "@/lib/weekSummaryCache";
+import { clearAllCourseworkCaches } from "@/lib/courseworkNavigation";
 import {
   loadModularWeekPack,
   saveModularWeekPack,
   clearAllModularWeekPacks,
 } from "@/lib/weekModularPersistence";
+import {
+  clearWeekModularSnapshot,
+  saveWeekModularSnapshot,
+} from "@/lib/weekModularSyllabusPersistence";
+import { clearAllWeekSummaries } from "@/lib/weekSummaryCache";
 import { streamWeekModularRequest } from "@/lib/weekModularApi";
 import type { Message } from "@/types/course";
 import type { Syllabus } from "@/types/syllabus";
@@ -87,6 +93,8 @@ interface WeekModularStore {
   streamingContent: string;
 
   setSyllabus: (s: Syllabus) => void;
+  /** Restore syllabus + week selection from localStorage after refresh (does not clear packs). */
+  applyPersistedSnapshot: (syllabus: Syllabus, selectedWeek: number) => void;
   /** Clear syllabus, all week packs, and summaries; use after course syllabus changes without re-export. */
   clearWeeklyWorkspace: () => void;
   /** Re-sync in-memory week from storage (e.g. after global format reset). */
@@ -155,7 +163,11 @@ export const useWeekModularStore = create<WeekModularStore>((set, get) => ({
   streamingContent: "",
 
   setSyllabus: (s: Syllabus) => {
-    clearAllModularWeekPacks();
+    if (typeof window !== "undefined") {
+      clearAllModularWeekPacks();
+      clearAllCourseworkCaches();
+      clearAllWeekSummaries();
+    }
     const firstWeek = s.course_plan.weeks[0]?.week ?? 1;
     set({
       syllabus: s,
@@ -165,11 +177,33 @@ export const useWeekModularStore = create<WeekModularStore>((set, get) => ({
       agentStatus: "idle",
       streamingContent: "",
     });
+    if (typeof window !== "undefined") {
+      saveWeekModularSnapshot(s, firstWeek);
+    }
+  },
+
+  applyPersistedSnapshot: (syllabus: Syllabus, selectedWeek: number) => {
+    const weeks = syllabus.course_plan.weeks;
+    if (!weeks.length) return;
+    const valid =
+      weeks.find((w) => w.week === selectedWeek)?.week ?? weeks[0].week;
+    const next = loadStateForWeek(syllabus, valid);
+    set({
+      syllabus,
+      selectedWeek: valid,
+      generated: next.generated,
+      messages: next.messages,
+      agentStatus: "idle",
+      streamingContent: "",
+    });
   },
 
   clearWeeklyWorkspace: () => {
     if (typeof window !== "undefined") {
       clearAllModularWeekPacks();
+      clearAllCourseworkCaches();
+      clearAllWeekSummaries();
+      clearWeekModularSnapshot();
       bootstrapCooldown.clear();
     }
     set({
@@ -229,12 +263,18 @@ export const useWeekModularStore = create<WeekModularStore>((set, get) => ({
       agentStatus: "idle",
       streamingContent: "",
     });
+    const { syllabus } = get();
+    if (typeof window !== "undefined" && syllabus.topic.trim()) {
+      saveWeekModularSnapshot(syllabus, week);
+    }
   },
 
   resetWeeklyPlanAndRegenerate: async () => {
     if (get().agentStatus !== "idle") return;
     if (typeof window !== "undefined") {
       clearAllModularWeekPacks();
+      clearAllCourseworkCaches();
+      clearAllWeekSummaries();
       bootstrapCooldown.clear();
     }
     const { syllabus, selectedWeek } = get();

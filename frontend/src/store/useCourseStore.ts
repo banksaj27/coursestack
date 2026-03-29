@@ -8,7 +8,7 @@ import type {
 } from "@/types/course";
 import { streamPlanRequest, uploadSyllabusFile, uploadImageFile, exportSyllabus } from "@/lib/api";
 import type { ImageAttachment } from "@/types/course";
-import { clearAllWeekSummaries } from "@/lib/weekSummaryCache";
+import { clearCoursePlannerSnapshot } from "@/lib/coursePlannerPersistence";
 import { useWeekModularStore } from "@/store/useWeekModularStore";
 import type { Syllabus } from "@/types/syllabus";
 
@@ -96,7 +96,7 @@ interface PendingAttachment {
   image?: ImageAttachment;
 }
 
-interface CourseStore {
+export interface CourseStore {
   phase: AppPhase;
   planState: PlanState;
   messages: Message[];
@@ -243,7 +243,6 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
         set((s) => {
           const invalidateWeekly = s.hasExportedToWeekly;
           if (invalidateWeekly) {
-            clearAllWeekSummaries();
             useWeekModularStore.getState().clearWeeklyWorkspace();
           }
           return {
@@ -322,6 +321,7 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
   },
 
   reset: () => {
+    clearCoursePlannerSnapshot();
     set({
       phase: "topic_input",
       planState: emptyPlanState(),
