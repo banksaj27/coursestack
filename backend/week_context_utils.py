@@ -156,23 +156,3 @@ def build_messages_with_trim(
         messages.append({"role": entry["role"], "content": entry["content"]})
     messages.append({"role": "user", "content": user_message})
     return messages
-
-
-def build_gemini_contents_with_trim(
-    system: str,
-    history: list[dict],
-    user_message: str,
-    max_conversation_messages: int | None,
-) -> tuple[str, list[dict]]:
-    """Return (system_instruction, contents) for Gemini.
-
-    Contents use role='model' instead of 'assistant'.
-    """
-    limit = effective_history_limit(max_conversation_messages)
-    trimmed = trim_conversation_history(history, limit)
-    contents: list[dict] = []
-    for entry in trimmed:
-        role = "model" if entry["role"] == "assistant" else "user"
-        contents.append({"role": role, "content": entry["content"]})
-    contents.append({"role": "user", "content": user_message})
-    return system, contents

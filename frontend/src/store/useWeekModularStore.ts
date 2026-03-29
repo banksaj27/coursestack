@@ -329,23 +329,13 @@ export const useWeekModularStore = create<WeekModularStore>((set, get) => ({
   bootstrapModularWeek: async () => {
     const { agentStatus, messages, selectedWeek, generated } = get();
     if (agentStatus !== "idle") return;
+    if (messages.length > 0) return;
     if (generated.modules.length > 0) return;
 
     const now = Date.now();
     const last = bootstrapCooldown.get(selectedWeek) ?? 0;
     if (now - last < BOOTSTRAP_COOLDOWN_MS) return;
     bootstrapCooldown.set(selectedWeek, now);
-
-    if (messages.length > 0) {
-      set({ messages: [], streamingContent: "" });
-      if (typeof window !== "undefined") {
-        saveModularWeekPack(
-          selectedWeek,
-          generated,
-          [],
-        );
-      }
-    }
 
     await get().sendMessage(MODULAR_BOOTSTRAP_API_MESSAGE, {
       displayText: MODULAR_BOOTSTRAP_DISPLAY,

@@ -4,12 +4,11 @@ import json
 import os
 from typing import AsyncGenerator
 
-from google import genai
-from google.genai import types
+from openai import AsyncOpenAI
 
 from models import LectureStudioState, WeekModule
 from week_context_utils import (
-    build_gemini_contents_with_trim,
+    build_messages_with_trim,
     format_exam_specific_rules_block,
     format_global_format_block,
     format_other_week_summaries,
@@ -18,13 +17,13 @@ from week_context_utils import (
     strip_meta_part_labels,
 )
 
-_client: genai.Client | None = None
+_client: AsyncOpenAI | None = None
 
 
-def _get_client() -> genai.Client:
+def _get_client() -> AsyncOpenAI:
     global _client
     if _client is None:
-        _client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+        _client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     return _client
 
 
@@ -345,10 +344,9 @@ If this module is an **exam**, treat `body_md` as the **complete exam** students
 """
 
 
-def _build_contents(state: LectureStudioState, user_message: str) -> tuple[str, list[dict]]:
-    """Return (system_instruction, contents) for Gemini."""
+def _build_messages(state: LectureStudioState, user_message: str) -> list[dict]:
     system = _build_system_prompt(state)
-    return build_gemini_contents_with_trim(
+    return build_messages_with_trim(
         system,
         state.conversation_history,
         user_message,
@@ -385,27 +383,25 @@ def _parse_module_update(
 async def run_lecture_studio_stream(
     state: LectureStudioState, user_message: str
 ) -> AsyncGenerator[dict, None]:
-    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    model = os.getenv("OPENAI_MODEL", "gpt-4o")
     client = _get_client()
-    system, contents = _build_contents(state, user_message)
+    messages = _build_messages(state, user_message)
+
+    stream = await client.chat.completions.create(
+        model=model,
+        messages=messages,
+        temperature=0.5,
+        max_tokens=16384,
+        stream=True,
+    )
 
     full_response = ""
     marker_seen = False
 
-    async for chunk in await client.aio.models.generate_content_stream(
-        model=model,
-        contents=[
-            types.Content(role=c["role"], parts=[types.Part.from_text(text=c["content"])])
-            for c in contents
-        ],
-        config=types.GenerateContentConfig(
-            system_instruction=system,
-            temperature=0.5,
-            max_output_tokens=16384,
-        ),
-    ):
-        token = chunk.text or ""
-        if token:
+    async for chunk in stream:
+        delta = chunk.choices[0].delta
+        if delta.content:
+            token = delta.content
             full_response += token
 
             if not marker_seen:
