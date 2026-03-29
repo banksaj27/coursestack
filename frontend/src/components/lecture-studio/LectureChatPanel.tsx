@@ -332,12 +332,12 @@ export default function LectureChatPanel({
             Send
           </button>
         </div>
-        <p className="mt-1.5 text-xs text-neutral-400">
-          Enter to send · Shift+Enter for new line
+        <p className="mt-1.5 text-[10px] text-neutral-300">
+          Enter to send, Shift+Enter for new line
           {copy.footerTip ? (
             <>
               <br />
-              <span className="text-neutral-500">{copy.footerTip}</span>
+              {copy.footerTip}
             </>
           ) : null}
         </p>

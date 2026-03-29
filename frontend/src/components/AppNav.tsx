@@ -34,11 +34,7 @@ export default function AppNav() {
   };
 
   const goSyllabus = () => {
-    if (phase === "topic_input") {
-      router.push("/");
-    } else {
-      router.push("/syllabus");
-    }
+    router.push("/syllabus");
   };
 
   const goPlan = () => {

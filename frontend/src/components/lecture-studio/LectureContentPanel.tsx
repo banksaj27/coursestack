@@ -64,7 +64,7 @@ type Props = {
     /** When true, show View answers / Reattempt instead of Begin Testing. */
     hasGradedAttempt?: boolean;
   };
-  /** Lecture workspace: toggle completion in the same row as the summary. */
+  /** Lecture workspace: toggle completion (top-right of the meta box). */
   lectureWorkspaceBar?: {
     isComplete: boolean;
     onToggleComplete?: () => void;
@@ -153,9 +153,9 @@ export default function LectureContentPanel({
       </div>
 
       <div className="shrink-0 border-b border-neutral-100 px-8 py-3">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
               <span className="rounded border border-neutral-200 bg-neutral-50 px-2 py-0.5 text-xs font-semibold text-neutral-700">
                 {kindLabel}
               </span>
@@ -170,71 +170,71 @@ export default function LectureContentPanel({
                   {ptsTotal} pts total
                 </span>
               ) : null}
+            </div>
+            <div className="flex shrink-0 flex-col items-end gap-2">
               {graded && gradedWorkspaceBar?.completedScore ? (
                 <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-900">
                   Score {gradedWorkspaceBar.completedScore.score}/
                   {gradedWorkspaceBar.completedScore.maxScore}
                 </span>
               ) : null}
+              {workspace === "lecture" && lectureWorkspaceBar ? (
+                <button
+                  type="button"
+                  aria-pressed={lectureWorkspaceBar.isComplete}
+                  onClick={lectureWorkspaceBar.onToggleComplete}
+                  className={
+                    lectureWorkspaceBar.isComplete
+                      ? "rounded-xl border-2 border-emerald-300 bg-emerald-50 px-5 py-2 text-sm font-semibold text-emerald-900 shadow-sm transition-colors hover:border-emerald-400 hover:bg-emerald-100/90"
+                      : "rounded-xl border-2 border-emerald-700 bg-emerald-700 px-5 py-2 text-sm font-semibold tracking-wide text-white shadow-sm transition-colors hover:bg-emerald-800"
+                  }
+                >
+                  {lectureWorkspaceBar.isComplete
+                    ? "✓ Marked complete"
+                    : "Mark complete"}
+                </button>
+              ) : null}
+              {graded && gradedWorkspaceBar ? (
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+                  {gradedWorkspaceBar.hasGradedAttempt ? (
+                    <>
+                      {gradedWorkspaceBar.onViewAnswers ? (
+                        <button
+                          type="button"
+                          onClick={gradedWorkspaceBar.onViewAnswers}
+                          className="rounded-xl border-2 border-neutral-300 bg-white px-5 py-2 text-sm font-semibold text-neutral-900 shadow-sm transition-colors hover:bg-neutral-50"
+                        >
+                          View answers
+                        </button>
+                      ) : null}
+                      {gradedWorkspaceBar.onReattempt ? (
+                        <button
+                          type="button"
+                          onClick={gradedWorkspaceBar.onReattempt}
+                          className="rounded-xl border-2 border-rose-200 bg-rose-50 px-5 py-2 text-sm font-semibold text-rose-900 shadow-sm transition-colors hover:bg-rose-100/90"
+                        >
+                          Reattempt
+                        </button>
+                      ) : null}
+                    </>
+                  ) : gradedWorkspaceBar.onBeginTesting ? (
+                    <button
+                      type="button"
+                      onClick={gradedWorkspaceBar.onBeginTesting}
+                      className="rounded-xl border-2 border-neutral-800 bg-neutral-900 px-5 py-2 text-sm font-semibold tracking-wide text-white shadow-sm transition-colors hover:bg-neutral-800"
+                    >
+                      Begin Testing
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
-            {module.summary ? (
-              <p className="mt-1.5 text-xs leading-relaxed text-neutral-500">
-                {module.summary}
-              </p>
-            ) : null}
           </div>
-          <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:min-w-[12rem] sm:items-end">
-            {workspace === "lecture" && lectureWorkspaceBar ? (
-              <button
-                type="button"
-                aria-pressed={lectureWorkspaceBar.isComplete}
-                onClick={lectureWorkspaceBar.onToggleComplete}
-                className={
-                  lectureWorkspaceBar.isComplete
-                    ? "rounded-xl border-2 border-emerald-300 bg-emerald-50 px-6 py-3 text-sm font-semibold text-emerald-900 shadow-sm transition-colors hover:border-emerald-400 hover:bg-emerald-100/90"
-                    : "rounded-xl border-2 border-emerald-700 bg-emerald-700 px-6 py-3 text-sm font-semibold tracking-wide text-white shadow-sm transition-colors hover:bg-emerald-800"
-                }
-              >
-                {lectureWorkspaceBar.isComplete
-                  ? "✓ Marked complete"
-                  : "Mark complete"}
-              </button>
-            ) : null}
-            {graded && gradedWorkspaceBar ? (
-              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
-                {gradedWorkspaceBar.hasGradedAttempt ? (
-                  <>
-                    {gradedWorkspaceBar.onViewAnswers ? (
-                      <button
-                        type="button"
-                        onClick={gradedWorkspaceBar.onViewAnswers}
-                        className="rounded-xl border-2 border-neutral-300 bg-white px-6 py-3 text-sm font-semibold text-neutral-900 shadow-sm transition-colors hover:bg-neutral-50"
-                      >
-                        View answers
-                      </button>
-                    ) : null}
-                    {gradedWorkspaceBar.onReattempt ? (
-                      <button
-                        type="button"
-                        onClick={gradedWorkspaceBar.onReattempt}
-                        className="rounded-xl border-2 border-rose-200 bg-rose-50 px-6 py-3 text-sm font-semibold text-rose-900 shadow-sm transition-colors hover:bg-rose-100/90"
-                      >
-                        Reattempt
-                      </button>
-                    ) : null}
-                  </>
-                ) : gradedWorkspaceBar.onBeginTesting ? (
-                  <button
-                    type="button"
-                    onClick={gradedWorkspaceBar.onBeginTesting}
-                    className="rounded-xl border-2 border-neutral-800 bg-neutral-900 px-6 py-3 text-sm font-semibold tracking-wide text-white shadow-sm transition-colors hover:bg-neutral-800"
-                  >
-                    Begin Testing
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
+          {module.summary ? (
+            <p className="text-xs leading-relaxed text-neutral-500">
+              {module.summary}
+            </p>
+          ) : null}
         </div>
       </div>
 

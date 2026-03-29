@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useClassesStore } from "@/store/useClassesStore";
-import { useCourseStore } from "@/store/useCourseStore";
 
 function timeAgo(ts: number): string {
   const diff = Date.now() - ts;
@@ -54,8 +53,7 @@ export default function MyClassesPanel() {
       if (remaining.length === 0) {
         router.push("/");
       } else {
-        const phase = useCourseStore.getState().phase;
-        router.push(phase === "topic_input" ? "/" : "/syllabus");
+        router.push("/syllabus");
       }
     }
   };

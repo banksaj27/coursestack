@@ -66,6 +66,9 @@ export default function ModuleTimelineNode({
   const graded = isGradedAssessmentKind(mod.kind);
   const ptsTotal = graded ? effectiveAssessmentTotalPoints(mod) : 0;
   const progress = useModuleProgress(week, mod.id);
+  const isDone =
+    (mod.kind === "lecture" && progress.lectureComplete) ||
+    (graded && progress.graded != null);
 
   useEffect(() => {
     if (mod.is_new) {
@@ -107,7 +110,7 @@ export default function ModuleTimelineNode({
           className="relative z-10 mt-[13px] h-3.5 w-3.5 shrink-0"
           style={{ marginLeft: "0.5px" }}
         >
-          {mod.is_new && (
+          {mod.is_new && !isDone && (
             <motion.div
               key={`pulse-${mod.id}-${mod.title}-${(mod.summary || "").slice(0, 40)}`}
               className={`absolute inset-0 rounded-full ${meta.pulse}`}
@@ -117,7 +120,9 @@ export default function ModuleTimelineNode({
             />
           )}
           <div
-            className={`h-full w-full rounded-full border-2 border-white shadow-sm ${meta.dot}`}
+            className={`h-full w-full rounded-full border-2 border-white shadow-sm ${
+              isDone ? "bg-neutral-400" : meta.dot
+            }`}
           />
         </div>
       </div>
@@ -126,7 +131,9 @@ export default function ModuleTimelineNode({
         className={`flex-1 cursor-pointer rounded-xl border ${
           highlight
             ? "border-indigo-300 bg-indigo-50/50"
-            : "border-neutral-200 bg-white"
+            : isDone
+              ? "border-neutral-200 bg-neutral-100/70"
+              : "border-neutral-200 bg-white"
         }`}
         style={{
           transition: highlight
@@ -135,38 +142,36 @@ export default function ModuleTimelineNode({
         }}
         onClick={() => setExpanded(!expanded)}
       >
-        <div className="flex items-center justify-between gap-2 px-4 py-2.5">
+        <div className="flex items-start justify-between gap-2 px-4 py-2.5">
           <div className="min-w-0 flex-1">
             <div className="mb-1 flex flex-wrap items-center gap-2">
               <span
-                className={`shrink-0 rounded border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wider ${meta.badge}`}
+                className={`shrink-0 rounded border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wider ${
+                  isDone
+                    ? "border-neutral-300 bg-neutral-200/80 text-neutral-600"
+                    : meta.badge
+                }`}
               >
                 {meta.label}
               </span>
               {mod.estimated_minutes != null && mod.estimated_minutes > 0 ? (
-                <span className="text-[10px] text-neutral-400">
+                <span
+                  className={`text-[10px] ${isDone ? "text-neutral-500" : "text-neutral-400"}`}
+                >
                   ~{mod.estimated_minutes} min
                 </span>
               ) : null}
               {graded ? (
-                <span className="text-[10px] font-medium text-neutral-600">
+                <span
+                  className={`text-[10px] font-medium ${isDone ? "text-neutral-500" : "text-neutral-600"}`}
+                >
                   {ptsTotal} pts
                 </span>
               ) : null}
-              {mod.kind === "lecture" && progress.lectureComplete ? (
-                <span className="inline-flex items-center gap-0.5 rounded border border-emerald-200 bg-emerald-50/90 px-1.5 py-px text-[10px] font-semibold text-emerald-900">
-                  <span aria-hidden>✓</span>
-                  Done
-                </span>
-              ) : null}
-              {graded && progress.graded ? (
-                <span className="inline-flex items-center gap-0.5 rounded border border-emerald-200 bg-emerald-50/90 px-1.5 py-px text-[10px] font-semibold text-emerald-900">
-                  <span aria-hidden>✓</span>
-                  {progress.graded.score}/{progress.graded.maxScore}
-                </span>
-              ) : null}
             </div>
-            <h3 className="truncate text-[13px] font-semibold text-neutral-900">
+            <h3
+              className={`truncate text-[13px] font-semibold ${isDone ? "text-neutral-500" : "text-neutral-900"}`}
+            >
               {mod.title}
             </h3>
             {mod.one_line_summary?.trim() ? (
@@ -181,7 +186,11 @@ export default function ModuleTimelineNode({
               <Link
                 href={`/lecture/${week}/${encodeURIComponent(mod.id)}`}
                 onClick={(e) => e.stopPropagation()}
-                className="mt-1.5 inline-block text-[11px] font-medium text-emerald-700 underline decoration-emerald-200 underline-offset-2 hover:text-emerald-900"
+                className={
+                  isDone
+                    ? "mt-1.5 inline-block text-[11px] font-medium text-neutral-500 underline decoration-neutral-300 underline-offset-2 hover:text-neutral-700"
+                    : "mt-1.5 inline-block text-[11px] font-medium text-emerald-700 underline decoration-emerald-200 underline-offset-2 hover:text-emerald-900"
+                }
               >
                 Open lecture workspace →
               </Link>
@@ -190,7 +199,11 @@ export default function ModuleTimelineNode({
               <Link
                 href={`/problem-set/${week}/${encodeURIComponent(mod.id)}`}
                 onClick={(e) => e.stopPropagation()}
-                className="mt-1.5 inline-block text-[11px] font-medium text-amber-800 underline decoration-amber-200 underline-offset-2 hover:text-amber-950"
+                className={
+                  isDone
+                    ? "mt-1.5 inline-block text-[11px] font-medium text-neutral-500 underline decoration-neutral-300 underline-offset-2 hover:text-neutral-700"
+                    : "mt-1.5 inline-block text-[11px] font-medium text-amber-800 underline decoration-amber-200 underline-offset-2 hover:text-amber-950"
+                }
               >
                 Open problem set workspace →
               </Link>
@@ -199,7 +212,11 @@ export default function ModuleTimelineNode({
               <Link
                 href={`/quiz/${week}/${encodeURIComponent(mod.id)}`}
                 onClick={(e) => e.stopPropagation()}
-                className="mt-1.5 inline-block text-[11px] font-medium text-sky-800 underline decoration-sky-200 underline-offset-2 hover:text-sky-950"
+                className={
+                  isDone
+                    ? "mt-1.5 inline-block text-[11px] font-medium text-neutral-500 underline decoration-neutral-300 underline-offset-2 hover:text-neutral-700"
+                    : "mt-1.5 inline-block text-[11px] font-medium text-sky-800 underline decoration-sky-200 underline-offset-2 hover:text-sky-950"
+                }
               >
                 Open quiz workspace →
               </Link>
@@ -208,7 +225,11 @@ export default function ModuleTimelineNode({
               <Link
                 href={`/project/${week}/${encodeURIComponent(mod.id)}`}
                 onClick={(e) => e.stopPropagation()}
-                className="mt-1.5 inline-block text-[11px] font-medium text-violet-800 underline decoration-violet-200 underline-offset-2 hover:text-violet-950"
+                className={
+                  isDone
+                    ? "mt-1.5 inline-block text-[11px] font-medium text-neutral-500 underline decoration-neutral-300 underline-offset-2 hover:text-neutral-700"
+                    : "mt-1.5 inline-block text-[11px] font-medium text-violet-800 underline decoration-violet-200 underline-offset-2 hover:text-violet-950"
+                }
               >
                 Open project workspace →
               </Link>
@@ -217,27 +238,45 @@ export default function ModuleTimelineNode({
               <Link
                 href={`/exam/${week}/${encodeURIComponent(mod.id)}`}
                 onClick={(e) => e.stopPropagation()}
-                className="mt-1.5 inline-block text-[11px] font-medium text-rose-800 underline decoration-rose-200 underline-offset-2 hover:text-rose-950"
+                className={
+                  isDone
+                    ? "mt-1.5 inline-block text-[11px] font-medium text-neutral-500 underline decoration-neutral-300 underline-offset-2 hover:text-neutral-700"
+                    : "mt-1.5 inline-block text-[11px] font-medium text-rose-800 underline decoration-rose-200 underline-offset-2 hover:text-rose-950"
+                }
               >
                 Open exam workspace →
               </Link>
             ) : null}
           </div>
-          <motion.svg
-            animate={{ rotate: expanded ? 180 : 0 }}
-            transition={{ duration: 0.15 }}
-            className="h-3.5 w-3.5 shrink-0 text-neutral-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 9l-7 7-7-7"
-            />
-          </motion.svg>
+          <div className="flex shrink-0 items-start gap-2 pt-0.5">
+            <div className="flex flex-col items-end gap-1">
+              {mod.kind === "lecture" && progress.lectureComplete ? (
+                <span className="shrink-0 rounded border border-emerald-200 bg-emerald-50/90 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wider text-emerald-900">
+                  ✓ Done
+                </span>
+              ) : null}
+              {graded && progress.graded ? (
+                <span className="shrink-0 rounded border border-emerald-200 bg-emerald-50/90 px-1.5 py-px text-[10px] font-semibold tracking-wider text-emerald-900">
+                  ✓ {progress.graded.score}/{progress.graded.maxScore}
+                </span>
+              ) : null}
+            </div>
+            <motion.svg
+              animate={{ rotate: expanded ? 180 : 0 }}
+              transition={{ duration: 0.15 }}
+              className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${isDone ? "text-neutral-300" : "text-neutral-400"}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </motion.svg>
+          </div>
         </div>
 
         <AnimatePresence>
@@ -259,7 +298,7 @@ export default function ModuleTimelineNode({
                     <MarkdownMath
                       source={mod.summary}
                       variant="light"
-                      className="text-neutral-700"
+                      className={isDone ? "text-neutral-500" : "text-neutral-700"}
                     />
                   </div>
                 ) : (
