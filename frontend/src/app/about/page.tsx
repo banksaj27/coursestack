@@ -14,16 +14,30 @@ type TeamMember = {
   name: string;
   role: string;
   note?: string;
+  linkedinUrl: string;
 };
 
 const TEAM: TeamMember[] = [
-  { name: "Adam Banks", role: "Stanford University" },
+  {
+    name: "Adam Banks",
+    role: "Stanford University",
+    linkedinUrl: "https://www.linkedin.com/in/adam-banks-a00a61378/",
+  },
   {
     name: "Alyssa Chu",
     role: "Massachusetts Institute of Technology (MIT)",
+    linkedinUrl: "https://www.linkedin.com/in/alyssa-chu/",
   },
-  { name: "George Huo", role: "Yale University" },
-  { name: "Luca Huang", role: "Columbia University" },
+  {
+    name: "George Huo",
+    role: "Yale University",
+    linkedinUrl: "https://www.linkedin.com/in/george-huo-8875602b2/",
+  },
+  {
+    name: "Luca Huang",
+    role: "Columbia University",
+    linkedinUrl: "https://www.linkedin.com/in/yanming-huang-92899838b/",
+  },
 ];
 
 export default function AboutPage() {
@@ -49,7 +63,16 @@ export default function AboutPage() {
                 key={`${member.name}-${i}`}
                 className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm"
               >
-                <p className="font-medium text-neutral-900">{member.name}</p>
+                <p className="font-medium text-neutral-900">
+                  <a
+                    href={member.linkedinUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-neutral-900 underline decoration-neutral-300 underline-offset-2 transition-colors hover:decoration-neutral-600"
+                  >
+                    {member.name}
+                  </a>
+                </p>
                 <p className="mt-0.5 text-sm text-neutral-500">{member.role}</p>
                 {member.note ? (
                   <p className="mt-2 text-sm leading-relaxed text-neutral-600">
