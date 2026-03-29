@@ -171,6 +171,8 @@ export const useWeekModularStore = create<WeekModularStore>((set, get) => ({
 
   sendMessage: async (text: string, options?: { displayText?: string }) => {
     const displayText = options?.displayText ?? text;
+    const useAgentStatusBubble =
+      options?.displayText != null && options.displayText !== text;
     const {
       agentStatus,
       syllabus,
@@ -187,15 +189,28 @@ export const useWeekModularStore = create<WeekModularStore>((set, get) => ({
       content: m.content,
     }));
 
-    const userMsg: Message = {
-      id: makeId(),
-      role: "user",
-      content: displayText,
-      timestamp: Date.now(),
-    };
+    let statusStubId: string | null = null;
+    const openingMessage: Message = useAgentStatusBubble
+      ? {
+          id: (statusStubId = makeId()),
+          role: "assistant",
+          content: displayText,
+          timestamp: Date.now(),
+        }
+      : {
+          id: makeId(),
+          role: "user",
+          content: displayText,
+          timestamp: Date.now(),
+        };
+
+    const stripStatusStub = (list: Message[]) =>
+      statusStubId
+        ? list.filter((m) => m.id !== statusStubId)
+        : list;
 
     set({
-      messages: [...messages, userMsg],
+      messages: [...messages, openingMessage],
       agentStatus: "thinking",
       streamingContent: "",
     });
@@ -217,10 +232,12 @@ export const useWeekModularStore = create<WeekModularStore>((set, get) => ({
     await streamWeekModularRequest(text, statePayload, {
       onToken: (token) => {
         if (get().selectedWeek !== weekAtStart) return;
-        set({
-          streamingContent: get().streamingContent + token,
+        set((s) => ({
+          messages: stripStatusStub(s.messages),
+          streamingContent: s.streamingContent + token,
           agentStatus: "streaming",
-        });
+        }));
+        statusStubId = null;
       },
       onModulesUpdate: (data) => {
         if (get().selectedWeek !== weekAtStart) return;
@@ -235,10 +252,11 @@ export const useWeekModularStore = create<WeekModularStore>((set, get) => ({
             modules: withNew,
             instructor_notes_md: data.generated.instructor_notes_md,
           },
-          messages: [...s.messages, { ...assistantMsg }],
+          messages: [...stripStatusStub(s.messages), { ...assistantMsg }],
           agentStatus: "updating",
           streamingContent: "",
         }));
+        statusStubId = null;
         const st = get();
         if (st.selectedWeek === weekAtStart) {
           saveModularWeekPack(weekAtStart, st.generated, st.messages);
@@ -257,14 +275,15 @@ export const useWeekModularStore = create<WeekModularStore>((set, get) => ({
           id: makeId(),
           role: "assistant",
           content:
-            "Something went wrong. Is the backend running? Check OPENAI_API_KEY.",
+            "Something went wrong. Try restarting the backend server.",
           timestamp: Date.now(),
         };
         set((s) => ({
-          messages: [...s.messages, errMsg],
+          messages: [...stripStatusStub(s.messages), errMsg],
           agentStatus: "idle",
           streamingContent: "",
         }));
+        statusStubId = null;
         const st2 = get();
         if (st2.selectedWeek === weekAtStart) {
           saveModularWeekPack(weekAtStart, st2.generated, st2.messages);

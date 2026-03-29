@@ -1,10 +1,13 @@
 import type { Message } from "@/types/course";
 import type { WeekModularGenerated } from "@/types/weekModular";
+import { getGlobalFormatRulesSignature } from "@/lib/weekFormatInstructions";
 
 const STORAGE_KEY = "yhack-week-modular-snapshot-v1";
 
 type StoredPack = {
-  version: 1;
+  version: 1 | 2 | 3;
+  /** Fingerprint of `getGlobalFormatInstructions()` when saved; mismatch = stale. */
+  formatRulesSignature?: string;
   generated: WeekModularGenerated;
   messages: Message[];
 };
@@ -35,7 +38,7 @@ function writeRoot(root: Root): void {
 function isValidPack(p: unknown): p is StoredPack {
   if (!p || typeof p !== "object") return false;
   const o = p as StoredPack;
-  if (o.version !== 1) return false;
+  if (o.version !== 1 && o.version !== 2 && o.version !== 3) return false;
   if (!o.generated || typeof o.generated !== "object") return false;
   if (!Array.isArray(o.generated.modules)) return false;
   if (typeof o.generated.instructor_notes_md !== "string") return false;
@@ -43,11 +46,22 @@ function isValidPack(p: unknown): p is StoredPack {
   return true;
 }
 
-/** Load saved modules + chat for a syllabus week number. */
+/** Load saved modules + chat for a syllabus week number. Clears packs when global format rules no longer match. */
 export function loadModularWeekPack(week: number): StoredPack | null {
   const root = readRoot();
   const raw = root[String(week)];
   if (!isValidPack(raw)) return null;
+
+  const currentSig = getGlobalFormatRulesSignature();
+
+  if (raw.formatRulesSignature === undefined) {
+    clearModularWeekPack(week);
+    return null;
+  }
+  if (raw.formatRulesSignature !== currentSig) {
+    clearModularWeekPack(week);
+    return null;
+  }
   return raw;
 }
 
@@ -59,7 +73,8 @@ export function saveModularWeekPack(
 ): void {
   const root = readRoot();
   const pack: StoredPack = {
-    version: 1,
+    version: 3,
+    formatRulesSignature: getGlobalFormatRulesSignature(),
     generated: {
       modules: generated.modules.map((m) => ({
         ...m,

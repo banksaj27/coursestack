@@ -14,11 +14,7 @@ export const MODULAR_BOOTSTRAP_DISPLAY =
   "Building the weekly module timeline (lectures, project, problems, quiz)…";
 
 /** User clicked Apply on global format rules — refresh modules for current week. */
-export const APPLY_GLOBAL_FORMAT_MODULAR_API_MESSAGE = `The instructor clicked **Apply** after setting or editing the **global format & structure rules** (those rules are also injected in your system prompt).
-
-Rebuild **all modules** for this selected week so every lecture, project, problem_set, and quiz strictly follows that house style: headings, numbering, tone, section order, and any notation conventions described there.
-
-Keep the same syllabus topics and pedagogical intent; rewrite module titles/summaries/body_md and instructor_notes_md as needed for consistency. Preserve a sensible module order (you may reorder slightly if the format requires it). Output a complete :::WEEK_MODULES_UPDATE::: block.`;
+export const APPLY_GLOBAL_FORMAT_MODULAR_API_MESSAGE = `Global format rules were just applied. Rebuild **all modules** for this week to match that house style (headings, tone, notation, section order). Keep syllabus topics and pedagogical intent; rewrite titles, summaries, body_md, and instructor_notes_md as needed. Output a full :::WEEK_MODULES_UPDATE::: block.`;
 
 export const APPLY_GLOBAL_FORMAT_MODULAR_DISPLAY =
-  "Applying global format rules to this week's modules…";
+  "Applying current rules to this week…";

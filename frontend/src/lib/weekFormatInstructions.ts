@@ -3,6 +3,17 @@ const STORAGE_KEY = "yhack-week-format-instructions-v1";
 let cache = "";
 let hydrated = false;
 
+/** Fingerprint of global format text — used to invalidate saved week modules when rules change. */
+export function getGlobalFormatRulesSignature(): string {
+  const t = getGlobalFormatInstructions();
+  let h = 2166136261;
+  for (let i = 0; i < t.length; i++) {
+    h ^= t.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return `${t.length}:${(h >>> 0).toString(36)}`;
+}
+
 export function hydrateWeekFormatInstructions(): void {
   if (typeof window === "undefined") return;
   try {
