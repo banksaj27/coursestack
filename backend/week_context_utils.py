@@ -101,6 +101,8 @@ def format_global_format_block(raw: str | None) -> str:
     return f"""=== GLOBAL FORMAT & STRUCTURE RULES (ALL WEEKS) ===
 The instructor authored the rules below. They apply to **every week** of this course, including the current week. Follow them in **all** outputs: lecture markdown, problem_set prompts, quiz and exam write-ups, module body_md, instructor notes—unless the user's **latest** chat message explicitly overrides them.
 
+**Module mix (critical):** If these rules specify **how many** modules of a kind appear each week (e.g. **at least one project**, **only one quiz**, **one problem set**), you **must** implement that in the `modules` array using the correct `kind` values (`project`, `quiz`, `problem_set`, …). That requirement **overrides** any generic “project optional” or “typical week” wording elsewhere in the system prompt.
+
 {t}
 
 === END GLOBAL RULES ===
