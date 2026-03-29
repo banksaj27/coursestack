@@ -8,6 +8,7 @@ import { effectiveAssessmentTotalPoints } from "@/lib/gradedAssessmentDefaults";
 import { stripProblemSetDisplayPreamble } from "@/lib/stripProblemSetDisplayPreamble";
 import { isGradedAssessmentKind } from "@/lib/moduleAssessmentCompletion";
 import type { ModuleNavLink } from "@/lib/moduleWorkspaceNavigation";
+import LectureNotesListenButton from "@/components/lecture-studio/LectureNotesListenButton";
 
 const KIND_LABEL: Record<WeekModule["kind"], string> = {
   lecture: "Lecture",
@@ -109,22 +110,25 @@ function NeighborCard({
   emptyLabel: string;
 }) {
   const align = side === "next" ? "text-right" : "text-left";
-  const flexAlign = side === "next" ? "sm:ml-auto" : "";
+  const layout =
+    side === "prev"
+      ? "min-w-0 flex-1 flex-col sm:max-w-[48%]"
+      : "ml-auto min-w-0 flex-col sm:max-w-[48%]";
   if (link) {
     return (
       <Link
         href={link.href}
-        className={`flex min-w-0 flex-1 flex-col rounded-lg border border-neutral-200 bg-neutral-50/80 px-3 py-2 transition-colors hover:border-neutral-300 hover:bg-neutral-100/80 sm:max-w-[48%] ${flexAlign}`}
+        className={`flex rounded-lg border border-neutral-200 bg-neutral-50/80 px-3 py-2 transition-colors hover:border-neutral-300 hover:bg-neutral-100/80 ${layout}`}
       >
         <span
-          className={`text-[10px] font-semibold uppercase tracking-wider text-neutral-400 ${align}`}
+          className={`w-full text-[10px] font-semibold uppercase tracking-wider text-neutral-400 ${align}`}
         >
           {side === "prev" ? "Previous" : "Next"}
         </span>
-        <span className={`truncate text-sm font-medium text-neutral-900 ${align}`}>
+        <span className={`w-full truncate text-sm font-medium text-neutral-900 ${align}`}>
           {link.title}
         </span>
-        <span className={`text-[11px] text-neutral-500 ${align}`}>
+        <span className={`w-full text-[11px] text-neutral-500 ${align}`}>
           {link.kindLabel}
         </span>
       </Link>
@@ -132,14 +136,14 @@ function NeighborCard({
   }
   return (
     <div
-      className={`flex min-w-0 flex-1 flex-col rounded-lg border border-dashed border-neutral-200 bg-neutral-50/40 px-3 py-2 opacity-60 sm:max-w-[48%] ${flexAlign}`}
+      className={`flex rounded-lg border border-dashed border-neutral-200 bg-neutral-50/40 px-3 py-2 opacity-60 ${layout}`}
     >
       <span
-        className={`text-[10px] font-semibold uppercase tracking-wider text-neutral-400 ${align}`}
+        className={`w-full text-[10px] font-semibold uppercase tracking-wider text-neutral-400 ${align}`}
       >
         {side === "prev" ? "Previous" : "Next"}
       </span>
-      <span className={`text-sm text-neutral-400 ${align}`}>{emptyLabel}</span>
+      <span className={`w-full text-sm text-neutral-400 ${align}`}>{emptyLabel}</span>
     </div>
   );
 }
@@ -220,21 +224,32 @@ export default function LectureContentPanel({
                   {gradedWorkspaceBar.completedScore.maxScore}
                 </span>
               ) : null}
-              {workspace === "lecture" && lectureWorkspaceBar ? (
-                <button
-                  type="button"
-                  aria-pressed={lectureWorkspaceBar.isComplete}
-                  onClick={lectureWorkspaceBar.onToggleComplete}
-                  className={
-                    lectureWorkspaceBar.isComplete
-                      ? "rounded-lg border border-emerald-200 bg-emerald-50 px-5 py-2 text-sm font-semibold text-emerald-900 shadow-sm transition-colors hover:border-emerald-300 hover:bg-emerald-100/90"
-                      : "rounded-xl border-2 border-emerald-700 bg-emerald-700 px-5 py-2 text-sm font-semibold tracking-wide text-white shadow-sm transition-colors hover:bg-emerald-800"
-                  }
-                >
-                  {lectureWorkspaceBar.isComplete
-                    ? "✓ Marked Complete"
-                    : "Mark complete"}
-                </button>
+              {workspace === "lecture" &&
+              (lectureWorkspaceBar || module.body_md.trim().length > 0) ? (
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  {module.body_md.trim().length > 0 ? (
+                    <LectureNotesListenButton
+                      markdown={module.body_md}
+                      disabled={notesGenerating}
+                    />
+                  ) : null}
+                  {lectureWorkspaceBar ? (
+                    <button
+                      type="button"
+                      aria-pressed={lectureWorkspaceBar.isComplete}
+                      onClick={lectureWorkspaceBar.onToggleComplete}
+                      className={
+                        lectureWorkspaceBar.isComplete
+                          ? "rounded-xl border-2 border-emerald-200 bg-emerald-50 px-5 py-2 text-sm font-semibold tracking-wide text-emerald-900 shadow-sm transition-colors hover:border-emerald-300 hover:bg-emerald-100/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+                          : "rounded-xl border-2 border-emerald-700 bg-emerald-700 px-5 py-2 text-sm font-semibold tracking-wide text-white shadow-sm transition-colors hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+                      }
+                    >
+                      {lectureWorkspaceBar.isComplete
+                        ? "✓ Marked Complete"
+                        : "Mark complete"}
+                    </button>
+                  ) : null}
+                </div>
               ) : null}
               {workspace === "problem_set" && problemSetBar ? (
                 <div className="flex flex-col items-end gap-2">
@@ -316,7 +331,7 @@ export default function LectureContentPanel({
             </div>
           </div>
           {module.summary ? (
-            <p className="text-xs leading-relaxed text-neutral-500">
+            <p className="mt-1.5 text-xs leading-relaxed text-neutral-500">
               {module.summary}
             </p>
           ) : null}
@@ -486,7 +501,7 @@ export default function LectureContentPanel({
 
       {moduleNeighbors ? (
         <div className="shrink-0 border-t border-neutral-100 bg-white px-8 py-3">
-          <div className="flex max-w-3xl flex-wrap items-stretch justify-between gap-3">
+          <div className="flex w-full max-w-3xl flex-wrap items-stretch gap-3">
             <NeighborCard
               side="prev"
               link={moduleNeighbors.prev}

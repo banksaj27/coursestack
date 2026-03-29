@@ -7,6 +7,7 @@ from typing import AsyncGenerator
 from google.genai import types
 
 from gemini_client import (
+    env_model_or,
     gemini_thinking_disabled,
     get_gemini_client,
     get_gemini_model,
@@ -30,14 +31,69 @@ _START_TAG = ":::LECTURE_MODULE_UPDATE:::"
 _END_TAG = ":::END_LECTURE_MODULE_UPDATE:::"
 
 
+def _strip_markdown_json_fence(blob: str) -> str:
+    """Remove optional ```json ... ``` wrapper models sometimes emit inside the marker block."""
+    t = blob.strip()
+    if not t.startswith("```"):
+        return t
+    lines = t.split("\n")
+    if not lines:
+        return t
+    if lines[0].strip().startswith("```"):
+        lines = lines[1:]
+    while lines and lines[-1].strip() == "":
+        lines.pop()
+    if lines and lines[-1].strip() == "```":
+        lines = lines[:-1]
+    return "\n".join(lines).strip()
+
+
+def _first_balanced_json_object(s: str) -> str | None:
+    """Find the first `{`...`}` slice with string-aware brace matching (no regex)."""
+    start = s.find("{")
+    if start < 0:
+        return None
+    depth = 0
+    in_string = False
+    escape = False
+    for i in range(start, len(s)):
+        c = s[i]
+        if in_string:
+            if escape:
+                escape = False
+            elif c == "\\":
+                escape = True
+            elif c == '"':
+                in_string = False
+        else:
+            if c == '"':
+                in_string = True
+            elif c == "{":
+                depth += 1
+            elif c == "}":
+                depth -= 1
+                if depth == 0:
+                    return s[start : i + 1].strip()
+    return None
+
+
 def _extract_json(raw: str) -> str | None:
+    """
+    Pull the JSON object for :::LECTURE_MODULE_UPDATE:::.
+    Prefer text up to :::END_LECTURE_MODULE_UPDATE:::; if the model omits the end tag
+    (common when output length is tight), fall back to the first balanced `{...}` after the start tag.
+    """
     si = raw.find(_START_TAG)
     if si < 0:
         return None
-    ei = raw.find(_END_TAG, si)
-    if ei < 0:
-        return None
-    return raw[si + len(_START_TAG) : ei].strip()
+    blob_start = si + len(_START_TAG)
+    ei = raw.find(_END_TAG, blob_start)
+    if ei >= 0:
+        inner = raw[blob_start:ei].strip()
+    else:
+        inner = raw[blob_start:].strip()
+    inner = _strip_markdown_json_fence(inner)
+    return _first_balanced_json_object(inner)
 
 
 def _project_advisor_framework_block(state: LectureStudioState) -> str:
@@ -557,22 +613,24 @@ def _lecture_studio_model(state: LectureStudioState) -> str:
     """Use GEMINI_MODEL_PROJECT for project modules when set; else GEMINI_MODEL."""
     default = get_gemini_model()
     if state.module.kind == "project":
-        return os.getenv("GEMINI_MODEL_PROJECT", default)
+        return env_model_or("GEMINI_MODEL_PROJECT", default)
     return default
 
 
 def _lecture_studio_max_tokens(state: LectureStudioState) -> int:
-    """Gemini max_output_tokens; project modules honor GEMINI_MAX_OUTPUT_TOKENS_PROJECT."""
-    default_cap = 65536
-    if state.module.kind != "project":
-        raw = os.getenv("GEMINI_MAX_OUTPUT_TOKENS", str(default_cap))
+    """Gemini max_output_tokens; project handouts + JSON can be huge—default higher for project."""
+    max_allowed = 128_000
+    if state.module.kind == "project":
+        raw = os.getenv("GEMINI_MAX_OUTPUT_TOKENS_PROJECT") or str(max_allowed)
+        fallback = max_allowed
     else:
-        raw = os.getenv("GEMINI_MAX_OUTPUT_TOKENS_PROJECT") or str(default_cap)
+        raw = os.getenv("GEMINI_MAX_OUTPUT_TOKENS", "65536")
+        fallback = 65536
     try:
         cap = int(raw.strip())
     except ValueError:
-        cap = default_cap
-    return max(4096, min(cap, 128_000))
+        cap = fallback
+    return max(4096, min(cap, max_allowed))
 
 
 async def run_lecture_studio_stream(

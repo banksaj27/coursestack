@@ -2,11 +2,16 @@ from __future__ import annotations
 
 import base64
 import io
+from pathlib import Path
 from typing import AsyncGenerator
 
 from dotenv import load_dotenv
+
+# Load backend/.env regardless of shell cwd (e.g. `uvicorn` from repo root).
+load_dotenv(Path(__file__).resolve().parent / ".env")
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from sse_starlette.sse import EventSourceResponse
 from PyPDF2 import PdfReader
 
@@ -14,6 +19,7 @@ from agent import run_agent, run_agent_stream, generate_export
 from models import (
     LectureNotesGenerateRequest,
     LectureStudioRequest,
+    LectureTtsRequest,
     PlanRequest,
     PlanResponse,
     PlanState,
@@ -23,6 +29,7 @@ from models import (
     ProjectScaffoldRequest,
     WeekModularRequest,
 )
+from elevenlabs_tts import synthesize_elevenlabs_mp3
 from lecture_notes_pipeline import run_lecture_notes_pipeline
 from problem_set_pipeline import run_problem_set_pipeline
 from problem_set_grader import grade_problem_set_pdf
@@ -30,8 +37,7 @@ from lecture_studio_agent import run_lecture_studio_stream
 from project_grader import run_project_grading_stream
 from project_scaffold import parse_scaffold_blocks, write_scaffold
 from week_modular_agent import run_week_modular_stream
-
-load_dotenv()
+from gemini_client import is_gemini_api_key_configured
 
 app = FastAPI(title="AutoCourse API")
 
@@ -183,6 +189,15 @@ async def project_scaffold(request: ProjectScaffoldRequest):
     return {"root": root, "files": created, "message": f"Created {len(created)} file(s) in {root}"}
 
 
+@app.post("/lecture-studio/tts")
+async def lecture_studio_tts(request: LectureTtsRequest):
+    audio = await synthesize_elevenlabs_mp3(request.text.strip())
+    return Response(content=audio, media_type="audio/mpeg")
+
+
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "gemini_configured": is_gemini_api_key_configured(),
+    }

@@ -29,6 +29,29 @@ function makeId() {
   return `ms-${Date.now()}-${++counter}`;
 }
 
+/** User-facing copy: network failures are usually backend/URL, not Gemini keys. */
+function moduleStudioErrorHint(error: Error): string {
+  const m = error.message.toLowerCase();
+  const unreachable =
+    m.includes("cannot reach") ||
+    m.includes("failed to fetch") ||
+    m.includes("network error") ||
+    m.includes("load failed");
+  if (unreachable) {
+    return `${error.message} — Usually the FastAPI server is not running or NEXT_PUBLIC_API_URL is wrong (default http://localhost:8000).`;
+  }
+  if (
+    m.includes("http 401") ||
+    m.includes("http 403") ||
+    m.includes("api key") ||
+    m.includes("permission denied") ||
+    m.includes("unauthorized")
+  ) {
+    return `${error.message} — Check GOOGLE_API_KEY in backend/.env (Google AI Studio).`;
+  }
+  return `${error.message} — Confirm the backend is up, NEXT_PUBLIC_API_URL matches it, and GOOGLE_API_KEY is set if the server logs mention Gemini/auth.`;
+}
+
 function moduleContentChanged(before: WeekModule, after: WeekModule): boolean {
   return (
     before.title !== after.title ||
@@ -67,6 +90,11 @@ function normalizeModule(
 
 type AgentStatus = "idle" | "thinking" | "streaming" | "updating";
 
+export type ModuleStudioSendOptions = {
+  /** When true, the user message is sent to the API but not shown or saved in chat. */
+  hideUserMessage?: boolean;
+};
+
 /** Shared AI + persistence for single-module workspaces (lecture, problem set, etc.). */
 export function useModuleStudio(week: number, moduleId: string) {
   const [module, setModule] = useState<WeekModule | null>(null);
@@ -98,11 +126,13 @@ export function useModuleStudio(week: number, moduleId: string) {
   }, [week, moduleId]);
 
   const sendMessage = useCallback(
-    async (text: string) => {
+    async (text: string, opts?: ModuleStudioSendOptions) => {
       const trimmed = text.trim();
       if (!trimmed || agentStatus !== "idle") return;
       const modSnap = module;
       if (!modSnap) return;
+
+      const hideUser = Boolean(opts?.hideUserMessage);
 
       const { drainPendingAttachmentContext } = await import("@/lib/attachmentContext");
       const extra = drainPendingAttachmentContext();
@@ -116,8 +146,10 @@ export function useModuleStudio(week: number, moduleId: string) {
         content: trimmed,
         timestamp: Date.now(),
       };
-      const withUser = [...snapshot, userMsg];
-      setMessages(withUser);
+      const withUser = hideUser ? snapshot : [...snapshot, userMsg];
+      if (!hideUser) {
+        setMessages(withUser);
+      }
       setAgentStatus("thinking");
       setStreamingContent("");
 
@@ -201,7 +233,7 @@ export function useModuleStudio(week: number, moduleId: string) {
           const errMsg: Message = {
             id: makeId(),
             role: "assistant",
-            content: `Request failed (${error.message}). Check the backend and GOOGLE_API_KEY.`,
+            content: `Request failed: ${moduleStudioErrorHint(error)}`,
             timestamp: Date.now(),
           };
           const finalMsgs = [...withUser, errMsg];
