@@ -64,6 +64,8 @@ function moduleSig(m: WeekModule): string {
     body: m.body_md.slice(0, 400),
     examRules:
       m.kind === "exam" ? (m.exam_specific_rules ?? "").slice(0, 300) : "",
+    assessment_total_points: m.assessment_total_points ?? null,
+    graded_item_points: m.graded_item_points ?? [],
   });
 }
 

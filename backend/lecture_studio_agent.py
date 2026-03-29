@@ -7,7 +7,9 @@ from typing import AsyncGenerator
 from openai import AsyncOpenAI
 
 from models import LectureStudioState, WeekModule
+from week_modular_agent import _DEFAULT_ASSESSMENT_POINTS, _parse_graded_item_points
 from week_context_utils import (
+    assessment_markdown_format_block,
     build_messages_with_trim,
     format_exam_specific_rules_block,
     format_global_format_block,
@@ -113,7 +115,7 @@ def _build_system_prompt(state: LectureStudioState) -> str:
             "**delete that entire section** from `body_md`—heading, body, and bullets—do **not** keep an empty heading, "
             "a one-line placeholder, or re-add it in `summary` only. "
             "Include **many** fully stated problems (not stubs): clear hypotheses, parts (a)(b)(c) where "
-            "appropriate, expected deliverables, and point values or rubric lines **if** the user wants grading. "
+            "appropriate, expected deliverables, and **point values per problem** in **body_md** (and mirror them in JSON **graded_item_points**). "
             "Optional **Hints** or **Solution sketches** only if the instructor asks. "
             "Unless the user asks to shorten, **expand** thin text toward a complete take-home. "
             "**one_line_summary**: one sentence, collapsed row—distinct from **summary**’s opening. **summary**: **~paragraph** (4–10 sentences) for the expanded panel—problem themes, progression, deliverables, logistics—**not** pasted problem text."
@@ -169,13 +171,14 @@ def _build_system_prompt(state: LectureStudioState) -> str:
 **When you change the module** (steps 3–4): write a **short** natural-language preface (see step 3), then **immediately** end with exactly (no large markdown draft of the assignment before this):
 
 :::LECTURE_MODULE_UPDATE:::
-{ "title": "...", "one_line_summary": "...", "summary": "...", "body_md": "...", "estimated_minutes": null }
+{ "title": "...", "one_line_summary": "...", "summary": "...", "body_md": "...", "estimated_minutes": null, "assessment_total_points": 10, "graded_item_points": [2, 2, 3, 3] }
 :::END_LECTURE_MODULE_UPDATE:::
 
 **When you are only tutoring** (step 2): write your full reply in prose. **Do not** include `:::LECTURE_MODULE_UPDATE:::` or any JSON—the assignment text on the right must stay unchanged.
 
 Rules when the JSON block **is** present:
 - Valid JSON only inside the block. Use \\n inside strings for newlines in body_md.
+- **assessment_total_points** must be **10** for problem sets unless the user asks otherwise; **graded_item_points** must be a non-empty array of positive numbers summing to **assessment_total_points**, one per graded problem in order.
 - **estimated_minutes** may be a number or null.
 - **one_line_summary**: **one** plain sentence for the **collapsed** timeline row—a distinct hook; **do not** repeat or paraphrase the **opening** of **summary** or duplicate **title**. **summary**: **~paragraph** for the **expanded** panel only.
 - **body_md** must be **non-empty** and the **complete** updated assignment unless the user explicitly asked to clear it (brief placeholder + explanation).
@@ -186,6 +189,7 @@ Rules when the JSON block **is** present:
 Rules when **no** JSON block:
 - Your chat message is the entire answer. Be helpful and precise; do not silently change the stored assignment.
 """
+        output_format_section += "\n\n" + assessment_markdown_format_block()
     elif kind == "quiz":
         intro = (
             "You are an expert professor. The user is in **one quiz module** on the course timeline. "
@@ -205,13 +209,14 @@ Rules when **no** JSON block:
 **When you change the module** (steps 3–4): write a **short** natural-language preface (see step 3), then **immediately** end with exactly (no large markdown draft of the quiz before this):
 
 :::LECTURE_MODULE_UPDATE:::
-{ "title": "...", "one_line_summary": "...", "summary": "...", "body_md": "...", "estimated_minutes": null }
+{ "title": "...", "one_line_summary": "...", "summary": "...", "body_md": "...", "estimated_minutes": null, "assessment_total_points": 20, "graded_item_points": [4, 4, 4, 4, 4] }
 :::END_LECTURE_MODULE_UPDATE:::
 
 **When you are only tutoring** (step 2): write your full reply in prose. **Do not** include `:::LECTURE_MODULE_UPDATE:::` or any JSON—the quiz text on the right must stay unchanged.
 
 Rules when the JSON block **is** present:
 - Valid JSON only inside the block. Use \\n inside strings for newlines in body_md.
+- **assessment_total_points** must be **20** for quizzes unless the user asks otherwise; **graded_item_points** must be a non-empty array of positive numbers summing to **assessment_total_points**, one per graded question in order.
 - **estimated_minutes** may be a number or null.
 - **one_line_summary**: **one** plain sentence for the **collapsed** timeline row—a distinct hook; **do not** repeat or paraphrase the **opening** of **summary** or duplicate **title**. **summary**: **~paragraph** for the **expanded** panel only.
 - **body_md** must be **non-empty** and the **complete** updated quiz unless the user explicitly asked to clear it (brief placeholder + explanation).
@@ -222,6 +227,7 @@ Rules when the JSON block **is** present:
 Rules when **no** JSON block:
 - Your chat message is the entire answer. Be helpful and precise; do not silently change the stored quiz.
 """
+        output_format_section += "\n\n" + assessment_markdown_format_block()
     elif kind == "project":
         intro = (
             "You are an expert professor. The user is in **one project module** on the course timeline. "
@@ -276,13 +282,14 @@ Rules when **no** JSON block:
 **When you change the module** (steps 3–4): write a **short** natural-language preface (see step 3), then **immediately** end with exactly (no large markdown draft of the exam before this):
 
 :::LECTURE_MODULE_UPDATE:::
-{ "title": "...", "one_line_summary": "...", "summary": "...", "body_md": "...", "estimated_minutes": null }
+{ "title": "...", "one_line_summary": "...", "summary": "...", "body_md": "...", "estimated_minutes": null, "assessment_total_points": 100, "graded_item_points": [10, 10, 10, 10, 10, 10, 10, 10, 10, 10] }
 :::END_LECTURE_MODULE_UPDATE:::
 
 **When you are only tutoring** (step 2): write your full reply in prose. **Do not** include `:::LECTURE_MODULE_UPDATE:::` or any JSON—the exam text on the right must stay unchanged.
 
 Rules when the JSON block **is** present:
 - Valid JSON only inside the block. Use \\n inside strings for newlines in body_md.
+- **assessment_total_points** must be **100** for exams unless the user asks otherwise; **graded_item_points** must be a non-empty array of positive numbers summing to **assessment_total_points**, one per graded question in order.
 - **estimated_minutes** may be a number or null.
 - **one_line_summary**: **one** plain sentence for the **collapsed** timeline row—a distinct hook; **do not** repeat or paraphrase the **opening** of **summary** or duplicate **title**. **summary**: **~paragraph** for the **expanded** panel only.
 - **body_md** must be **non-empty** and the **complete** updated exam unless the user explicitly asked to clear it (brief placeholder + explanation).
@@ -293,6 +300,7 @@ Rules when the JSON block **is** present:
 Rules when **no** JSON block:
 - Your chat message is the entire answer. Be helpful and precise; do not silently change the stored exam.
 """
+        output_format_section += "\n\n" + assessment_markdown_format_block()
     else:
         intro = (
             "You are an expert professor. The instructor is editing **one module** inside a week timeline."
@@ -382,6 +390,30 @@ def _parse_module_update(
             one_line = fallback.one_line_summary
         else:
             one_line = str(ols).strip()
+        kind = fallback.kind
+        atp_raw = data.get("assessment_total_points")
+        atp: int | None
+        if atp_raw is not None:
+            try:
+                atp = int(float(atp_raw))
+            except (TypeError, ValueError):
+                atp = fallback.assessment_total_points
+        else:
+            atp = fallback.assessment_total_points
+        if atp is None and kind in _DEFAULT_ASSESSMENT_POINTS:
+            atp = _DEFAULT_ASSESSMENT_POINTS[kind]
+
+        if "graded_item_points" in data:
+            gip = _parse_graded_item_points(data.get("graded_item_points"))
+        else:
+            gip = list(fallback.graded_item_points)
+
+        ex_rules = str(
+            data.get("exam_specific_rules", fallback.exam_specific_rules)
+            if kind == "exam"
+            else fallback.exam_specific_rules
+        )
+
         return agent_message, WeekModule(
             id=fallback.id,
             kind=fallback.kind,
@@ -390,7 +422,9 @@ def _parse_module_update(
             summary=str(data.get("summary", fallback.summary)),
             body_md=str(data.get("body_md", fallback.body_md)),
             estimated_minutes=int(est) if est is not None else None,
-            exam_specific_rules=fallback.exam_specific_rules,
+            exam_specific_rules=ex_rules,
+            assessment_total_points=atp,
+            graded_item_points=gip,
         )
     except (json.JSONDecodeError, TypeError, ValueError):
         return agent_message, fallback

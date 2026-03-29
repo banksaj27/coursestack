@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect } from "react";
+import { useWeekModuleNeighbors } from "@/hooks/useWeekModuleNeighbors";
 import { motion } from "framer-motion";
 import AppNav from "@/components/AppNav";
 import {
@@ -13,6 +14,7 @@ import {
 import LectureChatPanel from "@/components/lecture-studio/LectureChatPanel";
 import LectureContentPanel from "@/components/lecture-studio/LectureContentPanel";
 import { useModuleStudio } from "@/hooks/useModuleStudio";
+import { setLastCourseworkVisit } from "@/lib/courseworkNavigation";
 import { hydrateWeekWorkspace } from "@/lib/hydrateWeekWorkspace";
 
 export default function ProjectWorkspacePage() {
@@ -38,6 +40,15 @@ export default function ProjectWorkspacePage() {
     sendMessage,
     isBusy,
   } = useModuleStudio(week, moduleId);
+
+  const moduleNeighbors = useWeekModuleNeighbors(week, moduleId, module);
+
+  useEffect(() => {
+    if (!Number.isFinite(week) || !moduleId || notFound) return;
+    if (module?.kind === "project") {
+      setLastCourseworkVisit(week, moduleId, "project");
+    }
+  }, [week, moduleId, notFound, module]);
 
   if (!Number.isFinite(week) || !moduleId) {
     return (
@@ -126,6 +137,7 @@ export default function ProjectWorkspacePage() {
             week={week}
             courseTopic={syllabusTopic}
             module={module}
+            moduleNeighbors={moduleNeighbors}
           />
         </div>
       </motion.div>

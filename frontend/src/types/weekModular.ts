@@ -20,6 +20,10 @@ export interface WeekModule {
   is_new?: boolean;
   /** Per-exam notes (exam workspace only); not shared across exams. */
   exam_specific_rules?: string;
+  /** Total points for graded modules (defaults: problem set 10, quiz 20, exam 100). */
+  assessment_total_points?: number | null;
+  /** Points per graded item, same order as `##` sections in body_md. */
+  graded_item_points?: number[];
 }
 
 export interface WeekModularGenerated {

@@ -152,6 +152,28 @@ The instructor authored the rules below. They apply to **every** module with `ki
 
 EXAM_SPECIFIC_RULES_MAX_CHARS = 4000
 
+# Shown in system prompts for problem_set, quiz, and exam so body_md parses into MC vs short-answer UI.
+ASSESSMENT_MARKDOWN_MACHINE_READABLE = """=== ASSESSMENT body_md — FORMAT FOR THE LEARNING APP (problem_set, quiz, exam) ===
+The app parses each item to show **radio choices** (multiple choice / true–false) or a **text box** (short answer, proofs, calculations). Structure graded `body_md` accordingly:
+
+- **One heading per major graded item** when possible: prefer `## Question 1 (4 pts)` (or `###` for parts (a)(b)). Long exams may use **top-level `# Question …`** per item instead of `##`; either style is fine as long as each question is its own heading block. Prefer **clear headings** over a bare numbered list (`1.` `2.` …) for separate questions—if you use numbered lists, keep each item under a `##`, `###`, or `#` question heading so the app can split them.
+- **Multiple choice**: Write the stem (paragraphs, math). **End** that question with **consecutive lines**, one per option, using **letters A–Z** and this pattern (nothing after the last option except the next heading or question):
+  `A. …`
+  `B. …`
+  `C. …`
+  `D. …`
+  Do **not** put hints, “Correct:”, or answer keys **after** the option list—put notes **before** the options or omit them from the student-facing text.
+- **True/False**: End with two options whose labels read **True** and **False** (e.g. `A. True` and `B. False`).
+- **Short answer / written response**: Start the block with a heading such as `### Question`, `### Problem`, `### Short answer`, or `## Question …` with a clear prompt; the app shows a **textarea** under that block. Use verbs like *Prove*, *Show that*, *Compute*, *Explain*, *Find* when appropriate.
+
+=== END ASSESSMENT FORMAT ===
+"""
+
+
+def assessment_markdown_format_block() -> str:
+    """Instructions so problem_set / quiz / exam body_md matches the frontend parser."""
+    return ASSESSMENT_MARKDOWN_MACHINE_READABLE
+
 
 def format_exam_specific_rules_block(raw: str | None) -> str:
     """Per-exam instructor rules for the single exam module open in lecture studio (not course-wide)."""

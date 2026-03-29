@@ -1,7 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import type { WeekModule } from "@/types/weekModular";
 import { MarkdownMath } from "@/components/shared/MarkdownMath";
+import { effectiveAssessmentTotalPoints } from "@/lib/gradedAssessmentDefaults";
+import { isGradedAssessmentKind } from "@/lib/moduleAssessmentCompletion";
+import type { ModuleNavLink } from "@/lib/moduleWorkspaceNavigation";
 
 const KIND_LABEL: Record<WeekModule["kind"], string> = {
   lecture: "Lecture",
@@ -46,6 +50,25 @@ type Props = {
   week: number;
   courseTopic: string;
   module: WeekModule | null;
+  /** Prev/next in this week’s module timeline (all kinds). */
+  moduleNeighbors?: {
+    prev: ModuleNavLink | null;
+    next: ModuleNavLink | null;
+  };
+  /** Graded workspaces: actions + score in the description row. */
+  gradedWorkspaceBar?: {
+    onBeginTesting?: () => void;
+    onViewAnswers?: () => void;
+    onReattempt?: () => void;
+    completedScore?: { score: number; maxScore: number } | null;
+    /** When true, show View answers / Reattempt instead of Begin Testing. */
+    hasGradedAttempt?: boolean;
+  };
+  /** Lecture workspace: toggle completion in the same row as the summary. */
+  lectureWorkspaceBar?: {
+    isComplete: boolean;
+    onToggleComplete?: () => void;
+  };
   /** Lecture workspace: multi-step notes generation status */
   notesGenerating?: boolean;
   notesProgress?: NotesProgress | null;
@@ -53,11 +76,55 @@ type Props = {
   onRetryLectureNotes?: () => void;
 };
 
+function NeighborCard({
+  side,
+  link,
+  emptyLabel,
+}: {
+  side: "prev" | "next";
+  link: ModuleNavLink | null;
+  emptyLabel: string;
+}) {
+  const align = side === "next" ? "text-right" : "text-left";
+  const flexAlign = side === "next" ? "sm:ml-auto" : "";
+  if (link) {
+    return (
+      <Link
+        href={link.href}
+        className={`flex min-w-0 flex-1 flex-col rounded-lg border border-neutral-200 bg-neutral-50/80 px-3 py-2 transition-colors hover:border-neutral-300 hover:bg-neutral-100/80 sm:max-w-[48%] ${flexAlign}`}
+      >
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
+          {side === "prev" ? "Previous" : "Next"}
+        </span>
+        <span className={`truncate text-sm font-medium text-neutral-900 ${align}`}>
+          {link.title}
+        </span>
+        <span className={`text-[11px] text-neutral-500 ${align}`}>
+          {link.kindLabel}
+        </span>
+      </Link>
+    );
+  }
+  return (
+    <div
+      className={`flex min-w-0 flex-1 flex-col rounded-lg border border-dashed border-neutral-200 bg-neutral-50/40 px-3 py-2 opacity-60 sm:max-w-[48%] ${flexAlign}`}
+    >
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
+        {side === "prev" ? "Previous" : "Next"}
+      </span>
+      <span className={`text-sm text-neutral-400 ${align}`}>{emptyLabel}</span>
+    </div>
+  );
+}
+
 export default function LectureContentPanel({
   workspace,
   week,
   courseTopic,
   module,
+  moduleNeighbors,
+  gradedWorkspaceBar,
+  lectureWorkspaceBar,
   notesGenerating = false,
   notesProgress = null,
   notesError = null,
@@ -74,6 +141,8 @@ export default function LectureContentPanel({
   }
 
   const kindLabel = KIND_LABEL[module.kind] ?? module.kind;
+  const graded = isGradedAssessmentKind(module.kind);
+  const ptsTotal = graded ? effectiveAssessmentTotalPoints(module) : 0;
 
   return (
     <div className="flex h-full min-w-0 flex-col bg-white">
@@ -84,20 +153,89 @@ export default function LectureContentPanel({
       </div>
 
       <div className="shrink-0 border-b border-neutral-100 px-8 py-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded border border-neutral-200 bg-neutral-50 px-2 py-0.5 text-xs font-semibold text-neutral-700">
-            {kindLabel}
-          </span>
-          <span className="text-xs text-neutral-500">Week {week}</span>
-          {module.estimated_minutes != null && module.estimated_minutes > 0 ? (
-            <span className="text-xs text-neutral-500">
-              ~{module.estimated_minutes} min
-            </span>
-          ) : null}
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded border border-neutral-200 bg-neutral-50 px-2 py-0.5 text-xs font-semibold text-neutral-700">
+                {kindLabel}
+              </span>
+              <span className="text-xs text-neutral-500">Week {week}</span>
+              {module.estimated_minutes != null && module.estimated_minutes > 0 ? (
+                <span className="text-xs text-neutral-500">
+                  ~{module.estimated_minutes} min
+                </span>
+              ) : null}
+              {graded ? (
+                <span className="text-xs font-medium text-neutral-700">
+                  {ptsTotal} pts total
+                </span>
+              ) : null}
+              {graded && gradedWorkspaceBar?.completedScore ? (
+                <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-900">
+                  Score {gradedWorkspaceBar.completedScore.score}/
+                  {gradedWorkspaceBar.completedScore.maxScore}
+                </span>
+              ) : null}
+            </div>
+            {module.summary ? (
+              <p className="mt-1.5 text-xs leading-relaxed text-neutral-500">
+                {module.summary}
+              </p>
+            ) : null}
+          </div>
+          <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:min-w-[12rem] sm:items-end">
+            {workspace === "lecture" && lectureWorkspaceBar ? (
+              <button
+                type="button"
+                aria-pressed={lectureWorkspaceBar.isComplete}
+                onClick={lectureWorkspaceBar.onToggleComplete}
+                className={
+                  lectureWorkspaceBar.isComplete
+                    ? "rounded-xl border-2 border-emerald-300 bg-emerald-50 px-6 py-3 text-sm font-semibold text-emerald-900 shadow-sm transition-colors hover:border-emerald-400 hover:bg-emerald-100/90"
+                    : "rounded-xl border-2 border-emerald-700 bg-emerald-700 px-6 py-3 text-sm font-semibold tracking-wide text-white shadow-sm transition-colors hover:bg-emerald-800"
+                }
+              >
+                {lectureWorkspaceBar.isComplete
+                  ? "✓ Marked complete"
+                  : "Mark complete"}
+              </button>
+            ) : null}
+            {graded && gradedWorkspaceBar ? (
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
+                {gradedWorkspaceBar.hasGradedAttempt ? (
+                  <>
+                    {gradedWorkspaceBar.onViewAnswers ? (
+                      <button
+                        type="button"
+                        onClick={gradedWorkspaceBar.onViewAnswers}
+                        className="rounded-xl border-2 border-neutral-300 bg-white px-6 py-3 text-sm font-semibold text-neutral-900 shadow-sm transition-colors hover:bg-neutral-50"
+                      >
+                        View answers
+                      </button>
+                    ) : null}
+                    {gradedWorkspaceBar.onReattempt ? (
+                      <button
+                        type="button"
+                        onClick={gradedWorkspaceBar.onReattempt}
+                        className="rounded-xl border-2 border-rose-200 bg-rose-50 px-6 py-3 text-sm font-semibold text-rose-900 shadow-sm transition-colors hover:bg-rose-100/90"
+                      >
+                        Reattempt
+                      </button>
+                    ) : null}
+                  </>
+                ) : gradedWorkspaceBar.onBeginTesting ? (
+                  <button
+                    type="button"
+                    onClick={gradedWorkspaceBar.onBeginTesting}
+                    className="rounded-xl border-2 border-neutral-800 bg-neutral-900 px-6 py-3 text-sm font-semibold tracking-wide text-white shadow-sm transition-colors hover:bg-neutral-800"
+                  >
+                    Begin Testing
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         </div>
-        {module.summary ? (
-          <p className="mt-1.5 text-xs leading-relaxed text-neutral-500">{module.summary}</p>
-        ) : null}
       </div>
 
       <div className="relative min-h-0 flex-1 overflow-y-auto px-8 py-6">
@@ -154,6 +292,23 @@ export default function LectureContentPanel({
           </div>
         ) : null}
       </div>
+
+      {moduleNeighbors ? (
+        <div className="shrink-0 border-t border-neutral-100 bg-white px-8 py-3">
+          <div className="flex max-w-3xl flex-wrap items-stretch justify-between gap-3">
+            <NeighborCard
+              side="prev"
+              link={moduleNeighbors.prev}
+              emptyLabel="First in week"
+            />
+            <NeighborCard
+              side="next"
+              link={moduleNeighbors.next}
+              emptyLabel="Last in week"
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

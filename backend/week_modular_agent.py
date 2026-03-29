@@ -8,6 +8,7 @@ from openai import AsyncOpenAI
 
 from models import WeekModularGenerated, WeekModularState, WeekModule
 from week_context_utils import (
+    assessment_markdown_format_block,
     build_messages_with_trim,
     format_global_format_block,
     format_other_week_summaries,
@@ -18,6 +19,25 @@ from week_context_utils import (
 )
 
 _client: AsyncOpenAI | None = None
+
+# Default total points when the model omits assessment_total_points (client matches these).
+_DEFAULT_ASSESSMENT_POINTS = {
+    "problem_set": 10,
+    "quiz": 20,
+    "exam": 100,
+}
+
+
+def _parse_graded_item_points(raw: object) -> list[float]:
+    if raw is None or not isinstance(raw, list):
+        return []
+    out: list[float] = []
+    for x in raw:
+        try:
+            out.append(float(x))
+        except (TypeError, ValueError):
+            continue
+    return out
 
 
 def _get_client() -> AsyncOpenAI:
@@ -146,6 +166,13 @@ Short memories of what was generated for *other* weeks. Use for consistency; ful
 - **quiz** — `body_md`: the **actual quiz** students would take—**only multiple-choice** (stems with labeled options) **and/or short-answer** questions (explicit prompts); plus instructions, timing, and policies as needed. **Not** a blueprint or list of topics—every item must be a complete, gradable question. If **GLOBAL QUIZ HOUSE RULES** appear above, **every** `quiz` module’s `body_md` must satisfy them (MC/SA mix, length, timing, difficulty, etc.).
 - **exam** — **Only** when **EXAM WEEK** rules apply above (`assessment` is **midterm** or **final**). One **terminal** module: full **midterm** or **final** handout with real MC and/or short-answer items (longer/cumulative as appropriate). Per-exam instructor notes live in `exam_specific_rules` on the module (usually empty until set in exam studio). **Never** use `exam` when there is no exam week tag.
 
+=== GRADED MODULES — POINTS (problem_set, quiz, exam) ===
+For **every** module with **kind** `problem_set`, `quiz`, or `exam` you **must** set:
+- **assessment_total_points** — total for that module: **10** for `problem_set`, **20** for `quiz`, **100** for `exam` (use these defaults unless the instructor’s message explicitly asks for different totals).
+- **graded_item_points** — a JSON array of **positive numbers**, **one per graded problem or question** in **the same order** as they appear in `body_md` (typically one entry per top-level `##` question block). The numbers **must sum exactly** to **assessment_total_points**.
+In **body_md**, label each item with its points (e.g. lines like **(2 pts)** or **Points: 3**) so the weights match **graded_item_points**.
+
+{assessment_markdown_format_block()}
 === LECTURE MODULES — TIMELINE STUB body_md (CRITICAL) ===
 For every **lecture** module, `body_md` here is a **planning stub for the Weekly Plan export**, not the full chapter students read in the Lecture workspace.
 
@@ -252,6 +279,15 @@ def _parse_modules(
                 one_line = ""
             else:
                 one_line = str(ols).strip()
+            atp_raw = m.get("assessment_total_points")
+            if atp_raw is not None:
+                try:
+                    atp: int | None = int(float(atp_raw))
+                except (TypeError, ValueError):
+                    atp = _DEFAULT_ASSESSMENT_POINTS.get(kind)
+            else:
+                atp = _DEFAULT_ASSESSMENT_POINTS.get(kind)
+            gip = _parse_graded_item_points(m.get("graded_item_points"))
             modules.append(
                 WeekModule(
                     id=str(m.get("id", "")),
@@ -262,6 +298,8 @@ def _parse_modules(
                     body_md=str(m.get("body_md", "")),
                     estimated_minutes=int(est) if est is not None else None,
                     exam_specific_rules=str(m.get("exam_specific_rules", "")),
+                    assessment_total_points=atp,
+                    graded_item_points=gip,
                 )
             )
         notes = str(data.get("instructor_notes_md", ""))

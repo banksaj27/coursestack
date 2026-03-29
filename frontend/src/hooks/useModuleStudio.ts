@@ -36,7 +36,10 @@ function moduleContentChanged(before: WeekModule, after: WeekModule): boolean {
     before.summary !== after.summary ||
     before.body_md !== after.body_md ||
     before.estimated_minutes !== after.estimated_minutes ||
-    (before.exam_specific_rules ?? "") !== (after.exam_specific_rules ?? "")
+    (before.exam_specific_rules ?? "") !== (after.exam_specific_rules ?? "") ||
+    before.assessment_total_points !== after.assessment_total_points ||
+    JSON.stringify(before.graded_item_points ?? []) !==
+      JSON.stringify(after.graded_item_points ?? [])
   );
 }
 

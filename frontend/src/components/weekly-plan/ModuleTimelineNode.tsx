@@ -5,6 +5,9 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { WeekModule } from "@/types/weekModular";
 import { MarkdownMath } from "@/components/shared/MarkdownMath";
+import { useModuleProgress } from "@/hooks/useModuleAssessmentCompletion";
+import { effectiveAssessmentTotalPoints } from "@/lib/gradedAssessmentDefaults";
+import { isGradedAssessmentKind } from "@/lib/moduleAssessmentCompletion";
 
 const KIND_META: Record<
   WeekModule["kind"],
@@ -59,6 +62,9 @@ export default function ModuleTimelineNode({
   const [expanded, setExpanded] = useState(false);
   const meta = KIND_META[mod.kind] ?? KIND_META.lecture;
   const onlyNode = isFirst && isLast;
+  const graded = isGradedAssessmentKind(mod.kind);
+  const ptsTotal = graded ? effectiveAssessmentTotalPoints(mod) : 0;
+  const progress = useModuleProgress(week, mod.id);
 
   return (
     <motion.div
@@ -103,6 +109,23 @@ export default function ModuleTimelineNode({
               {mod.estimated_minutes != null && mod.estimated_minutes > 0 ? (
                 <span className="text-[10px] text-neutral-400">
                   ~{mod.estimated_minutes} min
+                </span>
+              ) : null}
+              {graded ? (
+                <span className="text-[10px] font-medium text-neutral-600">
+                  {ptsTotal} pts
+                </span>
+              ) : null}
+              {mod.kind === "lecture" && progress.lectureComplete ? (
+                <span className="inline-flex items-center gap-0.5 rounded border border-emerald-200 bg-emerald-50/90 px-1.5 py-px text-[10px] font-semibold text-emerald-900">
+                  <span aria-hidden>✓</span>
+                  Done
+                </span>
+              ) : null}
+              {graded && progress.graded ? (
+                <span className="inline-flex items-center gap-0.5 rounded border border-emerald-200 bg-emerald-50/90 px-1.5 py-px text-[10px] font-semibold text-emerald-900">
+                  <span aria-hidden>✓</span>
+                  {progress.graded.score}/{progress.graded.maxScore}
                 </span>
               ) : null}
             </div>
