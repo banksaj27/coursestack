@@ -12,6 +12,8 @@ export interface WeekModule {
   id: string;
   kind: WeekModuleKind;
   title: string;
+  /** One plain sentence for the collapsed timeline row; must differ from the opening of `summary`. */
+  one_line_summary?: string;
   summary: string;
   body_md: string;
   estimated_minutes?: number | null;

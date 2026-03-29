@@ -322,6 +322,7 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 
   reset: () => {
     clearCoursePlannerSnapshot();
+    useWeekModularStore.getState().clearWeeklyWorkspace();
     set({
       phase: "topic_input",
       planState: emptyPlanState(),

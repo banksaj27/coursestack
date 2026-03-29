@@ -12,6 +12,7 @@ import {
 } from "@/components/shared/EmptyWorkspacePlaceholder";
 import LectureChatPanel from "@/components/lecture-studio/LectureChatPanel";
 import LectureContentPanel from "@/components/lecture-studio/LectureContentPanel";
+import { useLectureNotesBootstrap } from "@/hooks/useLectureNotesBootstrap";
 import { useLectureStudio } from "@/hooks/useLectureStudio";
 import { setLastOpenedLectureStudio } from "@/lib/courseworkNavigation";
 import { hydrateWeekWorkspace } from "@/lib/hydrateWeekWorkspace";
@@ -38,7 +39,23 @@ export default function LectureStudioPage() {
     streamingContent,
     sendMessage,
     isBusy,
+    refreshModuleFromPack,
+    appendAssistantMessage,
   } = useLectureStudio(week, moduleId);
+
+  const {
+    notesProgress,
+    notesError,
+    notesGenerating,
+    retryLectureNotes,
+  } = useLectureNotesBootstrap(
+    week,
+    moduleId,
+    module,
+    notFound,
+    refreshModuleFromPack,
+    appendAssistantMessage,
+  );
 
   useEffect(() => {
     if (!Number.isFinite(week) || !moduleId || notFound) return;
@@ -117,7 +134,7 @@ export default function LectureStudioPage() {
             moduleTitle={module?.title ?? ""}
             messages={messages}
             sendMessage={sendMessage}
-            isBusy={isBusy}
+            isBusy={isBusy || notesGenerating}
             streamingContent={streamingContent}
             agentStatus={agentStatus}
           />
@@ -128,6 +145,10 @@ export default function LectureStudioPage() {
             week={week}
             courseTopic={syllabusTopic}
             module={module}
+            notesGenerating={notesGenerating}
+            notesProgress={notesProgress}
+            notesError={notesError}
+            onRetryLectureNotes={retryLectureNotes}
           />
         </div>
       </motion.div>

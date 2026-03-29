@@ -34,11 +34,23 @@ const EMPTY_BODY: Record<WorkspaceKind, string> = {
     "No exam content yet—ask the professor to draft the midterm/final (MC and short answer), or use the chat for discussion once it exists.",
 };
 
+type NotesProgress = {
+  step: string;
+  index: number;
+  total: number;
+  label: string;
+};
+
 type Props = {
   workspace: WorkspaceKind;
   week: number;
   courseTopic: string;
   module: WeekModule | null;
+  /** Lecture workspace: multi-step notes generation status */
+  notesGenerating?: boolean;
+  notesProgress?: NotesProgress | null;
+  notesError?: string | null;
+  onRetryLectureNotes?: () => void;
 };
 
 export default function LectureContentPanel({
@@ -46,6 +58,10 @@ export default function LectureContentPanel({
   week,
   courseTopic,
   module,
+  notesGenerating = false,
+  notesProgress = null,
+  notesError = null,
+  onRetryLectureNotes,
 }: Props) {
   if (!module) {
     return (
@@ -84,18 +100,59 @@ export default function LectureContentPanel({
         ) : null}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-8 py-6">
+      <div className="relative min-h-0 flex-1 overflow-y-auto px-8 py-6">
+        {notesError && workspace === "lecture" ? (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50/90 px-3 py-2 text-sm text-amber-950">
+            <p className="font-medium">Couldn&apos;t finish auto-generated notes</p>
+            <p className="mt-1 text-amber-900/90">{notesError}</p>
+            {onRetryLectureNotes ? (
+              <button
+                type="button"
+                onClick={onRetryLectureNotes}
+                className="mt-2 text-sm font-medium text-amber-900 underline decoration-amber-400 underline-offset-2 hover:text-amber-950"
+              >
+                Try again
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
         {module.body_md.trim().length > 0 ? (
           <MarkdownMath
             key={previewKey(module.id, module.body_md)}
             source={module.body_md}
             variant="light"
             uniformScale
+            boxedSectionHeadings={workspace === "lecture"}
             className="max-w-3xl"
           />
         ) : (
           <p className="text-sm text-neutral-400">{EMPTY_BODY[workspace]}</p>
         )}
+
+        {notesGenerating && workspace === "lecture" ? (
+          <div
+            className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center bg-white/75 px-6 backdrop-blur-[1px]"
+            aria-live="polite"
+          >
+            <div className="max-w-md rounded-xl border border-neutral-200 bg-white px-5 py-4 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                Building lecture notes
+              </p>
+              <p className="mt-2 text-sm font-medium text-neutral-900">
+                {notesProgress?.label ?? "Working…"}
+              </p>
+              {notesProgress && notesProgress.total > 0 && notesProgress.step === "section" ? (
+                <p className="mt-1 text-xs text-neutral-500">
+                  Section {notesProgress.index} of {notesProgress.total}
+                </p>
+              ) : null}
+              <p className="mt-2 text-xs leading-relaxed text-neutral-500">
+                Outlining sections, then writing each part—this can take a minute.
+              </p>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

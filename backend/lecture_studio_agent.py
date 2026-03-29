@@ -100,7 +100,8 @@ def _build_system_prompt(state: LectureStudioState) -> str:
             "Target on the order of **~2,500–8,000+ words** of instructional prose plus LaTeX and optional code. "
             "Use `##`/`###` structure; full proofs or proof sketches at course rigor; **three+** worked examples "
             "woven through the text; substantive pitfalls section; fenced code + commentary when CS/stats applies. "
-            "Unless the user asks to shorten, **expand** thin text toward chapter length."
+            "Unless the user asks to shorten, **expand** thin text toward chapter length. "
+            "Provide **one_line_summary**: **one** plain sentence for the **collapsed** timeline row—a hook (why it matters / main through-line)—**not** the opening of the paragraph **summary**, **not** the **Sections include:** list. Keep **summary** as a **~paragraph** (about **4–10 sentences**) for the **expanded** panel only: include an **ordered rundown of major `##`/`###` section titles** as they appear in `body_md`, plus scope and key ideas. When listing those sections (e.g. after **Sections include:**), use **lowercase** labels separated by **commas**, not semicolons or Title Case."
         )
     elif kind == "problem_set":
         kind_note = (
@@ -114,7 +115,8 @@ def _build_system_prompt(state: LectureStudioState) -> str:
             "Include **many** fully stated problems (not stubs): clear hypotheses, parts (a)(b)(c) where "
             "appropriate, expected deliverables, and point values or rubric lines **if** the user wants grading. "
             "Optional **Hints** or **Solution sketches** only if the instructor asks. "
-            "Unless the user asks to shorten, **expand** thin text toward a complete take-home."
+            "Unless the user asks to shorten, **expand** thin text toward a complete take-home. "
+            "**one_line_summary**: one sentence, collapsed row—distinct from **summary**’s opening. **summary**: **~paragraph** (4–10 sentences) for the expanded panel—problem themes, progression, deliverables, logistics—**not** pasted problem text."
         )
     elif kind == "quiz":
         kind_note = (
@@ -126,7 +128,8 @@ def _build_system_prompt(state: LectureStudioState) -> str:
             "(e.g. one sentence, a number, a brief proof, fill in the blank with a single expression). "
             "**Do not** replace real questions with topic lists, “sample” items, blueprints, or placeholders like "
             "“Q3: induction”—each item must be a **complete** question students can answer as-is. "
-            "Unless the user asks to shorten, **expand** thin text toward a complete quiz."
+            "Unless the user asks to shorten, **expand** thin text toward a complete quiz. "
+            "**one_line_summary**: one sentence, collapsed row—distinct from **summary**’s opening. **summary**: **~paragraph** on coverage, MC vs short-answer mix, and skills assessed—expanded panel only."
         )
     elif kind == "project":
         kind_note = (
@@ -134,7 +137,8 @@ def _build_system_prompt(state: LectureStudioState) -> str:
             "**clear goal**, **concrete deliverables**, **milestones** or checkpoints, **grading criteria** (rubric or weights), "
             "**timeline** within the week, collaboration/submission expectations, and constraints or starter materials as needed. "
             "Target substantive length when appropriate (often **~1,000–5,000+ words** plus LaTeX/code when relevant). "
-            "Use `##`/`###` for sections. **No** one-line stubs: every deliverable must be actionable."
+            "Use `##`/`###` for sections. **No** one-line stubs: every deliverable must be actionable. "
+            "**one_line_summary**: one sentence, collapsed row—distinct from **summary**’s opening. **summary**: **~paragraph** on goal, milestones, main deliverables, and grading shape—**not** the full spec."
         )
     elif kind == "exam":
         kind_note = (
@@ -142,7 +146,8 @@ def _build_system_prompt(state: LectureStudioState) -> str:
             "instructions, coverage, duration, allowed materials, integrity; then **only** **multiple-choice** (stem + labeled options) "
             "and/or **short-answer** items, each **complete and gradable**—not blueprints or topic lists. "
             "Scale length and difficulty for a **cumulative** sitting when the title/summary indicate a final. "
-            "Unless the user asks to shorten, **expand** thin text toward a full exam."
+            "Unless the user asks to shorten, **expand** thin text toward a full exam. "
+            "**one_line_summary**: one sentence, collapsed row—distinct from **summary**’s opening. **summary**: **~paragraph** on coverage, format, cumulative emphasis, and logistics—expanded panel only."
         )
 
     if kind == "problem_set":
@@ -164,7 +169,7 @@ def _build_system_prompt(state: LectureStudioState) -> str:
 **When you change the module** (steps 3–4): write a **short** natural-language preface (see step 3), then **immediately** end with exactly (no large markdown draft of the assignment before this):
 
 :::LECTURE_MODULE_UPDATE:::
-{ "title": "...", "summary": "...", "body_md": "...", "estimated_minutes": null }
+{ "title": "...", "one_line_summary": "...", "summary": "...", "body_md": "...", "estimated_minutes": null }
 :::END_LECTURE_MODULE_UPDATE:::
 
 **When you are only tutoring** (step 2): write your full reply in prose. **Do not** include `:::LECTURE_MODULE_UPDATE:::` or any JSON—the assignment text on the right must stay unchanged.
@@ -172,6 +177,7 @@ def _build_system_prompt(state: LectureStudioState) -> str:
 Rules when the JSON block **is** present:
 - Valid JSON only inside the block. Use \\n inside strings for newlines in body_md.
 - **estimated_minutes** may be a number or null.
+- **one_line_summary**: **one** plain sentence for the **collapsed** timeline row—a distinct hook; **do not** repeat or paraphrase the **opening** of **summary** or duplicate **title**. **summary**: **~paragraph** for the **expanded** panel only.
 - **body_md** must be **non-empty** and the **complete** updated assignment unless the user explicitly asked to clear it (brief placeholder + explanation).
 - **body_md** must be the **full** problem set text—not a topic list or one-line stubs.
 - **Section removal** requests must change `body_md`: the removed section must be **absent** from the string you emit (verify mentally: no `## Instructions` block if they asked to remove instructions).
@@ -199,7 +205,7 @@ Rules when **no** JSON block:
 **When you change the module** (steps 3–4): write a **short** natural-language preface (see step 3), then **immediately** end with exactly (no large markdown draft of the quiz before this):
 
 :::LECTURE_MODULE_UPDATE:::
-{ "title": "...", "summary": "...", "body_md": "...", "estimated_minutes": null }
+{ "title": "...", "one_line_summary": "...", "summary": "...", "body_md": "...", "estimated_minutes": null }
 :::END_LECTURE_MODULE_UPDATE:::
 
 **When you are only tutoring** (step 2): write your full reply in prose. **Do not** include `:::LECTURE_MODULE_UPDATE:::` or any JSON—the quiz text on the right must stay unchanged.
@@ -207,6 +213,7 @@ Rules when **no** JSON block:
 Rules when the JSON block **is** present:
 - Valid JSON only inside the block. Use \\n inside strings for newlines in body_md.
 - **estimated_minutes** may be a number or null.
+- **one_line_summary**: **one** plain sentence for the **collapsed** timeline row—a distinct hook; **do not** repeat or paraphrase the **opening** of **summary** or duplicate **title**. **summary**: **~paragraph** for the **expanded** panel only.
 - **body_md** must be **non-empty** and the **complete** updated quiz unless the user explicitly asked to clear it (brief placeholder + explanation).
 - **body_md** must be the **full** quiz text—not a topic list, blueprint, or one-line stubs. **Questions must be real MC or short-answer items** (full stems and options where MC; explicit prompts where SA)—not “sample” or illustrative placeholders.
 - **Section removal** requests must change `body_md`: the removed section must be **absent** from the string you emit.
@@ -234,7 +241,7 @@ Rules when **no** JSON block:
 **When you change the module** (steps 3–4): write a **short** natural-language preface (see step 3), then **immediately** end with exactly (no large markdown draft of the project before this):
 
 :::LECTURE_MODULE_UPDATE:::
-{ "title": "...", "summary": "...", "body_md": "...", "estimated_minutes": null }
+{ "title": "...", "one_line_summary": "...", "summary": "...", "body_md": "...", "estimated_minutes": null }
 :::END_LECTURE_MODULE_UPDATE:::
 
 **When you are only discussing** (step 2): write your full reply in prose. **Do not** include `:::LECTURE_MODULE_UPDATE:::` or any JSON—the project spec on the right must stay unchanged.
@@ -242,6 +249,7 @@ Rules when **no** JSON block:
 Rules when the JSON block **is** present:
 - Valid JSON only inside the block. Use \\n inside strings for newlines in body_md.
 - **estimated_minutes** may be a number or null.
+- **one_line_summary**: **one** plain sentence for the **collapsed** timeline row—a distinct hook; **do not** repeat or paraphrase the **opening** of **summary** or duplicate **title**. **summary**: **~paragraph** for the **expanded** panel only.
 - **body_md** must be **non-empty** and the **complete** updated project spec unless the user explicitly asked to clear it (brief placeholder + explanation).
 - **body_md** must be the **full** handout—not a topic list or stub bullets replacing real deliverables.
 - **Section removal** requests must change `body_md`: the removed section must be **absent** from the string you emit.
@@ -268,7 +276,7 @@ Rules when **no** JSON block:
 **When you change the module** (steps 3–4): write a **short** natural-language preface (see step 3), then **immediately** end with exactly (no large markdown draft of the exam before this):
 
 :::LECTURE_MODULE_UPDATE:::
-{ "title": "...", "summary": "...", "body_md": "...", "estimated_minutes": null }
+{ "title": "...", "one_line_summary": "...", "summary": "...", "body_md": "...", "estimated_minutes": null }
 :::END_LECTURE_MODULE_UPDATE:::
 
 **When you are only tutoring** (step 2): write your full reply in prose. **Do not** include `:::LECTURE_MODULE_UPDATE:::` or any JSON—the exam text on the right must stay unchanged.
@@ -276,6 +284,7 @@ Rules when **no** JSON block:
 Rules when the JSON block **is** present:
 - Valid JSON only inside the block. Use \\n inside strings for newlines in body_md.
 - **estimated_minutes** may be a number or null.
+- **one_line_summary**: **one** plain sentence for the **collapsed** timeline row—a distinct hook; **do not** repeat or paraphrase the **opening** of **summary** or duplicate **title**. **summary**: **~paragraph** for the **expanded** panel only.
 - **body_md** must be **non-empty** and the **complete** updated exam unless the user explicitly asked to clear it (brief placeholder + explanation).
 - **body_md** must be the **full** exam text—not a topic list or stubs. **Questions must be real MC or short-answer items**—not illustrative placeholders.
 - **Section removal** requests must change `body_md`: the removed section must be **absent** from the string you emit.
@@ -290,7 +299,7 @@ Rules when **no** JSON block:
         )
         job_section = f"""=== YOUR JOB ===
 1. Answer the instructor's **latest** message: explain, confirm edits, or ask one focused follow-up.
-2. Update **only** this module's **title**, **summary**, **body_md**, and optionally **estimated_minutes** to match what they want.
+2. Update **only** this module's **title**, **one_line_summary**, **summary**, **body_md**, and optionally **estimated_minutes** to match what they want.
 3. {kind_note}
 4. Preserve **id** and **kind** logically in the JSON (we will force them to match the existing module server-side).
 """
@@ -298,14 +307,15 @@ Rules when **no** JSON block:
 Write a short natural reply first (no JSON). Then end with exactly:
 
 :::LECTURE_MODULE_UPDATE:::
-{ "title": "...", "summary": "...", "body_md": "...", "estimated_minutes": null }
+{ "title": "...", "one_line_summary": "...", "summary": "...", "body_md": "...", "estimated_minutes": null }
 :::END_LECTURE_MODULE_UPDATE:::
 
 Rules:
 - Valid JSON only inside the block. Use \\n inside strings for newlines in body_md.
 - **estimated_minutes** may be a number or null.
+- **one_line_summary**: **one** plain sentence for the **collapsed** timeline row—a distinct hook (payoff / tension / what students do); **forbidden:** copying the **opening** of **summary**, listing **Sections include:**, or duplicating **title**. **summary**: **~paragraph** (4–10 sentences) for the **expanded** panel only.
 - **Every** reply must include the block with non-empty **body_md** unless the user explicitly asked to clear it (then use a brief placeholder explaining why).
-- For **lecture** modules, **body_md** in the JSON must be the **full chapter-length** material (5–10 pages, paragraph-heavy)—not an outline, not a shortened summary, not bullet-topic lists replacing prose.
+- For **lecture** modules, **body_md** in the JSON must be the **full chapter-length** material (5–10 pages, paragraph-heavy)—not an outline, not a shortened summary, not bullet-topic lists replacing prose. **summary** must be a **~paragraph** timeline preview that **lists major `##`/`###` section titles in order** matching `body_md`; in that list (e.g. **Sections include:**), **lowercase** names and **comma** separators—no semicolons, no Title Case in the list.
 """
 
     return f"""{intro}
@@ -367,10 +377,16 @@ def _parse_module_update(
     try:
         data = json.loads(blob)
         est = data.get("estimated_minutes")
+        ols = data.get("one_line_summary")
+        if ols is None:
+            one_line = fallback.one_line_summary
+        else:
+            one_line = str(ols).strip()
         return agent_message, WeekModule(
             id=fallback.id,
             kind=fallback.kind,
             title=str(data.get("title", fallback.title)),
+            one_line_summary=one_line,
             summary=str(data.get("summary", fallback.summary)),
             body_md=str(data.get("body_md", fallback.body_md)),
             estimated_minutes=int(est) if est is not None else None,

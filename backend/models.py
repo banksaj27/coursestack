@@ -71,6 +71,7 @@ class WeekModule(BaseModel):
     id: str = ""
     kind: str = "lecture"  # lecture | project | problem_set | quiz | exam
     title: str = ""
+    one_line_summary: str = ""
     summary: str = ""
     body_md: str = ""
     estimated_minutes: int | None = None
@@ -134,4 +135,10 @@ class LectureStudioState(BaseModel):
 
 class LectureStudioRequest(BaseModel):
     message: str
+    state: LectureStudioState
+
+
+class LectureNotesGenerateRequest(BaseModel):
+    """Trigger multi-step lecture body generation (outline → per-section → concat)."""
+
     state: LectureStudioState

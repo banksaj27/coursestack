@@ -109,9 +109,12 @@ export default function ModuleTimelineNode({
             <h3 className="truncate text-[13px] font-semibold text-neutral-900">
               {mod.title}
             </h3>
-            {mod.summary ? (
-              <p className="mt-0.5 line-clamp-2 text-[12px] leading-snug text-neutral-500">
-                {mod.summary}
+            {mod.one_line_summary?.trim() ? (
+              <p
+                className="mt-0.5 line-clamp-1 text-[11px] leading-snug text-neutral-500"
+                title={mod.one_line_summary}
+              >
+                {mod.one_line_summary.trim()}
               </p>
             ) : null}
             {mod.kind === "lecture" && mod.id ? (
@@ -178,7 +181,7 @@ export default function ModuleTimelineNode({
         </div>
 
         <AnimatePresence>
-          {expanded && mod.body_md.trim().length > 0 && (
+          {expanded ? (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
@@ -188,10 +191,27 @@ export default function ModuleTimelineNode({
               onClick={(e) => e.stopPropagation()}
             >
               <div className="border-t border-neutral-100 px-4 py-3">
-                <MarkdownMath source={mod.body_md} variant="light" />
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">
+                  Summary
+                </p>
+                {mod.summary?.trim() ? (
+                  <div className="mt-2">
+                    <MarkdownMath
+                      source={mod.summary}
+                      variant="light"
+                      className="text-neutral-700"
+                    />
+                  </div>
+                ) : (
+                  <p className="mt-2 text-[12px] leading-relaxed text-neutral-500">
+                    No summary on the timeline yet. Open the workspace above to
+                    view and edit the full module—body content stays there, not
+                    here.
+                  </p>
+                )}
               </div>
             </motion.div>
-          )}
+          ) : null}
         </AnimatePresence>
       </div>
     </motion.div>

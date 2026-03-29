@@ -32,6 +32,7 @@ function makeId() {
 function moduleContentChanged(before: WeekModule, after: WeekModule): boolean {
   return (
     before.title !== after.title ||
+    (before.one_line_summary ?? "") !== (after.one_line_summary ?? "") ||
     before.summary !== after.summary ||
     before.body_md !== after.body_md ||
     before.estimated_minutes !== after.estimated_minutes ||
@@ -210,6 +211,29 @@ export function useModuleStudio(week: number, moduleId: string) {
     [week, moduleId, module],
   );
 
+  const refreshModuleFromPack = useCallback(() => {
+    const pack = loadModularWeekPack(week);
+    const m = pack?.generated.modules.find((x) => x.id === moduleId) ?? null;
+    setModule(m);
+  }, [week, moduleId]);
+
+  const appendAssistantMessage = useCallback(
+    (content: string) => {
+      const msg: Message = {
+        id: makeId(),
+        role: "assistant",
+        content,
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => {
+        const next = [...prev, msg];
+        saveLectureStudioMessages(week, moduleId, next);
+        return next;
+      });
+    },
+    [week, moduleId],
+  );
+
   return {
     syllabusTopic: syllabus.topic,
     module,
@@ -220,5 +244,7 @@ export function useModuleStudio(week: number, moduleId: string) {
     sendMessage,
     isBusy: agentStatus !== "idle",
     updateExamSpecificRules,
+    refreshModuleFromPack,
+    appendAssistantMessage,
   };
 }

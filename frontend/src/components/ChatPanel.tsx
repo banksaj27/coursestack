@@ -59,6 +59,8 @@ export default function ChatPanel() {
   const removePendingAttachment = useCourseStore((s) => s.removePendingAttachment);
   const pendingAttachments = useCourseStore((s) => s.pendingAttachments);
   const phase = useCourseStore((s) => s.phase);
+  const planState = useCourseStore((s) => s.planState);
+  const reset = useCourseStore((s) => s.reset);
 
   const [input, setInput] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -139,6 +141,23 @@ export default function ChatPanel() {
     sendMessage(text);
   }, [input, isBusy, sendMessage]);
 
+  const handleStartOver = useCallback(() => {
+    if (isBusy) return;
+    const hasProgress =
+      messages.length > 0 ||
+      planState.course_plan.weeks.length > 0 ||
+      planState.topic.trim().length > 0;
+    if (
+      hasProgress &&
+      !window.confirm(
+        "Start a new course? This clears the conversation, syllabus draft, and weekly workspace.",
+      )
+    ) {
+      return;
+    }
+    reset();
+  }, [isBusy, messages.length, planState.course_plan.weeks.length, planState.topic, reset]);
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -193,10 +212,20 @@ export default function ChatPanel() {
           </p>
         </div>
       )}
-      <div className="shrink-0 border-b border-neutral-100 px-8 py-3">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-neutral-100 px-8 py-3">
         <h2 className="text-sm font-semibold text-neutral-900">
           Conversation
         </h2>
+        <button
+          type="button"
+          onClick={handleStartOver}
+          disabled={isBusy}
+          title="Clear chat and start a new course from the topic screen"
+          className="shrink-0 text-xs font-medium text-neutral-500 transition-colors hover:text-neutral-800
+                     disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Start over
+        </button>
       </div>
 
       <div

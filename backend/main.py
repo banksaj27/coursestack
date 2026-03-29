@@ -12,12 +12,14 @@ from PyPDF2 import PdfReader
 
 from agent import run_agent, run_agent_stream, generate_export
 from models import (
+    LectureNotesGenerateRequest,
     LectureStudioRequest,
     PlanRequest,
     PlanResponse,
     PlanState,
     WeekModularRequest,
 )
+from lecture_notes_pipeline import run_lecture_notes_pipeline
 from lecture_studio_agent import run_lecture_studio_stream
 from week_modular_agent import run_week_modular_stream
 
@@ -58,6 +60,13 @@ async def _lecture_studio_generator(
         yield event
 
 
+async def _lecture_notes_generator(
+    request: LectureNotesGenerateRequest,
+) -> AsyncGenerator[dict, None]:
+    async for event in run_lecture_notes_pipeline(request.state):
+        yield event
+
+
 @app.post("/plan/stream")
 async def plan_stream(request: PlanRequest):
     return EventSourceResponse(_event_generator(request))
@@ -93,6 +102,11 @@ async def week_modular_stream(request: WeekModularRequest):
 @app.post("/lecture-studio/stream")
 async def lecture_studio_stream(request: LectureStudioRequest):
     return EventSourceResponse(_lecture_studio_generator(request))
+
+
+@app.post("/lecture-studio/generate-notes")
+async def lecture_studio_generate_notes(request: LectureNotesGenerateRequest):
+    return EventSourceResponse(_lecture_notes_generator(request))
 
 
 @app.get("/health")

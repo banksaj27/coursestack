@@ -15,6 +15,35 @@ _PART_ONLY_LINE = re.compile(
 )
 
 
+_FALLBACK_WEEK_MODULAR_CHAT = (
+    "I've updated this week's modules—open the timeline on the right for full "
+    "lecture chapters, assignments, quizzes, and exams."
+)
+
+
+def sanitize_week_modular_chat_prose(text: str) -> str:
+    """
+    The model sometimes pastes YAML/field dumps or body_md into the prose before
+    :::WEEK_MODULES_UPDATE:::. That text is redundant with the JSON block and
+    should not appear in chat history—replace with a short acknowledgment.
+    """
+    t = (text or "").strip()
+    if not t:
+        return t
+    if re.search(r"(?m)^\s*body_md\s*:", t):
+        return _FALLBACK_WEEK_MODULAR_CHAT
+    if re.search(r"(?m)^\s*one_line_summary\s*:", t):
+        return _FALLBACK_WEEK_MODULAR_CHAT
+    if re.search(r"(?m)^\s*kind\s*:", t) and re.search(r"(?m)^\s*id\s*:", t):
+        return _FALLBACK_WEEK_MODULAR_CHAT
+    low = t.lower()
+    if "```json" in low or ('```' in t and '"modules"' in t):
+        return _FALLBACK_WEEK_MODULAR_CHAT
+    if len(t) > 8000:
+        return _FALLBACK_WEEK_MODULAR_CHAT
+    return t
+
+
 def strip_meta_part_labels(text: str) -> str:
     """Drop 'Part 1 — …' / 'Part 2' heading lines from the visible assistant reply."""
     if not (text or "").strip():

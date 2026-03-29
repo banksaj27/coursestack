@@ -1,5 +1,6 @@
 "use client";
 
+import type { HTMLAttributes } from "react";
 import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import rehypeKatex from "rehype-katex";
@@ -274,12 +275,43 @@ const darkUniformComponents: Components = {
   hr: () => <hr className="my-3 border-white/20" />,
 };
 
+/** Prominent panel around `##` headings — emerald, matching Weekly Plan lecture styling. */
+function BoxedH2Uniform({
+  children,
+  ...props
+}: HTMLAttributes<HTMLHeadingElement>) {
+  return (
+    <h2
+      className="mb-4 mt-8 scroll-mt-20 first:mt-0 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-base font-semibold tracking-tight text-emerald-900 shadow-sm"
+      {...props}
+    >
+      {children}
+    </h2>
+  );
+}
+
+function BoxedH2Base({
+  children,
+  ...props
+}: HTMLAttributes<HTMLHeadingElement>) {
+  return (
+    <h2
+      className="mb-4 mt-8 scroll-mt-20 first:mt-0 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-lg font-semibold tracking-tight text-emerald-900 shadow-sm"
+      {...props}
+    >
+      {children}
+    </h2>
+  );
+}
+
 type Props = {
   source: string;
   /** Dark chat bubbles vs light content panel */
   variant?: "light" | "dark";
   /** Headings match body text-sm scale (timeline, lecture reader). */
   uniformScale?: boolean;
+  /** Light mode: render `##` as a bordered emerald panel (major section titles). */
+  boxedSectionHeadings?: boolean;
   className?: string;
   /**
    * When false (user chat), single `$` is not math—avoids `$5` currency issues.
@@ -294,11 +326,12 @@ export function MarkdownMath({
   source,
   variant = "light",
   uniformScale = false,
+  boxedSectionHeadings = false,
   className = "",
   singleDollarMath = true,
   latexDelimiterNormalize = true,
 }: Props) {
-  const merged =
+  let merged: Components =
     variant === "dark"
       ? uniformScale
         ? darkUniformComponents
@@ -306,6 +339,13 @@ export function MarkdownMath({
       : uniformScale
         ? lightUniformComponents
         : baseComponents;
+
+  if (variant === "light" && boxedSectionHeadings) {
+    merged = {
+      ...merged,
+      h2: uniformScale ? BoxedH2Uniform : BoxedH2Base,
+    };
+  }
   const katexColor =
     variant === "dark"
       ? "[&_.katex]:text-white [&_.katex-html]:text-white"

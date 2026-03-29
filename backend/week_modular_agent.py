@@ -13,6 +13,7 @@ from week_context_utils import (
     format_other_week_summaries,
     format_problem_set_global_block,
     format_quiz_global_block,
+    sanitize_week_modular_chat_prose,
     strip_meta_part_labels,
 )
 
@@ -28,6 +29,24 @@ def _get_client() -> AsyncOpenAI:
 
 _START_TAG = ":::WEEK_MODULES_UPDATE:::"
 _END_TAG = ":::END_WEEK_MODULES_UPDATE:::"
+
+_REPAIR_USER_MESSAGE = (
+    "Your previous reply did not include a valid, complete weekly module payload. "
+    "Fix this now by outputting: (1) a **brief** reply to the instructor, then (2) **on the last lines**, "
+    "the exact delimiter `:::WEEK_MODULES_UPDATE:::` followed by **one JSON object** (valid JSON only, "
+    "no markdown fences around it) with keys `modules` (array), `instructor_notes_md` (string), "
+    "and `week_context_summary` (string), then the closing line `:::END_WEEK_MODULES_UPDATE:::`. "
+    "The `modules` array must list **every** module for this week with `id`, `kind`, `title`, "
+    "`one_line_summary`, `summary`, `body_md`, and optional `estimated_minutes`. "
+    "Do not omit the closing tag; do not truncate the JSON."
+)
+
+
+def _cap_chat_text(text: str, max_chars: int = 2800) -> str:
+    t = (text or "").strip()
+    if len(t) <= max_chars:
+        return t
+    return t[: max_chars - 1].rstrip() + "…"
 
 
 def _extract_modules_json(raw: str) -> str | None:
@@ -121,42 +140,60 @@ Short memories of what was generated for *other* weeks. Use for consistency; ful
 {json.dumps(current, indent=2)}
 
 === MODULE TYPES (use these exact `kind` strings) ===
-- **lecture** — See **LECTURE MODULES — TEXTBOOK STYLE** below. Each lecture `body_md` is a **chapter-like** document, not an outline.
+- **lecture** — See **LECTURE MODULES — TIMELINE STUB** below. Full chapter-length notes are generated when the instructor opens the **Lecture workspace** (separate pipeline), not in this export.
 - **project** — Spec in `body_md`: goal, deliverables, milestones, grading criteria, suggested timeline within the week.
 - **problem_set** — `body_md` lists concrete problems (numbered) with full statements; students could submit written solutions. If **GLOBAL PROBLEM SET HOUSE RULES** appear above, **every** `problem_set` module’s `body_md` must satisfy them (notation, length, sections, collaboration policy, etc.).
 - **quiz** — `body_md`: the **actual quiz** students would take—**only multiple-choice** (stems with labeled options) **and/or short-answer** questions (explicit prompts); plus instructions, timing, and policies as needed. **Not** a blueprint or list of topics—every item must be a complete, gradable question. If **GLOBAL QUIZ HOUSE RULES** appear above, **every** `quiz` module’s `body_md` must satisfy them (MC/SA mix, length, timing, difficulty, etc.).
 - **exam** — **Only** when **EXAM WEEK** rules apply above (`assessment` is **midterm** or **final**). One **terminal** module: full **midterm** or **final** handout with real MC and/or short-answer items (longer/cumulative as appropriate). Per-exam instructor notes live in `exam_specific_rules` on the module (usually empty until set in exam studio). **Never** use `exam` when there is no exam week tag.
 
-=== LECTURE MODULES — TEXTBOOK CHAPTER body_md (CRITICAL) ===
-For every **lecture** module, `body_md` must read like **one full textbook chapter** (or major chapter section)—not slides, not a topic list, not “we will cover…”, not a short handout.
+=== LECTURE MODULES — TIMELINE STUB body_md (CRITICAL) ===
+For every **lecture** module, `body_md` here is a **planning stub for the Weekly Plan export**, not the full chapter students read in the Lecture workspace.
 
-**Length (non-negotiable scale):** Aim for roughly **5–10 printed textbook pages** of reading per lecture module. That means **extensive, continuous prose**: paragraph after paragraph of explanation, motivation, and commentary between formal items—not sparse bullets. As a rough numeric guide, that is often on the order of **~2,500–8,000+ words** of instructional text (plus LaTeX and optional code), i.e. a **very long** single `body_md` string. Shorter only if the instructor explicitly asks for brevity or the syllabus slot is truly minimal.
+**Length:** Aim for roughly **~500–2,500 words** (or a bit more if needed for clarity). Use `##` and `###` headings for the **planned section structure** of the eventual chapter. Under each heading, write **short paragraphs or tight bullets** that say **what** the full section will teach (definitions named, theorems stated without full proofs, example *topics*), **not** the full textbook prose.
 
-You MUST include:
-1. **Paragraph-driven exposition**: Multiple **full paragraphs** per major idea (intro, intuition, comparison to prior ideas, why definitions are shaped as they are). Use `##` and `###` headings to structure a chapter (e.g. Motivation → Core definitions → Main results → Extended examples → Connections → Pitfalls).
-2. **Mathematics**: Proper LaTeX in Markdown (`$...$`, `$$...$$`). **Definitions**, **propositions/lemmas/theorems** as appropriate, with **full proofs or careful proof sketches** matching `user_profile.rigor_level` / proof-based courses—written out in prose, not “proof omitted.”
-3. **Examples**: **At least three** fully worked examples (not one-liners). Each: setup → step-by-step reasoning → conclusion. Mix difficulty; at least one should combine ideas from more than one subtopic. Weave examples into the narrative, not only at the end.
-4. **Code (when relevant)**: If the subject is CS, data, algorithms, stats, or anything implementation-adjacent, include **fenced code blocks** (```python or appropriate language) with runnable or near-runnable snippets, plus **paragraphs** of commentary before/after. Use **inline code** for APIs, commands, or notation. If the course is purely theoretical math with no code culture, skip code but keep proofs and prose heavy.
-5. **Pitfalls / remarks**: A substantive subsection (multiple paragraphs) on common mistakes, edge cases, and misconceptions.
+**Why:** When the instructor opens **Lecture workspace**, the app runs a **multi-step generator** (section outline → write each section → concatenate) to produce the **actual long-form** lecture notes. This export must give that pipeline a clear **roadmap** plus enough context to stay aligned with the week’s topics.
+
+You MUST still include:
+1. **Clear `##` / `###` roadmap** covering motivation → core ideas → formal results → examples (planned) → pitfalls (planned).
+2. **LaTeX** where notation matters (you may keep key equations compact).
+3. **Pointers to at least three worked-example *topics*** (what each example will demonstrate)—full step-by-step examples belong in the Lecture workspace pass, not here.
+4. **Code discipline (when relevant):** note what kinds of snippets the full chapter will include; optional short fenced snippet if it helps the stub read concretely.
 
 You MUST NOT:
-- Replace long explanations with bullet lists of topic names only.
-- Leave “TBD”, “exercise for the reader” without content, or placeholder sections.
-- Produce a “summary chapter” of one or two screens when the spec calls for 5–10 pages of depth.
+- Paste a **full** 5–10 page chapter into `body_md` in this weekly export (that belongs in Lecture workspace generation).
+- Replace structure with a flat topic list with no headings.
+- Leave “TBD” for every section—each planned heading should have substantive stub text.
 
-**If multiple lecture modules share one week:** Each **individual** lecture module’s `body_md` should still approximate **one chapter’s worth** of material for the topics it covers (do not split one thin lecture into many tiny files—prefer fewer, longer lectures when the syllabus allows).
+**If multiple lecture modules share one week:** Each lecture’s stub still reflects **one** coherent chapter-sized slice for its title/topics.
+
+**Lecture `one_line_summary` vs `summary` vs `body_md`:** **`one_line_summary`** is a **single** plain sentence for the **collapsed** timeline row (see **MODULE timeline text** below)—a hook only, **no** section roadmap. **`summary`** is **not** a one-liner: it is **~one short paragraph** (about **4–10 sentences**, often **100–450 words**) shown **only when the row is expanded**. It must **outline the chapter**: what the reading covers, the **pedagogical arc**, and—**critically**—an **ordered list of the major sections** matching `body_md`’s `##` / `###` order. When you introduce that list (e.g. **Sections include:**), write the listed names in **lowercase** (sentence-style labels, **not** Title Case) and separate them with **commas**, **not** semicolons—e.g. “Sections include: motivation and scope, formal definitions, main result and proof sketch, worked examples, pitfalls.” (`body_md` headings stay normally titled; only this **summary** inline list uses lowercase comma-separated labels.) Mention one or two central definitions or results students will meet. **Do not** paste the full chapter into `summary`; **do** make the section roadmap concrete enough that the expanded panel reads like a table of contents. **`one_line_summary` must not** repeat or paraphrase the **opening** of **`summary`**.
 
 === STRUCTURE RULES ===
 1. Produce **ordered** `modules` (top = earlier in the week, bottom = later). Typical week: mix of lectures + at least one **problem_set** and/or **quiz**; add a **project** when it fits the topic (e.g. implementation, extended investigation). If **EXAM WEEK** rules apply, the **last** module **must** be **kind** `exam`.
 2. Cover the week's **topics** across the **lecture** modules; do not leave syllabus topics only in titles.
-3. Each module needs: **id** (unique snake_case, e.g. `w3_lecture_axioms`), **kind**, **title**, **summary** (one line for the timeline card), **body_md** (substantive), optional **estimated_minutes**.
+3. Each module needs: **id** (unique snake_case, e.g. `w3_lecture_axioms`), **kind**, **title**, **`one_line_summary`**, **`summary`** (see **MODULE timeline text** below), **`body_md`** (substantive full content), optional **estimated_minutes**.
 4. **instructor_notes_md**: pacing for the whole week, how modules connect, what to do in class vs async.
 
+=== MODULE timeline text — TWO FIELDS (every `kind`) ===
+Every module has **two** strings for the Weekly Plan timeline (full `body_md` is for workspaces):
+
+1. **`one_line_summary`** — **Exactly one sentence** (~12–26 words), plain text. Shown on the **collapsed** row under **title**. It must be a **different idea** from the paragraph: a hook—learning payoff, central tension, or what students will practice—**not** a truncated **summary**. **Forbidden:** repeating, rephrasing, or continuing the **first sentence** (or first ~15 words) of **`summary`**; echoing **title**; putting the **Sections include:** list here (lectures: that list belongs **only** in **`summary`**).
+
+2. **`summary`** — **~one paragraph** (**4–10 sentences**), plain text or light Markdown. Shown **only in the expanded** panel. Must **not** be a single short sentence or a duplicate of **title**. Substantive detail.
+
+- **lecture** — **one_line_summary:** why this reading matters or the through-line in one breath—**no** section list. **summary:** paragraph + **ordered outline of major `##`/`###` headings** from `body_md`, plus scope and key ideas. In **Sections include:** (or equivalent), **lowercase** labels and **comma** separation—no semicolons, no Title Case in that list.
+- **problem_set** — **one_line_summary:** what they’ll spend the block doing (one angle). **summary:** paragraph on themes, progression, deliverables, logistics—**not** pasted problem statements.
+- **quiz** — **one_line_summary:** one-sentence stake (e.g. what skills are probed). **summary:** paragraph on coverage, MC vs short-answer mix, length, skills.
+- **exam** — **one_line_summary:** one-sentence framing (e.g. cumulative check). **summary:** paragraph on coverage, format, cumulative emphasis, logistics.
+- **project** — **one_line_summary:** the deliverable or goal in one breath. **summary:** paragraph on goal, milestones, deliverables, grading shape—**not** the full spec.
+
 === RESPOND TO THE INSTRUCTOR ===
-The **last user message** in the thread is their current request. The text you show **above** the `:::WEEK_MODULES_UPDATE:::` block must **directly answer** that message: questions get answers; edit requests get a short confirmation of what you changed and why; vague asks get one focused clarifying question. Do **not** reply with only a generic recap of the week or boilerplate that ignores their wording.
+The **last user message** in the thread is their current request. The text you show **above** the `:::WEEK_MODULES_UPDATE:::` block must **directly answer** that message in **brief conversational prose only**—questions get concise answers; edit requests get a **short** confirmation of what you changed; vague asks get **one** focused clarifying question.
+
+**Chat vs timeline (critical):** The instructor sees **full modules** on the **timeline panel** to the right. The chat must **never** duplicate that material. **Do not** paste or outline `body_md`, quiz/exam questions, problem statements, YAML-style lines (`id:`, `kind:`, `title:`, `summary:`, `body_md:`), JSON, or fenced code blocks **above** the marker. **All** module payloads—including every `body_md`, `summary`, and `one_line_summary`—belong **only** inside the JSON block.
 
 === OUTPUT FORMAT (STRICT) ===
-Write a **natural** message first (plain text or light Markdown, no JSON). Do **not** use headings like "Part 1", "Part 2", or any similar labels—just talk to the instructor, then append the block.
+Write a **short** natural message first: aim for **about 1–6 sentences** or **under ~900 characters**—plain text or light Markdown, **no JSON**, **no module field dumps**, **no fenced code**. Do **not** use headings like "Part 1", "Part 2", or any similar labels—just talk to the instructor, then append the block.
 
 At the **very end**, exactly one block:
 
@@ -164,10 +201,14 @@ At the **very end**, exactly one block:
 {{ "modules": [ ... ], "instructor_notes_md": "...", "week_context_summary": "..." }}
 :::END_WEEK_MODULES_UPDATE:::
 
+**Non-negotiable:** Without **both** markers above and **valid** JSON between them, the app **cannot** change the timeline—the instructor will see your chat text but **the modules on the right stay frozen**. A conversational reply alone is **not** an update. When they ask to change, refresh, fix, or “update the modules,” you **must** emit a fresh complete block (full `modules` array), not a description of what you would do.
+
 Rules:
-- Valid JSON only inside the block. Use \\n inside strings for newlines in body_md.
+- Valid JSON only inside the block. Use \\n inside strings for newlines in body_md and summary.
 - Pack as much **chapter-length** lecture material as the response allows; if constrained, prioritize **complete** proofs and worked examples over filler—then the instructor can ask to continue in a follow-up turn.
-- **Every** reply must include the block. **modules** must be a non-empty array unless the user explicitly asked to clear it.
+- **Every** reply must include the block with **`:::END_WEEK_MODULES_UPDATE:::`** closing the JSON. **modules** must be a non-empty array unless the user explicitly asked to clear it.
+- **one_line_summary** on every module: required, **one** sentence, distinct from **summary**’s opening (see **MODULE timeline text**).
+- **summary** on every module: paragraph-length expanded preview (lectures must outline section headings in **summary** only).
 - **kind** must be exactly one of: lecture, project, problem_set, quiz, exam.
 - **week_context_summary** (REQUIRED): 4–10 sentences, plain text, max ~1200 characters. Summarize THIS week's module line-up and what students do in each type—stored for when other weeks are edited. If global format rules or global problem set or quiz house rules are in effect, note that modules follow those constraints.
 """
@@ -185,17 +226,19 @@ def _build_messages(state: WeekModularState, user_message: str) -> list[dict]:
 
 def _parse_modules(
     raw: str, fallback: WeekModularGenerated
-) -> tuple[str, WeekModularGenerated, str | None]:
+) -> tuple[str, WeekModularGenerated, str | None, bool]:
     blob = _extract_modules_json(raw)
     si = raw.find(_START_TAG)
-    agent_message = strip_meta_part_labels(
-        raw[:si].strip() if si >= 0 else raw.strip()
+    agent_message = sanitize_week_modular_chat_prose(
+        strip_meta_part_labels(raw[:si].strip() if si >= 0 else raw.strip())
     )
     if not blob:
-        return agent_message, fallback, None
+        return agent_message, fallback, None, False
     try:
         data = json.loads(blob)
         mods_raw = data.get("modules", [])
+        if not isinstance(mods_raw, list):
+            return agent_message, fallback, None, False
         modules = []
         for m in mods_raw:
             if not isinstance(m, dict):
@@ -204,11 +247,17 @@ def _parse_modules(
             if kind not in ("lecture", "project", "problem_set", "quiz", "exam"):
                 kind = "lecture"
             est = m.get("estimated_minutes")
+            ols = m.get("one_line_summary")
+            if ols is None:
+                one_line = ""
+            else:
+                one_line = str(ols).strip()
             modules.append(
                 WeekModule(
                     id=str(m.get("id", "")),
                     kind=kind,
                     title=str(m.get("title", "Untitled")),
+                    one_line_summary=one_line,
                     summary=str(m.get("summary", "")),
                     body_md=str(m.get("body_md", "")),
                     estimated_minutes=int(est) if est is not None else None,
@@ -222,9 +271,30 @@ def _parse_modules(
             summary = None
         return agent_message, WeekModularGenerated(
             modules=modules, instructor_notes_md=notes
-        ), summary
+        ), summary, True
     except (json.JSONDecodeError, TypeError, ValueError):
-        return agent_message, fallback, None
+        return agent_message, fallback, None, False
+
+
+async def _week_modular_repair_completion(
+    client: AsyncOpenAI,
+    model: str,
+    base_messages: list[dict],
+    failed_raw: str,
+) -> str:
+    tail = failed_raw[-20000:] if len(failed_raw) > 20000 else failed_raw
+    repair_messages = [
+        *base_messages,
+        {"role": "assistant", "content": tail},
+        {"role": "user", "content": _REPAIR_USER_MESSAGE},
+    ]
+    resp = await client.chat.completions.create(
+        model=model,
+        messages=repair_messages,
+        temperature=0.2,
+        max_tokens=16384,
+    )
+    return (resp.choices[0].message.content or "").strip()
 
 
 async def run_week_modular_stream(
@@ -260,9 +330,28 @@ async def run_week_modular_stream(
                 else:
                     yield {"event": "token", "data": json.dumps({"token": token})}
 
-    agent_message, new_gen, week_summary = _parse_modules(
+    agent_message, new_gen, week_summary, parse_ok = _parse_modules(
         full_response, state.generated
     )
+
+    if not parse_ok:
+        repair_raw = await _week_modular_repair_completion(
+            client, model, messages, full_response
+        )
+        ra, rg, rw, repair_ok = _parse_modules(repair_raw, state.generated)
+        if repair_ok:
+            agent_message, new_gen, week_summary = ra, rg, rw
+            parse_ok = True
+
+    if not parse_ok:
+        agent_message = _cap_chat_text(agent_message)
+        if not agent_message:
+            agent_message = "I wasn't able to refresh the modules on the timeline."
+        agent_message += (
+            "\n\n_(The timeline was **not** updated: the model response had no valid "
+            "`:::WEEK_MODULES_UPDATE:::` / JSON block. Try sending your request again, "
+            "or use **Reset & regenerate**.)_"
+        )
 
     new_hist = list(state.conversation_history)
     new_hist.append({"role": "user", "content": user_message})
@@ -275,6 +364,7 @@ async def run_week_modular_stream(
             "generated": new_gen.model_dump(),
             "conversation_history": new_hist,
             "week_context_summary": week_summary,
+            "timeline_parse_ok": parse_ok,
         }),
     }
 
