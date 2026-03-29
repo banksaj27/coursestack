@@ -72,7 +72,7 @@ export default function WeekModularChatPanel() {
   );
 
   const [input, setInput] = useState("");
-  const [houseRulesOpen, setHouseRulesOpen] = useState(true);
+  const [houseRulesOpen, setHouseRulesOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const houseRulesPanelId = "weekly-plan-house-rules-panel";
   const houseRulesToggleId = "weekly-plan-house-rules-toggle";
@@ -130,12 +130,11 @@ export default function WeekModularChatPanel() {
 
   return (
     <div className="flex h-full flex-col bg-white">
-      <header className="shrink-0 border-b border-neutral-100 px-6 py-3.5">
-        <h2 className="text-sm font-semibold text-neutral-900">AI Professor</h2>
-        <p className="mt-1 max-w-xl text-xs leading-relaxed text-neutral-500">
-          Chat below applies to the <strong className="font-medium text-neutral-700">week you select</strong> on the timeline. Lectures, problem sets, and quizzes refine here.
-        </p>
-      </header>
+      <div className="shrink-0 border-b border-neutral-100 px-6 py-3">
+        <h2 className="text-sm font-semibold text-neutral-900">
+          Conversation
+        </h2>
+      </div>
 
       <section
         aria-label="Course-wide format and structure"
@@ -174,7 +173,7 @@ export default function WeekModularChatPanel() {
                 All weeks
               </p>
               <p className="text-sm font-semibold text-neutral-900">
-                House rules &amp; format
+                Global Course Format
               </p>
             </div>
             <span className="hidden shrink-0 text-[11px] font-medium text-neutral-500 sm:inline">
@@ -252,43 +251,45 @@ export default function WeekModularChatPanel() {
         aria-label="Message for the selected week"
         className="shrink-0 border-t border-neutral-100 bg-white px-6 py-3"
       >
-        <div className="rounded-md border border-neutral-200 bg-neutral-50/40 p-3">
-          <div className="mb-2">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
-              This week
-            </p>
-            <p className="mt-0.5 text-sm font-semibold text-neutral-900">
-              Refine modules in chat
-            </p>
-          </div>
-          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-end">
-            <textarea
-              ref={textareaRef}
-              value={input}
-              onChange={handleInput}
-              onKeyDown={handleKeyDown}
-              placeholder={
-                isBusy
-                  ? "Working…"
-                  : "Ask for edits to modules, pacing, or difficulty…"
-              }
-              disabled={isBusy}
-              rows={1}
-              className="min-h-[48px] max-h-[120px] w-full flex-1 resize-none rounded-xl border-2 border-neutral-300 bg-white px-4 py-3 text-sm font-medium text-neutral-900 shadow-sm outline-none transition-colors placeholder:font-normal placeholder:text-neutral-400 hover:border-neutral-400 focus:border-neutral-500 focus:ring-2 focus:ring-neutral-200/80 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-[52px]"
-            />
-            <button
-              type="button"
-              onClick={submit}
-              disabled={isBusy || !input.trim()}
-              className="shrink-0 rounded-xl border-2 border-neutral-800 bg-white px-5 py-3 text-sm font-semibold text-neutral-900 shadow-sm transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
-            >
-              Send
-            </button>
-          </div>
-          <p className="mt-2 text-[11px] leading-snug text-neutral-500">
-            Enter to send · Shift+Enter for a new line
-          </p>
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
+          WEEK {selectedWeek}
+        </p>
+        <p className="mb-2.5 mt-0.5 text-sm font-semibold text-neutral-900">
+          Refine This Week&apos;s Modules
+        </p>
+        <div className="flex items-end gap-2">
+          <textarea
+            ref={textareaRef}
+            value={input}
+            onChange={handleInput}
+            onKeyDown={handleKeyDown}
+            placeholder={
+              isBusy
+                ? "Working…"
+                : "Ask for edits to modules, pacing, or difficulty…"
+            }
+            disabled={isBusy}
+            rows={1}
+            className="flex-1 resize-none rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm
+                       text-neutral-900 placeholder-neutral-400 outline-none
+                       transition-colors focus:border-neutral-400
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ minHeight: "36px", maxHeight: "120px" }}
+          />
+          <button
+            type="button"
+            onClick={submit}
+            disabled={isBusy || !input.trim()}
+            className="shrink-0 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white
+                       transition-colors hover:bg-neutral-800
+                       disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            Send
+          </button>
         </div>
+        <p className="mt-1.5 text-[10px] text-neutral-300">
+          Enter to send, Shift+Enter for new line
+        </p>
       </footer>
     </div>
   );
