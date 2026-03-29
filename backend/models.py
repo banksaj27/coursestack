@@ -162,3 +162,9 @@ class ProjectGradeRequest(BaseModel):
     submission: str
     project_title: str = ""
     course_topic: str = ""
+
+
+class LectureTtsRequest(BaseModel):
+    """Plain text for ElevenLabs (client should strip markdown). Chunks stay under API limits."""
+
+    text: str = Field(..., min_length=1, max_length=10_000)
