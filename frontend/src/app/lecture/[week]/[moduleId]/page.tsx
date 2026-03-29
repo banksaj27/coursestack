@@ -103,12 +103,6 @@ export default function LectureStudioPage() {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-neutral-50/50">
       <AppNav />
-      <div className="flex shrink-0 items-center justify-center border-b border-neutral-100 bg-white px-4 py-1.5">
-        <span className="text-[10px] font-medium tracking-wide text-neutral-400">
-          Lecture workspace
-        </span>
-      </div>
-
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}

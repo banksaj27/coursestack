@@ -106,7 +106,7 @@ export default function GlobalFormatRulesField({
       }
     >
       Saved automatically and sent on every request.{" "}
-      <strong className="font-medium text-neutral-800">Apply</strong> updates the
+      <strong className="font-medium text-neutral-800">APPLY</strong> updates the
       selected week&apos;s modules to match.
     </p>
   );

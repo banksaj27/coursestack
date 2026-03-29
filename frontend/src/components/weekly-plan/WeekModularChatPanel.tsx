@@ -256,12 +256,12 @@ export default function WeekModularChatPanel() {
       </div>
 
       <div className="shrink-0 border-t border-neutral-100 px-6 py-3">
-        <div className="flex items-end gap-2">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             disabled={isBusy}
             title="Upload file (PDF or image)"
-            className="shrink-0 rounded-lg border border-neutral-200 p-2 text-neutral-400
+            className="shrink-0 cursor-pointer rounded-lg border border-neutral-200 p-2 text-neutral-400
                        transition-colors hover:text-neutral-600 hover:border-neutral-300
                        disabled:opacity-30 disabled:cursor-not-allowed"
           >

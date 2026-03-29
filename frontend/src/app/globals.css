@@ -17,6 +17,15 @@ body {
   color: var(--foreground);
 }
 
+button,
+[role="button"],
+a,
+label[for],
+select,
+summary {
+  cursor: pointer;
+}
+
 /* Hide scrollbar but keep functionality */
 .overflow-y-auto {
   scrollbar-width: thin;

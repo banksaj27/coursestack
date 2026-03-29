@@ -5,7 +5,7 @@ import { getCourseworkDestinationHref } from "@/lib/courseworkNavigation";
 import { useCourseStore } from "@/store/useCourseStore";
 
 const btn =
-  "rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors sm:px-3 sm:text-sm";
+  "cursor-pointer rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors sm:px-3 sm:text-sm";
 const active = "bg-neutral-100 text-neutral-900";
 const idle =
   "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900";
@@ -44,17 +44,14 @@ export default function AppNav() {
     router.push("/about");
   };
 
-  const onHome = pathname === "/";
-  const onSyllabus = pathname.startsWith("/syllabus");
-  const onWeekly =
-    pathname.startsWith("/weekly-plan") ||
-    (phase === "weekly_plan" && !isModuleWorkspacePath(pathname));
   const onCoursework = isModuleWorkspacePath(pathname);
+  const onSyllabus = !onCoursework && (pathname.startsWith("/syllabus") || (pathname === "/" && phase !== "topic_input"));
+  const onWeekly = !onCoursework && !onSyllabus && pathname.startsWith("/weekly-plan");
   const onAbout = pathname.startsWith("/about");
 
   return (
     <header
-      className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-1 border-b border-neutral-200 bg-white px-2 py-2 sm:gap-2 sm:px-4"
+      className="sticky top-0 z-50 grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-1 border-b border-neutral-200 bg-white px-2 py-2 sm:gap-2 sm:px-4"
       role="navigation"
       aria-label="Main"
     >
@@ -87,7 +84,7 @@ export default function AppNav() {
       <button
         type="button"
         onClick={goHome}
-        className="text-sm font-semibold text-neutral-900"
+        className="cursor-pointer text-sm font-semibold text-neutral-900"
       >
         CourseStack
       </button>

@@ -149,17 +149,9 @@ export default function LectureChatPanel({
   return (
     <div className="flex h-full flex-col">
       <div className="shrink-0 border-b border-neutral-100 px-6 py-3">
-        <h2 className="text-lg font-semibold tracking-tight text-neutral-900">
-          AI Professor
+        <h2 className="text-sm font-semibold text-neutral-900">
+          Conversation
         </h2>
-        <p className="mt-0.5 text-xs text-neutral-500">{copy.subtitle}</p>
-        <p className="mt-1 text-xs font-medium text-neutral-700">
-          Week {week}
-          {moduleTitle ? ` · ${moduleTitle}` : ""}
-        </p>
-        <p className="mt-0.5 font-mono text-[10px] text-neutral-400">
-          {moduleId}
-        </p>
       </div>
 
       {belowHeaderSlot ? (
