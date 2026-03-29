@@ -224,7 +224,7 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 
   finalize: async () => {
     const { planState } = get();
-    set({ isExporting: true });
+    set({ isExporting: true, phase: "complete", isComplete: true });
 
     try {
       const exportData = await exportSyllabus(planState);

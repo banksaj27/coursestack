@@ -176,18 +176,6 @@ def _parse_response(raw: str, current_state: PlanState) -> tuple[str, PlanState,
         except (json.JSONDecodeError, Exception):
             pass
 
-    turns = len([m for m in new_state.conversation_history if m.get("role") == "user"])
-    weeks = new_state.course_plan.weeks
-    if (
-        turns >= 5
-        and len(weeks) >= 4
-        and new_state.agent_phase == "refining"
-    ):
-        old_sigs_set = {_week_signature(w) for w in current_state.course_plan.weeks}
-        new_sigs_set = {_week_signature(w) for w in weeks}
-        if old_sigs_set == new_sigs_set:
-            new_state.agent_phase = "finalizing"
-
     return agent_message, new_state, is_complete
 
 

@@ -79,11 +79,6 @@ PHASE_INSTRUCTIONS = {
         "MLOps or causal inference. Only suggest additions that genuinely follow from "
         "the existing material, and phrase it as a single conversational question."
     ),
-    "finalizing": (
-        "You are in the FINALIZING phase. Ask the user if they would like any last "
-        "adjustments. If they say they are satisfied or say 'done', set is_complete "
-        "to true."
-    ),
 }
 
 
@@ -324,7 +319,7 @@ PART 2 — A JSON plan update block:
       }}
     ]
   }},
-  "agent_phase": "<understanding|refining|finalizing>",
+  "agent_phase": "<understanding|refining>",
   "is_complete": false
 }}
 :::END_PLAN_UPDATE:::

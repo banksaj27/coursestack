@@ -60,16 +60,20 @@ export default function CourseTimeline() {
         )}
       </div>
 
-      {hasWeeks && !isDone && (
+      {hasWeeks && (
         <div className="border-t border-neutral-100 px-8 py-3">
           <button
             onClick={finalize}
-            disabled={isBusy || isExporting}
+            disabled={isBusy || isExporting || isDone}
             className="w-full rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white
                        transition-colors hover:bg-neutral-800
                        disabled:opacity-30 disabled:cursor-not-allowed"
           >
-            {isExporting ? "Generating course..." : "Generate Course"}
+            {isExporting
+              ? "Generating course..."
+              : isDone
+                ? "Course generated"
+                : "Generate Course"}
           </button>
         </div>
       )}
