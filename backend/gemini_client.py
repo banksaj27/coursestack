@@ -15,8 +15,17 @@ def get_gemini_client() -> genai.Client:
     return _client
 
 
+def env_model_or(env_key: str, fallback: str) -> str:
+    """Like getenv for model names, but empty or whitespace-only counts as unset."""
+    v = os.getenv(env_key)
+    if v is None:
+        return fallback
+    s = v.strip()
+    return s if s else fallback
+
+
 def get_gemini_model() -> str:
-    return os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    return env_model_or("GEMINI_MODEL", "gemini-2.5-flash")
 
 
 def gemini_thinking_disabled() -> types.ThinkingConfig:

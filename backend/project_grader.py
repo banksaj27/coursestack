@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import json
-import os
 from typing import AsyncGenerator
 
 from google.genai import types
 
 from gemini_client import (
+    env_model_or,
     gemini_thinking_disabled,
     get_gemini_client,
     get_gemini_model,
@@ -79,7 +79,7 @@ async def run_project_grading_stream(
 ) -> AsyncGenerator[dict, None]:
     client = get_gemini_client()
     default_model = get_gemini_model()
-    model = os.getenv("GEMINI_MODEL_PROJECT", default_model)
+    model = env_model_or("GEMINI_MODEL_PROJECT", default_model)
 
     system = _build_grading_prompt(body_md, project_title, course_topic)
     user_text = f"Here is my submission:\n\n{submission}"
