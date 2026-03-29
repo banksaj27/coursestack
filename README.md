@@ -1,4 +1,4 @@
-# AutoCourse: Personal AI Professor
+# CourseStack: Personal AI Professor
 
 An AI-powered curriculum planning agent that designs personalized course plans through interactive conversation. Features a live-updating timeline visualization and streaming AI responses.
 
