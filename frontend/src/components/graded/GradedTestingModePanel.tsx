@@ -35,6 +35,29 @@ function answerKey(pageIdx: number, blockIdx: number) {
   return `${pageIdx}-${blockIdx}`;
 }
 
+/** MC option line: LaTeX + markdown for answer text (stem already uses MarkdownMath). */
+function MultipleChoiceOptionBody({
+  label,
+  text,
+  variant,
+  className = "",
+}: {
+  label: string;
+  text: string;
+  variant: "light" | "dark";
+  className?: string;
+}) {
+  const src = `**${label}.** ${text}`.trim();
+  return (
+    <MarkdownMath
+      source={src}
+      variant={variant}
+      uniformScale
+      className={`max-w-none [&_p]:mb-0 ${className}`}
+    />
+  );
+}
+
 function QuestionInteraction({
   qKey,
   parsed,
@@ -166,10 +189,18 @@ function QuestionInteraction({
               ) : (
                 <span className="mt-0.5 w-4 shrink-0" />
               )}
-              <span>
-                <span className="font-medium text-neutral-800">{o.label}.</span>{" "}
-                {o.text}
-              </span>
+              <div className="min-w-0 flex-1 [&_.katex]:text-[0.95em]">
+                <MultipleChoiceOptionBody
+                  label={o.label}
+                  text={o.text}
+                  variant="light"
+                  className={
+                    selected
+                      ? "prose-neutral"
+                      : "[&_p]:text-neutral-400 [&_strong]:text-neutral-500 [&_.katex]:text-neutral-400"
+                  }
+                />
+              </div>
             </div>
           );
         }
@@ -196,10 +227,14 @@ function QuestionInteraction({
             >
               {selected ? "✓" : ""}
             </span>
-            <span>
-              <span className="font-medium opacity-90">{o.label}.</span>{" "}
-              {o.text}
-            </span>
+            <div className="min-w-0 flex-1 [&_.katex]:text-[0.95em]">
+              <MultipleChoiceOptionBody
+                label={o.label}
+                text={o.text}
+                variant={selected ? "dark" : "light"}
+                className={selected ? "" : "prose-neutral"}
+              />
+            </div>
           </button>
         );
       })}

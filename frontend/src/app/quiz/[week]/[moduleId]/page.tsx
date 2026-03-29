@@ -16,6 +16,7 @@ import LectureChatPanel from "@/components/lecture-studio/LectureChatPanel";
 import LectureContentPanel from "@/components/lecture-studio/LectureContentPanel";
 import QuizHouseRulesPanel from "@/components/lecture-studio/QuizHouseRulesPanel";
 import { useModuleProgress } from "@/hooks/useModuleAssessmentCompletion";
+import { useGradedWorkspaceBootstrap } from "@/hooks/useGradedWorkspaceBootstrap";
 import { useModuleStudio } from "@/hooks/useModuleStudio";
 import { clearGradedModuleAttempt } from "@/lib/moduleAssessmentCompletion";
 import { setLastCourseworkVisit } from "@/lib/courseworkNavigation";
@@ -45,6 +46,8 @@ export default function QuizWorkspacePage() {
     sendMessage,
     isBusy,
   } = useModuleStudio(week, moduleId);
+
+  useGradedWorkspaceBootstrap(week, moduleId, module, notFound, sendMessage);
 
   const moduleNeighbors = useWeekModuleNeighbors(week, moduleId, module);
   const progress = useModuleProgress(week, moduleId);
