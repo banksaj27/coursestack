@@ -113,6 +113,8 @@ interface WeekModularStore {
   streamingContent: string;
 
   setSyllabus: (s: Syllabus) => void;
+  /** Update syllabus topic for UI + snapshot only (e.g. My Classes rename); does not clear week packs. */
+  updateSyllabusTopicLabel: (topic: string) => void;
   /** Restore syllabus + week selection from localStorage after refresh (does not clear packs). */
   applyPersistedSnapshot: (syllabus: Syllabus, selectedWeek: number) => void;
   /** Clear syllabus, all week packs, and summaries; use after course syllabus changes without re-export. */
@@ -199,6 +201,22 @@ export const useWeekModularStore = create<WeekModularStore>((set, get) => ({
     });
     if (typeof window !== "undefined") {
       saveWeekModularSnapshot(s, firstWeek);
+    }
+  },
+
+  updateSyllabusTopicLabel: (topic: string) => {
+    const trimmed = topic.trim();
+    if (!trimmed) return;
+    set((s) => ({
+      syllabus: { ...s.syllabus, topic: trimmed },
+    }));
+    const { syllabus, selectedWeek } = get();
+    if (
+      typeof window !== "undefined" &&
+      syllabus.topic.trim() &&
+      syllabus.course_plan.weeks.length > 0
+    ) {
+      saveWeekModularSnapshot(syllabus, selectedWeek);
     }
   },
 

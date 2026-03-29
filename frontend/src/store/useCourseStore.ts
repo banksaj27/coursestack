@@ -109,6 +109,8 @@ export interface CourseStore {
   hasExportedToWeekly: boolean;
 
   setTopic: (topic: string) => void;
+  /** Update course title in UI + persistence only (e.g. My Classes rename); does not reset planning or send messages. */
+  updatePlanTopicLabel: (topic: string) => void;
   sendMessage: (text: string) => Promise<void>;
   uploadSyllabus: (file: File) => Promise<void>;
   uploadImage: (file: File) => Promise<void>;
@@ -176,6 +178,14 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
     const titled = toTitleCase(topic);
     set({ phase: "planning", planState: emptyPlanState(titled) });
     get().sendMessage(`I want to learn about: ${titled}`);
+  },
+
+  updatePlanTopicLabel: (topic: string) => {
+    const trimmed = topic.trim();
+    if (!trimmed) return;
+    set((s) => ({
+      planState: { ...s.planState, topic: trimmed },
+    }));
   },
 
   sendMessage: async (text: string) => {

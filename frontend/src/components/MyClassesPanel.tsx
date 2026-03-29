@@ -75,6 +75,13 @@ export default function MyClassesPanel() {
     setEditingId(null);
   };
 
+  const handleEditNameChange = (value: string) => {
+    setEditName(value);
+    if (editingId) {
+      renameCourse(editingId, value);
+    }
+  };
+
   useEffect(() => {
     if (editingId && editRef.current) {
       editRef.current.focus();
@@ -138,6 +145,7 @@ export default function MyClassesPanel() {
               tabIndex={0}
               onClick={() => handleSwitch(course.id)}
               onKeyDown={(e) => {
+                if (editingId === course.id) return;
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   handleSwitch(course.id);
@@ -155,9 +163,10 @@ export default function MyClassesPanel() {
                     <input
                       ref={editRef}
                       value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
+                      onChange={(e) => handleEditNameChange(e.target.value)}
                       onBlur={commitRename}
                       onKeyDown={(e) => {
+                        e.stopPropagation();
                         if (e.key === "Enter") commitRename();
                         if (e.key === "Escape") setEditingId(null);
                       }}
@@ -208,12 +217,12 @@ export default function MyClassesPanel() {
                       </svg>
                     </button>
                   </div>
-                  <div className="flex flex-col items-start gap-0.5">
+                  <div className="flex flex-col items-end gap-0.5">
                     {idx > 0 ? (
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); moveCourse(course.id, "up"); }}
-                        className="rounded p-1 text-neutral-400 transition-colors hover:bg-neutral-200 hover:text-neutral-600"
+                        className="inline-flex shrink-0 rounded p-1 text-neutral-400 transition-colors hover:bg-neutral-200 hover:text-neutral-600"
                         title="Move up"
                       >
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -221,13 +230,18 @@ export default function MyClassesPanel() {
                         </svg>
                       </button>
                     ) : (
-                      <span className="inline-flex h-7 w-7 shrink-0" aria-hidden />
+                      <span
+                        className="inline-flex shrink-0 rounded p-1 text-neutral-400 invisible pointer-events-none"
+                        aria-hidden
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden />
+                      </span>
                     )}
                     {idx < courses.length - 1 ? (
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); moveCourse(course.id, "down"); }}
-                        className="rounded p-1 text-neutral-400 transition-colors hover:bg-neutral-200 hover:text-neutral-600"
+                        className="inline-flex shrink-0 rounded p-1 text-neutral-400 transition-colors hover:bg-neutral-200 hover:text-neutral-600"
                         title="Move down"
                       >
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -235,7 +249,12 @@ export default function MyClassesPanel() {
                         </svg>
                       </button>
                     ) : (
-                      <span className="inline-flex h-7 w-7 shrink-0" aria-hidden />
+                      <span
+                        className="inline-flex shrink-0 rounded p-1 text-neutral-400 invisible pointer-events-none"
+                        aria-hidden
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden />
+                      </span>
                     )}
                   </div>
                 </div>

@@ -317,6 +317,11 @@ export const useClassesStore = create<ClassesStore>((set, get) => ({
     );
     set({ courses: updated });
     saveClassesIndex({ courses: updated, activeCourseId: activeCourseId ?? "" });
+
+    if (id === activeCourseId) {
+      useCourseStore.getState().updatePlanTopicLabel(trimmed);
+      useWeekModularStore.getState().updateSyllabusTopicLabel(trimmed);
+    }
   },
 
   moveCourse: (id: string, direction: "up" | "down") => {
