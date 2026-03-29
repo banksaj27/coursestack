@@ -1,32 +1,39 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import {
+  ensureWeekFormatHydrated,
   getGlobalFormatInstructions,
+  resetGlobalFormatInstructions,
   setGlobalFormatInstructions,
 } from "@/lib/weekFormatInstructions";
 
 type Props = {
   disabled?: boolean;
-  /** When provided, an Apply button prompts the AI to reshape the current week. */
   onApply?: () => void | Promise<void>;
   applyButtonLabel?: string;
+  /** Compact icon control to clear saved rules (shown next to Apply). */
+  showCompactReset?: boolean;
   /** Omit outer top rule when nested inside a framed panel (e.g. weekly plan). */
   className?: string;
-  /** Use `none` when a parent disclosure already shows the section title. */
   headerMode?: "full" | "none";
+  /** After clearing rules (e.g. reload week state). */
+  onAfterResetFormat?: () => void;
 };
 
 export default function GlobalFormatRulesField({
   disabled,
   onApply,
   applyButtonLabel = "Apply to this week",
+  showCompactReset = false,
   className = "mt-3 border-t border-neutral-100 pt-3",
   headerMode = "full",
+  onAfterResetFormat,
 }: Props) {
   const [value, setValue] = useState("");
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    ensureWeekFormatHydrated();
     setValue(getGlobalFormatInstructions());
   }, []);
 
@@ -39,23 +46,52 @@ export default function GlobalFormatRulesField({
             : "text-[11px] leading-snug text-neutral-600"
         }
       >
-        Saved automatically and applied on every request.{" "}
-        <strong className="font-medium text-neutral-800">Apply</strong>{" "}
-        rewrites the <strong className="font-medium text-neutral-800">selected week</strong>{" "}
-        to match.
+        Saved automatically and sent on every request.{" "}
+        <strong className="font-medium text-neutral-800">APPLY</strong>{" "} updates
+        the selected week&apos;s modules to match.
       </p>
-      <textarea
-        value={value}
-        onChange={(e) => {
-          const v = e.target.value;
-          setValue(v);
-          setGlobalFormatInstructions(v);
-        }}
-        disabled={disabled}
-        rows={3}
-        placeholder="Optional: house style (headings, notation, tone). Empty = defaults."
-        className="mt-2 w-full resize-y rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm leading-relaxed text-neutral-800 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] outline-none placeholder:text-neutral-400 focus:border-neutral-500 focus:ring-1 focus:ring-neutral-300 disabled:opacity-50"
-      />
+      <div className="relative mt-2">
+        <textarea
+          value={value}
+          onChange={(e) => {
+            const v = e.target.value;
+            setValue(v);
+            setGlobalFormatInstructions(v);
+          }}
+          disabled={disabled}
+          rows={3}
+          placeholder="Optional: house style (headings, notation, tone). Empty = defaults."
+          className="w-full resize-y rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-sm leading-relaxed text-neutral-800 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] outline-none placeholder:text-neutral-400 focus:border-neutral-500 focus:ring-1 focus:ring-neutral-300 disabled:opacity-50"
+        />
+        {showCompactReset ? (
+          <button
+            type="button"
+            title="Clear global format rules"
+            aria-label="Clear global format rules"
+            disabled={disabled}
+            onClick={() => {
+              resetGlobalFormatInstructions();
+              setValue("");
+              onAfterResetFormat?.();
+            }}
+            className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4 shrink-0"
+              aria-hidden
+            >
+              <path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7m0 0l3.182 3.182m0-3.182v-4.992" />
+            </svg>
+          </button>
+        ) : null}
+      </div>
       {onApply ? (
         <div className="mt-3 flex justify-end">
           <button

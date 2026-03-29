@@ -41,3 +41,22 @@ export function setGlobalFormatInstructions(text: string): void {
     /* quota */
   }
 }
+
+/** Idempotent: load from localStorage once before reads (used at API boundary). */
+export function ensureWeekFormatHydrated(): void {
+  if (typeof window !== "undefined" && !hydrated) {
+    hydrateWeekFormatInstructions();
+  }
+}
+
+/** Clear saved global format rules. */
+export function resetGlobalFormatInstructions(): void {
+  cache = "";
+  hydrated = true;
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* quota */
+  }
+}

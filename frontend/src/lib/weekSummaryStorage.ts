@@ -21,6 +21,16 @@ export function readWeekSummariesFromStorage(): WeekSummaryMap {
   }
 }
 
+/** Clear persisted week summaries (e.g. when the course syllabus changes). */
+export function clearWeekSummariesStorage(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function persistWeekSummaries(map: WeekSummaryMap): void {
   if (typeof window === "undefined") return;
   try {

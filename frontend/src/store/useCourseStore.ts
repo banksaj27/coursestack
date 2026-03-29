@@ -7,6 +7,7 @@ import type {
   Week,
 } from "@/types/course";
 import { streamPlanRequest, uploadSyllabusFile, exportSyllabus } from "@/lib/api";
+import { clearAllWeekSummaries } from "@/lib/weekSummaryCache";
 import { useWeekModularStore } from "@/store/useWeekModularStore";
 import type { Syllabus } from "@/types/syllabus";
 
@@ -101,6 +102,8 @@ interface CourseStore {
   isComplete: boolean;
   isExporting: boolean;
   pendingAttachments: PendingAttachment[];
+  /** True after a successful export to weekly plan; cleared when the syllabus is edited again. */
+  hasExportedToWeekly: boolean;
 
   setTopic: (topic: string) => void;
   sendMessage: (text: string) => Promise<void>;
@@ -119,6 +122,7 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
   isComplete: false,
   isExporting: false,
   pendingAttachments: [],
+  hasExportedToWeekly: false,
 
   uploadSyllabus: async (file: File) => {
     try {
@@ -196,13 +200,25 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 
         assistantMsg.content = data.agent_message;
 
-        set((s) => ({
-          planState: updatedState,
-          messages: [...s.messages, { ...assistantMsg }],
-          agentStatus: "updating_plan",
-          isComplete: data.is_complete,
-          phase: data.is_complete ? "complete" : s.phase,
-        }));
+        set((s) => {
+          const invalidateWeekly = s.hasExportedToWeekly;
+          if (invalidateWeekly) {
+            clearAllWeekSummaries();
+            useWeekModularStore.getState().clearWeeklyWorkspace();
+          }
+          return {
+            planState: updatedState,
+            messages: [...s.messages, { ...assistantMsg }],
+            agentStatus: "updating_plan",
+            isComplete: invalidateWeekly ? false : data.is_complete,
+            phase: invalidateWeekly
+              ? "planning"
+              : data.is_complete
+                ? "complete"
+                : s.phase,
+            hasExportedToWeekly: invalidateWeekly ? false : s.hasExportedToWeekly,
+          };
+        });
       },
       onDone: () => {
         set({ agentStatus: "idle", streamingContent: "" });
@@ -256,7 +272,7 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
       };
 
       useWeekModularStore.getState().setSyllabus(syllabus);
-      set({ phase: "weekly_plan", isExporting: false });
+      set({ phase: "weekly_plan", isExporting: false, hasExportedToWeekly: true });
     } catch (err) {
       console.error("Export failed:", err);
       set({ isExporting: false });
@@ -273,6 +289,7 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
       isComplete: false,
       isExporting: false,
       pendingAttachments: [],
+      hasExportedToWeekly: false,
     });
   },
 }));

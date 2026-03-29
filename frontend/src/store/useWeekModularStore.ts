@@ -4,7 +4,10 @@ import {
   MODULAR_BOOTSTRAP_API_MESSAGE,
   MODULAR_BOOTSTRAP_DISPLAY,
 } from "@/lib/weekModularBootstrap";
-import { getGlobalFormatInstructions } from "@/lib/weekFormatInstructions";
+import {
+  ensureWeekFormatHydrated,
+  getGlobalFormatInstructions,
+} from "@/lib/weekFormatInstructions";
 import { defaultMaxHistoryMessages } from "@/lib/weekSummaryStorage";
 import {
   setWeekSummaryForWeek,
@@ -82,11 +85,17 @@ interface WeekModularStore {
   streamingContent: string;
 
   setSyllabus: (s: Syllabus) => void;
+  /** Clear syllabus, all week packs, and summaries; use after course syllabus changes without re-export. */
+  clearWeeklyWorkspace: () => void;
+  /** Re-sync in-memory week from storage (e.g. after global format reset). */
+  reloadCurrentWeekFromStorage: () => void;
   setSelectedWeek: (week: number) => void;
   sendMessage: (text: string, options?: { displayText?: string }) => Promise<void>;
   bootstrapModularWeek: () => Promise<void>;
   /** Reload current week from localStorage (call once on client mount). */
   rehydrateModularForSelectedWeek: () => void;
+  /** Clear all saved weekly data and regenerate the current week from scratch. */
+  resetWeeklyPlanAndRegenerate: () => Promise<void>;
 }
 
 function toPayload(
@@ -95,6 +104,7 @@ function toPayload(
   generated: WeekModularGenerated,
   conversation_history: { role: string; content: string }[],
 ): WeekModularStatePayload {
+  ensureWeekFormatHydrated();
   const maxConv = defaultMaxHistoryMessages();
   return {
     syllabus,
@@ -151,6 +161,34 @@ export const useWeekModularStore = create<WeekModularStore>((set, get) => ({
     });
   },
 
+  clearWeeklyWorkspace: () => {
+    if (typeof window !== "undefined") {
+      clearAllModularWeekPacks();
+      bootstrapCooldown.clear();
+    }
+    set({
+      syllabus: emptySyllabus,
+      selectedWeek: 1,
+      generated: buildInitialModularWeek(emptySyllabus, 1),
+      messages: [],
+      agentStatus: "idle",
+      streamingContent: "",
+    });
+  },
+
+  reloadCurrentWeekFromStorage: () => {
+    if (typeof window === "undefined") return;
+    ensureWeekFormatHydrated();
+    const { syllabus, selectedWeek } = get();
+    const next = loadStateForWeek(syllabus, selectedWeek);
+    set({
+      generated: next.generated,
+      messages: next.messages,
+      agentStatus: "idle",
+      streamingContent: "",
+    });
+  },
+
   rehydrateModularForSelectedWeek: () => {
     if (typeof window === "undefined") return;
     const week = get().selectedWeek;
@@ -173,6 +211,23 @@ export const useWeekModularStore = create<WeekModularStore>((set, get) => ({
       agentStatus: "idle",
       streamingContent: "",
     });
+  },
+
+  resetWeeklyPlanAndRegenerate: async () => {
+    if (get().agentStatus !== "idle") return;
+    if (typeof window !== "undefined") {
+      clearAllModularWeekPacks();
+      bootstrapCooldown.clear();
+    }
+    const { syllabus, selectedWeek } = get();
+    const next = loadStateForWeek(syllabus, selectedWeek);
+    set({
+      generated: next.generated,
+      messages: next.messages,
+      agentStatus: "idle",
+      streamingContent: "",
+    });
+    await get().bootstrapModularWeek();
   },
 
   bootstrapModularWeek: async () => {

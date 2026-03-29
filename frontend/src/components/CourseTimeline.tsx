@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCourseStore } from "@/store/useCourseStore";
 import TimelineNode from "./TimelineNode";
@@ -28,6 +29,7 @@ function EmptyState() {
 }
 
 export default function CourseTimeline() {
+  const router = useRouter();
   const weeks = useCourseStore((s) => s.planState.course_plan.weeks);
   const agentStatus = useCourseStore((s) => s.agentStatus);
   const phase = useCourseStore((s) => s.phase);
@@ -35,7 +37,18 @@ export default function CourseTimeline() {
   const isExporting = useCourseStore((s) => s.isExporting);
   const hasWeeks = weeks.length > 0;
   const isBusy = agentStatus !== "idle";
-  const isDone = phase === "complete";
+  const hasGeneratedCourse = phase === "weekly_plan";
+
+  const handleFinalize = async () => {
+    await finalize();
+    if (useCourseStore.getState().phase === "weekly_plan") {
+      router.push("/weekly-plan");
+    }
+  };
+
+  const goToCourses = () => {
+    router.push("/weekly-plan");
+  };
 
   return (
     <div className="relative flex h-full flex-col bg-white">
@@ -63,18 +76,21 @@ export default function CourseTimeline() {
       {hasWeeks && (
         <div className="border-t border-neutral-100 px-8 py-3">
           <button
-            onClick={finalize}
-            disabled={isBusy || isExporting || isDone}
+            type="button"
+            onClick={() =>
+              hasGeneratedCourse ? goToCourses() : void handleFinalize()
+            }
+            disabled={!hasGeneratedCourse && (isBusy || isExporting)}
             className="w-full rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white
                        transition-[opacity,background-color] duration-300 ease-out
                        hover:bg-neutral-800
                        disabled:opacity-30 disabled:cursor-not-allowed"
           >
             {isExporting
-              ? "Generating course..."
-              : isDone
-                ? "Course generated"
-                : "Generate Course"}
+              ? "Generating courses..."
+              : hasGeneratedCourse
+                ? "View courses"
+                : "Generate Courses"}
           </button>
         </div>
       )}

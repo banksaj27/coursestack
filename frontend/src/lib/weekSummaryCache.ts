@@ -1,4 +1,5 @@
 import {
+  clearWeekSummariesStorage,
   persistWeekSummaries,
   readWeekSummariesFromStorage,
   type WeekSummaryMap,
@@ -35,6 +36,14 @@ export function setWeekSummaryForWeek(
 }
 
 /** Payload field for the week-modular API. */
+/** Drop all in-memory and stored week summaries (syllabus invalidated). */
+export function clearAllWeekSummaries(): void {
+  if (typeof window === "undefined") return;
+  clearWeekSummariesStorage();
+  cache = {};
+  hydrated = true;
+}
+
 export function weekSummariesForApiPayload(): { week: number; summary: string }[] {
   const c = getWeekSummaryCache();
   return Object.entries(c)

@@ -67,6 +67,9 @@ export default function WeekModularChatPanel() {
   const rehydrateModularForSelectedWeek = useWeekModularStore(
     (s) => s.rehydrateModularForSelectedWeek,
   );
+  const reloadCurrentWeekFromStorage = useWeekModularStore(
+    (s) => s.reloadCurrentWeekFromStorage,
+  );
 
   const [input, setInput] = useState("");
   const [houseRulesOpen, setHouseRulesOpen] = useState(true);
@@ -119,6 +122,11 @@ export default function WeekModularChatPanel() {
     el.style.height = "auto";
     el.style.height = Math.min(el.scrollHeight, 120) + "px";
   };
+
+  const handleAfterResetGlobalFormat = useCallback(() => {
+    reloadCurrentWeekFromStorage();
+    void bootstrapModularWeek();
+  }, [reloadCurrentWeekFromStorage, bootstrapModularWeek]);
 
   return (
     <div className="flex h-full flex-col bg-white">
@@ -193,6 +201,8 @@ export default function WeekModularChatPanel() {
                     className="mt-0 border-0 p-0"
                     disabled={isBusy}
                     applyButtonLabel="APPLY"
+                    showCompactReset
+                    onAfterResetFormat={handleAfterResetGlobalFormat}
                     onApply={() =>
                       void sendMessage(APPLY_GLOBAL_FORMAT_MODULAR_API_MESSAGE, {
                         displayText: APPLY_GLOBAL_FORMAT_MODULAR_DISPLAY,

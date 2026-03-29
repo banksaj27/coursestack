@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useCourseStore } from "@/store/useCourseStore";
 
@@ -58,6 +59,7 @@ const ALL_SUGGESTIONS = [
 ];
 
 export default function TopicInput() {
+  const router = useRouter();
   const [topic, setTopic] = useState("");
   const setTopicAction = useCourseStore((s) => s.setTopic);
 
@@ -78,6 +80,7 @@ export default function TopicInput() {
     const text = topic.trim();
     if (!text) return;
     setTopicAction(text);
+    router.push("/syllabus");
   };
 
   return (
@@ -86,7 +89,7 @@ export default function TopicInput() {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.25 }}
-      className="flex h-screen items-center justify-center bg-white"
+      className="flex h-full min-h-0 items-center justify-center bg-white"
     >
       <div className="w-full max-w-lg px-8">
         <motion.div
