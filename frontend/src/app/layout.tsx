@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "CourseStack",
   description:
-    "An AI-powered curriculum designer that builds personalized course plans through interactive conversation.",
+    "CourseStack empowers anyone to learn by using AI to design personalized curricula through interactive conversation and real-time planning. CourseStack is designed to open doors to allow anyone to learn anything.",
 };
 
 export default function RootLayout({

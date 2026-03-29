@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCourseStore } from "@/store/useCourseStore";
 
@@ -11,12 +10,15 @@ const idle =
   "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900";
 
 /** Primary navigation: Home, Syllabus builder, Weekly Plan. */
+/** Primary navigation: Home, Syllabus builder, Weekly plan, About. */
 export default function AppNav() {
   const pathname = usePathname();
   const router = useRouter();
   const phase = useCourseStore((s) => s.phase);
 
-  const goHome = () => router.push("/");
+  const goHome = () => {
+    router.push("/");
+  };
 
   const goSyllabus = () => {
     if (phase === "topic_input") {
@@ -26,41 +28,60 @@ export default function AppNav() {
     }
   };
 
+  const goPlan = () => {
+    router.push("/weekly-plan")
+  };
+
+  const goAbout = () => {
+    router.push("/about");
+  };
+
   const onHome = pathname === "/";
   const onSyllabus = pathname.startsWith("/syllabus");
-  const onWeekly = pathname.startsWith("/weekly-plan");
+  const onWeekly = pathname.startsWith("/weekly-plan") || phase === "weekly_plan";
+  const onAbout = pathname.startsWith("/about");
 
   return (
     <header
-      className="relative flex shrink-0 items-center gap-1 border-b border-neutral-200 bg-white px-2 py-2 sm:gap-2 sm:px-4"
+      className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-1 border-b border-neutral-200 bg-white px-2 py-2 sm:gap-2 sm:px-4"
       role="navigation"
       aria-label="Main"
     >
-      <button
-        type="button"
-        onClick={goSyllabus}
-        className={`${btn} ${onSyllabus ? active : idle}`}
-      >
-        Syllabus
-      </button>
-      <Link
-        href="/weekly-plan"
-        className={`${btn} ${onWeekly ? active : idle}`}
-      >
-        Weekly Plan
-      </Link>
+      <div className="flex min-w-0 items-center gap-1 sm:gap-2">
+        <button
+          type="button"
+          onClick={goSyllabus}
+          className={`${btn} ${onSyllabus ? active : idle}`}
+        >
+          Syllabus
+        </button>
 
-      <span className="pointer-events-none absolute inset-y-0 left-1/2 -translate-x-1/2 flex items-center text-sm font-semibold text-neutral-900">
-        CourseStack
-      </span>
+        <button
+          type="button"
+          onClick={goPlan}
+          className={`${btn} ${onWeekly ? active : idle}`}
+        >
+          Weekly Plan
+        </button>
+      </div>
 
       <button
         type="button"
         onClick={goHome}
-        className={`${btn} ${onHome ? active : idle} ml-auto`}
+        className="text-sm font-semibold text-neutral-900"
       >
-        Home
+        CourseStack
       </button>
+
+      <div className="flex min-w-0 justify-end">
+        <button
+          type="button"
+          onClick={goAbout}
+          className={`${btn} ${onAbout ? active : idle}`}
+        >
+          About
+        </button>
+      </div>
     </header>
   );
 }
