@@ -38,4 +38,4 @@ export interface Message {
 
 export type AgentStatus = "idle" | "thinking" | "streaming" | "updating_plan";
 
-export type AppPhase = "topic_input" | "planning" | "complete";
+export type AppPhase = "topic_input" | "planning" | "complete" | "weekly_plan";

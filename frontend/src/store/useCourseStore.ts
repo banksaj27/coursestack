@@ -7,6 +7,8 @@ import type {
   Week,
 } from "@/types/course";
 import { streamPlanRequest, uploadSyllabusFile, exportSyllabus } from "@/lib/api";
+import { useWeekModularStore } from "@/store/useWeekModularStore";
+import type { Syllabus } from "@/types/syllabus";
 
 const TITLE_LOWER = new Set([
   "a","an","the","and","but","or","nor","for","yet","so",
@@ -229,20 +231,36 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
     try {
       const exportData = await exportSyllabus(planState);
 
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-        type: "application/json",
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "syllabus.json";
-      a.click();
-      URL.revokeObjectURL(url);
+      const topicsByWeek = new Map(
+        planState.course_plan.weeks.map((w) => [w.week, w.topics]),
+      );
+
+      const syllabus: Syllabus = {
+        topic: (exportData.topic as string) || planState.topic,
+        user_profile: {
+          background: planState.user_profile.background,
+          goals: planState.user_profile.goals,
+          constraints: planState.user_profile.constraints,
+          learning_style: planState.user_profile.learning_style,
+          rigor_level: planState.user_profile.rigor_level,
+        },
+        course_plan: {
+          weeks: ((exportData.weeks as Array<Record<string, unknown>>) ?? []).map((ew) => ({
+            week: ew.week as number,
+            title: ew.title as string,
+            topics: topicsByWeek.get(ew.week as number) ?? [],
+            has_homework: ew.has_homework as boolean,
+            assessment: (ew.assessment as string | null) ?? null,
+          })),
+        },
+      };
+
+      useWeekModularStore.getState().setSyllabus(syllabus);
+      set({ phase: "weekly_plan", isExporting: false });
     } catch (err) {
       console.error("Export failed:", err);
+      set({ isExporting: false });
     }
-
-    set({ phase: "complete", isComplete: true, isExporting: false });
   },
 
   reset: () => {

@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import syllabusData from "@/data/syllabus.json";
 import { buildInitialModularWeek } from "@/lib/buildInitialModularWeek";
 import {
   MODULAR_BOOTSTRAP_API_MESSAGE,
@@ -14,6 +13,7 @@ import {
 import {
   loadModularWeekPack,
   saveModularWeekPack,
+  clearAllModularWeekPacks,
 } from "@/lib/weekModularPersistence";
 import { streamWeekModularRequest } from "@/lib/weekModularApi";
 import type { Message } from "@/types/course";
@@ -24,7 +24,17 @@ import type {
   WeekModule,
 } from "@/types/weekModular";
 
-const syllabus = syllabusData as Syllabus;
+const emptySyllabus: Syllabus = {
+  topic: "",
+  user_profile: {
+    background: "",
+    goals: [],
+    constraints: {},
+    learning_style: "",
+    rigor_level: "",
+  },
+  course_plan: { weeks: [] },
+};
 
 type AgentStatus = "idle" | "thinking" | "streaming" | "updating";
 
@@ -71,6 +81,7 @@ interface WeekModularStore {
   agentStatus: AgentStatus;
   streamingContent: string;
 
+  setSyllabus: (s: Syllabus) => void;
   setSelectedWeek: (week: number) => void;
   sendMessage: (text: string, options?: { displayText?: string }) => Promise<void>;
   bootstrapModularWeek: () => Promise<void>;
@@ -96,15 +107,13 @@ function toPayload(
   };
 }
 
-const firstWeek = syllabus.course_plan.weeks[0]?.week ?? 1;
-
-function loadStateForWeek(week: number): {
+function loadStateForWeek(syl: Syllabus, week: number): {
   generated: WeekModularGenerated;
   messages: Message[];
 } {
   if (typeof window === "undefined") {
     return {
-      generated: buildInitialModularWeek(syllabus, week),
+      generated: buildInitialModularWeek(syl, week),
       messages: [],
     };
   }
@@ -116,18 +125,31 @@ function loadStateForWeek(week: number): {
     };
   }
   return {
-    generated: buildInitialModularWeek(syllabus, week),
+    generated: buildInitialModularWeek(syl, week),
     messages: [],
   };
 }
 
 export const useWeekModularStore = create<WeekModularStore>((set, get) => ({
-  syllabus,
-  selectedWeek: firstWeek,
-  generated: buildInitialModularWeek(syllabus, firstWeek),
+  syllabus: emptySyllabus,
+  selectedWeek: 1,
+  generated: { modules: [], instructor_notes_md: "" },
   messages: [],
   agentStatus: "idle",
   streamingContent: "",
+
+  setSyllabus: (s: Syllabus) => {
+    clearAllModularWeekPacks();
+    const firstWeek = s.course_plan.weeks[0]?.week ?? 1;
+    set({
+      syllabus: s,
+      selectedWeek: firstWeek,
+      generated: buildInitialModularWeek(s, firstWeek),
+      messages: [],
+      agentStatus: "idle",
+      streamingContent: "",
+    });
+  },
 
   rehydrateModularForSelectedWeek: () => {
     if (typeof window === "undefined") return;
@@ -143,7 +165,7 @@ export const useWeekModularStore = create<WeekModularStore>((set, get) => ({
   },
 
   setSelectedWeek: (week: number) => {
-    const next = loadStateForWeek(week);
+    const next = loadStateForWeek(get().syllabus, week);
     set({
       selectedWeek: week,
       generated: next.generated,

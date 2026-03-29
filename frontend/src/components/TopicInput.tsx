@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import { useCourseStore } from "@/store/useCourseStore";
 
@@ -63,10 +62,15 @@ export default function TopicInput() {
   const setTopicAction = useCourseStore((s) => s.setTopic);
 
   const [suggestions, setSuggestions] = useState(() => ALL_SUGGESTIONS.slice(0, 5));
+  const [placeholder, setPlaceholder] = useState(() => ALL_SUGGESTIONS[5] ?? "Measure-theoretic probability");
 
   useEffect(() => {
     const shuffled = [...ALL_SUGGESTIONS].sort(() => Math.random() - 0.5);
-    setSuggestions(shuffled.slice(0, 5));
+    const chips = shuffled.slice(0, 5);
+    const chipSet = new Set(chips);
+    const extra = shuffled.find((s) => !chipSet.has(s)) ?? ALL_SUGGESTIONS[0];
+    setSuggestions(chips);
+    setPlaceholder(extra);
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -110,7 +114,7 @@ export default function TopicInput() {
             type="text"
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
-            placeholder={`e.g. ${suggestions[4] ?? "Measure-theoretic probability"}`}
+            placeholder={`e.g. ${placeholder}`}
             autoFocus
             className="w-full rounded-lg border border-neutral-300 bg-white px-4 py-3 text-sm
                        text-neutral-900 placeholder-neutral-400 outline-none
@@ -146,16 +150,6 @@ export default function TopicInput() {
           ))}
         </motion.div>
 
-        <p className="mt-8 text-center text-[11px] leading-relaxed text-neutral-400">
-          <Link
-            href="/weekly-plan"
-            className="text-neutral-600 underline decoration-neutral-300 underline-offset-2 hover:text-neutral-900"
-          >
-            Weekly Plan
-          </Link>
-          {" — "}
-          <code className="rounded bg-neutral-100 px-1 text-[10px]">syllabus.json</code>
-        </p>
       </div>
     </motion.div>
   );

@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AutoCourse — Personal AI Professor",
+  title: "CourseStack",
   description:
     "An AI-powered curriculum designer that builds personalized course plans through interactive conversation.",
 };

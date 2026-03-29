@@ -94,3 +94,13 @@ export function clearModularWeekPack(week: number): void {
   delete root[String(week)];
   writeRoot(root);
 }
+
+/** Remove all saved week packs (used when the syllabus changes). */
+export function clearAllModularWeekPacks(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+}
