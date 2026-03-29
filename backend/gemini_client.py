@@ -51,7 +51,10 @@ def env_model_or(env_key: str, fallback: str) -> str:
     if v is None:
         return fallback
     s = v.strip()
-    return s if s else fallback
+    # Placeholder "-" (often from forms) is not a valid model id.
+    if not s or s == "-":
+        return fallback
+    return s
 
 
 def get_gemini_model() -> str:

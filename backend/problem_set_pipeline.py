@@ -9,13 +9,17 @@ Multi-step problem set generation for the Problem set workspace.
 from __future__ import annotations
 
 import json
-import os
 import re
 from typing import Any, AsyncGenerator
 
 from google.genai import types
 
-from gemini_client import gemini_thinking_disabled, get_gemini_client, get_gemini_model
+from gemini_client import (
+    env_model_or,
+    gemini_thinking_disabled,
+    get_gemini_client,
+    get_gemini_model,
+)
 from models import LectureStudioState
 from week_context_utils import (
     assessment_markdown_format_block,
@@ -140,7 +144,7 @@ async def run_problem_set_pipeline(
         return
 
     default_model = get_gemini_model()
-    model = os.getenv("GEMINI_MODEL_PROBLEM_SET", default_model)
+    model = env_model_or("GEMINI_MODEL_PROBLEM_SET", default_model)
     client = get_gemini_client()
     mod = state.module
     week_json, week_title = _week_context_json(state)

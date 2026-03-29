@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import json
-import os
 from typing import Any
 
 from google.genai import types
 
-from gemini_client import gemini_thinking_disabled, get_gemini_client, get_gemini_model
+from gemini_client import (
+    env_model_or,
+    gemini_thinking_disabled,
+    get_gemini_client,
+    get_gemini_model,
+)
 
 _GRADE_JSON_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -71,7 +75,7 @@ async def grade_problem_set_pdf(
     """Returns dict with score, max_score, feedback_md (and passes through errors as raise)."""
     client = get_gemini_client()
     default_model = get_gemini_model()
-    model = os.getenv("GEMINI_MODEL_PROBLEM_SET_GRADE", default_model)
+    model = env_model_or("GEMINI_MODEL_PROBLEM_SET_GRADE", default_model)
 
     system = _build_system_instruction(
         syllabus_topic,
