@@ -3,7 +3,6 @@
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
 import ChatMessage from "@/components/ChatMessage";
 import StreamingAssistantBubble from "@/components/StreamingAssistantBubble";
 import type { Message } from "@/types/course";
@@ -150,27 +149,17 @@ export default function LectureChatPanel({
   return (
     <div className="flex h-full flex-col">
       <div className="shrink-0 border-b border-neutral-100 px-6 py-3">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight text-neutral-900">
-              AI Professor
-            </h2>
-            <p className="mt-0.5 text-xs text-neutral-500">{copy.subtitle}</p>
-            <p className="mt-1 text-xs font-medium text-neutral-700">
-              Week {week}
-              {moduleTitle ? ` · ${moduleTitle}` : ""}
-            </p>
-            <p className="mt-0.5 font-mono text-[10px] text-neutral-400">
-              {moduleId}
-            </p>
-          </div>
-          <Link
-            href="/weekly-plan"
-            className="shrink-0 text-xs text-neutral-500 underline decoration-neutral-300 underline-offset-2 hover:text-neutral-800"
-          >
-            ← Weekly Plan
-          </Link>
-        </div>
+        <h2 className="text-lg font-semibold tracking-tight text-neutral-900">
+          AI Professor
+        </h2>
+        <p className="mt-0.5 text-xs text-neutral-500">{copy.subtitle}</p>
+        <p className="mt-1 text-xs font-medium text-neutral-700">
+          Week {week}
+          {moduleTitle ? ` · ${moduleTitle}` : ""}
+        </p>
+        <p className="mt-0.5 font-mono text-[10px] text-neutral-400">
+          {moduleId}
+        </p>
       </div>
 
       {belowHeaderSlot ? (
