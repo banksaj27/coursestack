@@ -16,6 +16,7 @@ from typing import Any, AsyncGenerator
 from google.genai import types
 
 from gemini_client import (
+    env_model_or,
     gemini_thinking_disabled,
     get_gemini_client,
     get_gemini_model,
@@ -122,7 +123,7 @@ async def run_lecture_notes_pipeline(
         return
 
     default_model = get_gemini_model()
-    model = os.getenv("GEMINI_MODEL_LECTURE_NOTES", default_model)
+    model = env_model_or("GEMINI_MODEL_LECTURE_NOTES", default_model)
     client = get_gemini_client()
     mod = state.module
     week_json, week_title = _week_context_json(state)

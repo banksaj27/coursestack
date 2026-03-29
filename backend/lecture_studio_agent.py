@@ -7,6 +7,7 @@ from typing import AsyncGenerator
 from google.genai import types
 
 from gemini_client import (
+    env_model_or,
     gemini_thinking_disabled,
     get_gemini_client,
     get_gemini_model,
@@ -557,7 +558,7 @@ def _lecture_studio_model(state: LectureStudioState) -> str:
     """Use GEMINI_MODEL_PROJECT for project modules when set; else GEMINI_MODEL."""
     default = get_gemini_model()
     if state.module.kind == "project":
-        return os.getenv("GEMINI_MODEL_PROJECT", default)
+        return env_model_or("GEMINI_MODEL_PROJECT", default)
     return default
 
 
